@@ -3,8 +3,8 @@ Summary:    Speech To Text client library and daemon
 Version:    0.1.1
 Release:    1
 Group:      libs
-License:    Samsung
-Source0:    stt-0.1.1.tar.gz
+License:    Apache-2.0
+Source0:    %{name}-%{version}.tar.gz
 Requires(post): /sbin/ldconfig
 Requires(postun): /sbin/ldconfig
 BuildRequires:  pkgconfig(glib-2.0)
@@ -15,7 +15,6 @@ BuildRequires:  pkgconfig(mm-player)
 BuildRequires:  pkgconfig(mm-common)
 BuildRequires:  pkgconfig(mm-sound)
 BuildRequires:  pkgconfig(mm-camcorder)
-BuildRequires:  pkgconfig(dnet)
 BuildRequires:  pkgconfig(dlog)
 BuildRequires:  pkgconfig(vconf)
 
@@ -43,7 +42,6 @@ cmake . -DCMAKE_INSTALL_PREFIX=/usr
 make %{?jobs:-j%jobs}
 
 %install
-rm -rf %{buildroot}
 %make_install
 
 
@@ -58,14 +56,12 @@ rm -rf %{buildroot}
 
 
 %files
-%defattr(-,root,root,-)
 %{_libdir}/libstt.so
 %{_libdir}/libstt_setting.so
 %{_bindir}/stt-daemon
 
 
 %files devel
-%defattr(-,root,root,-)
 %{_libdir}/pkgconfig/stt.pc
 %{_libdir}/pkgconfig/stt-setting.pc
 %{_includedir}/stt.h
