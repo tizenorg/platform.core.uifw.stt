@@ -258,7 +258,7 @@ int sttd_initialize()
 * STT Server Functions for Client
 */
 
-int sttd_server_initialize(int pid, int uid)
+int sttd_server_initialize(int pid, int uid, bool* silence, bool* profanity, bool* punctuation)
 {
 	if (false == g_is_engine) {
 		if (0 != sttd_engine_agent_initialize_current_engine()) {
@@ -321,13 +321,20 @@ int sttd_server_initialize(int pid, int uid)
 		return STTD_ERROR_OPERATION_FAILED;
 	}
 	
+	SLOG(LOG_DEBUG, TAG_STTD, "[Server] audio type(%d), channel(%d)", (int)atype, (int)sttchannel); 
+
 	/* Add client information to client manager */
 	if (0 != sttd_client_add(pid, uid)) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to add client info"); 
 		return STTD_ERROR_OPERATION_FAILED;
 	}
 
-	SLOG(LOG_DEBUG, TAG_STTD, "[Server SUCCESS] audio type(%d), channel(%d)", (int)atype, (int)sttchannel); 
+	if (0 != sttd_engine_get_option_supported(silence, profanity, punctuation)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to get engine options supported"); 
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+	SLOG(LOG_DEBUG, TAG_STTD, "[Server Success] Initialize"); 
 
 	return STTD_ERROR_NONE;
 }

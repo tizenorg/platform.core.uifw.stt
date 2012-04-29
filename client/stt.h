@@ -1,16 +1,18 @@
 /*
-* Copyright (c) 2011 Samsung Electronics Co., Ltd All Rights Reserved 
-*  Licensed under the Apache License, Version 2.0 (the "License");
-*  you may not use this file except in compliance with the License.
-*  You may obtain a copy of the License at
-*  http://www.apache.org/licenses/LICENSE-2.0
-*  Unless required by applicable law or agreed to in writing, software
-*  distributed under the License is distributed on an "AS IS" BASIS,
-*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*  See the License for the specific language governing permissions and
-*  limitations under the License.
-*/
-
+ * Copyright (c) 2011 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ * Licensed under the Apache License, Version 2.0 (the License);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an AS IS BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License. 
+ */
 
 #ifndef __STT_H__
 #define __STT_H__
@@ -42,7 +44,8 @@ typedef enum {
 	STT_ERROR_INVALID_STATE		= -0x0100031,	/**< Invalid state */
 	STT_ERROR_INVALID_LANGUAGE	= -0x0100032,	/**< Invalid language */
 	STT_ERROR_ENGINE_NOT_FOUND	= -0x0100033,	/**< No available engine  */	
-	STT_ERROR_OPERATION_FAILED	= -0x0100034	/**< Operation failed  */
+	STT_ERROR_OPERATION_FAILED	= -0x0100034,	/**< Operation failed  */
+	STT_ERROR_NOT_SUPPORTED_FEATURE	= -0x0100035	/**< Not supported feature of current engine */
 }stt_error_e;
 
 /** 
@@ -136,6 +139,72 @@ typedef enum {
 #define STT_RECOGNITION_TYPE_COMMAND_TTS		"stt.recognition.type.COMMAND.TTS"
 
 /** 
+* @brief Result message : None message
+*/
+#define STT_RESULT_MESSAGE_NONE			"stt.result.message.none"
+
+/** 
+* @brief Result warning message : The speech has started too soon
+*/
+#define STT_RESULT_MESSAGE_WARNING_TOO_SOON	"stt.result.message.warning.too.soon"
+
+/** 
+* @brief Result warning message : The speech is too short
+*/
+#define STT_RESULT_MESSAGE_WARNING_TOO_SHORT	"stt.result.message.warning.too.short"
+
+/** 
+* @brief Result warning message : The speech is too long
+*/
+#define STT_RESULT_MESSAGE_WARNING_TOO_LONG	"stt.result.message.warning.too.long"
+
+/** 
+* @brief Result warning message : The speech is too quiet to listen
+*/
+#define STT_RESULT_MESSAGE_WARNING_TOO_QUIET	"stt.result.message.warning.too.quiet"
+
+/** 
+* @brief Result warning message : The speech is too loud to listen
+*/
+#define STT_RESULT_MESSAGE_WARNING_TOO_LOUD	"stt.result.message.warning.too.loud"
+
+/** 
+* @brief Result warning message : The speech is too fast to listen
+*/
+#define STT_RESULT_MESSAGE_WARNING_TOO_FAST	"stt.result.message.warning.too.fast"
+
+/** 
+* @brief Result error message : Recognition was failed because the speech started too soon
+*/
+#define STT_RESULT_MESSAGE_ERROR_TOO_SOON	"stt.result.message.error.too.soon"
+
+/** 
+* @brief Result error message : Recognition was failed because the speech started too short
+*/
+#define STT_RESULT_MESSAGE_ERROR_TOO_SHORT	"stt.result.message.error.too.short"
+
+/** 
+* @brief Result error message : Recognition was failed because the speech started too long
+*/
+#define STT_RESULT_MESSAGE_ERROR_TOO_LONG	"stt.result.message.error.too.long"
+
+/** 
+* @brief Result error message : Recognition was failed because the speech started too quiet to listen
+*/
+#define STT_RESULT_MESSAGE_ERROR_TOO_QUIET	"stt.result.message.error.too.quiet"
+
+/** 
+* @brief Result error message : Recognition was failed because the speech started too loud to listen 
+*/
+#define STT_RESULT_MESSAGE_ERROR_TOO_LOUD	"stt.result.message.error.too.loud"
+
+/** 
+* @brief Result error message : Recognition was failed because the speech started too fast to listen
+*/
+#define STT_RESULT_MESSAGE_ERROR_TOO_FAST	"stt.result.message.error.too.fast"
+
+
+/** 
 * @brief Enumerations of state.
 */
 typedef enum {
@@ -183,10 +252,10 @@ typedef struct stt_s *stt_h;
 *	this function is called. 
 *
 * @param[in] stt The handle for STT
-* @param[in] type Recognition type
-* @param[in] data Result data
-* @param[in] data_count Result count
-* @param[in] msg Engine message
+* @param[in] type Recognition type (e.g. #STT_RECOGNITION_TYPE_FREE, #STT_RECOGNITION_TYPE_COMMAND)
+* @param[in] data Result texts
+* @param[in] data_count Result text count
+* @param[in] msg Engine message	(e.g. #STT_RESULT_MESSAGE_WARNING_TOO_SOON, #STT_RESULT_MESSAGE_ERROR_TOO_SHORT)
 * @param[in] user_data The user data passed from the callback registration function
 *
 * @pre stt_stop() will invoke this callback if you register it using stt_set_result_cb().
@@ -254,8 +323,8 @@ typedef void (*stt_error_cb)(stt_h stt, stt_error_e reason, void *user_data);
 *
 * @param[in] stt The handle for STT
 * @param[in] language A language is specified as an ISO 3166 alpha-2 two letter country-code \n
-*		followed by ISO 639-1 for the two-letter language code. \n
-*		For example, "ko_KR" for Korean, "en_US" for American English.
+* followed by ISO 639-1 for the two-letter language code. \n
+* For example, "ko_KR" for Korean, "en_US" for American English.
 * @param[in] user_data The user data passed from the foreach function
 *
 * @return @c true to continue with the next iteration of the loop, \n @c false to break out of the loop.
@@ -324,8 +393,8 @@ int stt_foreach_supported_languages(stt_h stt, stt_supported_language_cb callbac
 *
 * @param[in] stt The handle for STT
 * @param[out] language A language is specified as an ISO 3166 alpha-2 two letter country-code \n
-*			followed by ISO 639-1 for the two-letter language code. \n
-*			For example, "ko_KR" for Korean, "en_US" for American English.
+* followed by ISO 639-1 for the two-letter language code. \n
+* For example, "ko_KR" for Korean, "en_US" for American English.
 *
 * @return 0 on success, otherwise a negative error value
 * @retval #STT_ERROR_NONE Successful
@@ -385,6 +454,7 @@ int stt_is_partial_result_supported(stt_h stt, bool* partial_result);
 * @retval #STT_ERROR_NONE Successful
 * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
 * @retval #STT_ERROR_INVALID_STATE Invalid state
+* @retval #STT_ERROR_NOT_SUPPORTED_FEATURE Not supported feature of current engine
 *
 * @pre The state should be #STT_STATE_READY.
 */
@@ -400,6 +470,7 @@ int stt_set_profanity_filter(stt_h stt, stt_option_profanity_e type);
 * @retval #STT_ERROR_NONE Successful
 * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
 * @retval #STT_ERROR_INVALID_STATE Invalid state
+* @retval #STT_ERROR_NOT_SUPPORTED_FEATURE Not supported feature of current engine
 *
 * @pre The state should be #STT_STATE_READY.
 */
@@ -415,6 +486,7 @@ int stt_set_punctuation_override(stt_h stt, stt_option_punctuation_e type);
 * @retval #STT_ERROR_NONE Successful
 * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
 * @retval #STT_ERROR_INVALID_STATE Invalid state
+* @retval #STT_ERROR_NOT_SUPPORTED_FEATURE Not supported feature of current engine
 *
 * @pre The state should be #STT_STATE_READY.
 */
@@ -423,12 +495,12 @@ int stt_set_silence_detection(stt_h stt, stt_option_silence_detection_e type);
 /**
 * @brief Starts recording and recognition.
 *
-* @remark This function starts recording in the daemon and sending recording data to engine.
-*	This work continues until stt_stop(), stt_cancel() or silence detected.
+* @remark This function starts recording in the daemon and sending recording data to engine. \n
+* This work continues until stt_stop(), stt_cancel() or silence detected.
 *
 * @param[in] stt The handle for STT
 * @param[in] language The language selected from stt_foreach_supported_languages()
-* @param[in] type The type for recognition (e.g. #RECOGNITION_TYPE_FREE, #RECOGNITION_TYPE_WEB_SEARCH)
+* @param[in] type The type for recognition (e.g. #STT_RECOGNITION_TYPE_FREE, #STT_RECOGNITION_TYPE_WEB_SEARCH)
 *
 * @return 0 on success, otherwise a negative error value
 * @retval #STT_ERROR_NONE Successful
@@ -439,8 +511,8 @@ int stt_set_silence_detection(stt_h stt, stt_option_silence_detection_e type);
 * @retval #STT_ERROR_INVALID_LANGUAGE Invalid language
 *
 * @pre The state should be #STT_STATE_READY.
-* @post It will invoke stt_state_changed_cb(), if you register a callback with stt_state_changed_cb().
-*	If this function succeeds, the STT state will be #STT_STATE_RECORDING.
+* @post It will invoke stt_state_changed_cb(), if you register a callback with stt_state_changed_cb(). \n
+* If this function succeeds, the STT state will be #STT_STATE_RECORDING.
 *
 * @see stt_stop()
 * @see stt_cancel()
@@ -462,9 +534,9 @@ int stt_start(stt_h stt, const char* language, const char* type);
 * @retval #STT_ERROR_OPERATION_FAILED Operation failure
 *
 * @pre The state should be #STT_STATE_RECORDING.
-* @post It will invoke stt_state_changed_cb(), if you register a callback with stt_state_changed_cb().
-*	If this function succeeds, the STT state will be #STT_STATE_PROCESSING.
-*	After processing of engine, stt_result_cb() is called.
+* @post It will invoke stt_state_changed_cb(), if you register a callback with stt_state_changed_cb(). \n
+* If this function succeeds, the STT state will be #STT_STATE_PROCESSING. \n
+* After processing of engine, stt_result_cb() is called.
 *
 * @see stt_start()
 * @see stt_cancel()
@@ -476,9 +548,8 @@ int stt_stop(stt_h stt);
 /**
 * @brief Cancels processing recognition and recording.
 *
-* @remark This function cancels recording and engine cancels recognition processing.
-*	After successful cancel, stt_state_changed_cb() is called otherwise
-*	if error is occurred, stt_error_cb() is called. 
+* @remark This function cancels recording and engine cancels recognition processing. \n
+* After successful cancel, stt_state_changed_cb() is called otherwise if error is occurred, stt_error_cb() is called. 
 *
 * @param[in] stt The handle for STT
 *
@@ -490,8 +561,8 @@ int stt_stop(stt_h stt);
 * @retval #STT_ERROR_OPERATION_FAILED Operation failure
 *
 * @pre The state should be #STT_STATE_RECORDING or #STT_STATE_PROCESSING.
-* @post It will invoke stt_state_changed_cb(), if you register a callback with stt_state_changed_cb().
-*	If this function succeeds, the STT state will be #STT_STATE_READY.
+* @post It will invoke stt_state_changed_cb(), if you register a callback with stt_state_changed_cb(). \n
+* If this function succeeds, the STT state will be #STT_STATE_READY.
 *
 * @see stt_start()
 * @see stt_stop()

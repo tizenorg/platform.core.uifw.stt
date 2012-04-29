@@ -36,6 +36,8 @@ typedef struct {
 	bool	is_loaded;	
 	bool	need_network;
 	bool	support_silence_detection;
+	bool	support_profanity_filter;
+	bool	support_punctuation_override;
 	void	*handle;
 
 	/* engine base setting */
@@ -460,43 +462,78 @@ int __internal_update_engine_list()
 		}
 	}
 
-	/* get file name from engine directory and get engine infomation from each filename */
+	/* Get file name from default engine directory */
 	DIR *dp;
 	struct dirent *dirp;
-	dp  = opendir(ENGINE_DIRECTORY);
-	if (NULL == dp) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] __internal_update_engine_list : error opendir"); 
-		return -1;
-	}
 
-	while (NULL != (dirp = readdir(dp))) {
-		sttengine_info_s* info;
-		char* filepath;
-		int filesize;
-		
-		filesize = strlen(ENGINE_DIRECTORY) + strlen(dirp->d_name) + 5;
-		filepath = (char*) g_malloc0(sizeof(char) * filesize);
-		
-		if (NULL != filepath) {
-			strncpy(filepath, ENGINE_DIRECTORY, strlen(ENGINE_DIRECTORY) );
-			strncat(filepath, "/", strlen("/") );
-			strncat(filepath, dirp->d_name, strlen(dirp->d_name) );
-		} else {
-			SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Memory not enough!!" );
-			continue;	
+	dp  = opendir(ENGINE_DIRECTORY_DEFAULT);
+	if (NULL != dp) {
+		while (NULL != (dirp = readdir(dp))) {
+			sttengine_info_s* info;
+			char* filepath;
+			int filesize;
+
+			filesize = strlen(ENGINE_DIRECTORY_DEFAULT) + strlen(dirp->d_name) + 5;
+			filepath = (char*) g_malloc0(sizeof(char) * filesize);
+
+			if (NULL != filepath) {
+				strncpy(filepath, ENGINE_DIRECTORY_DEFAULT, strlen(ENGINE_DIRECTORY_DEFAULT) );
+				strncat(filepath, "/", strlen("/") );
+				strncat(filepath, dirp->d_name, strlen(dirp->d_name) );
+			} else {
+				SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Memory not enough!!" );
+				continue;	
+			}
+
+			/* get its info and update engine list */
+			if (0 == __internal_get_engine_info(filepath, &info)) {
+				/* add engine info to g_engine_list */
+				g_engine_list = g_list_append(g_engine_list, info);
+			}
+
+			if (NULL != filepath)
+				g_free(filepath);
 		}
-		
-		/* get its info and update engine list */
-		if (0 == __internal_get_engine_info(filepath, &info)) {
-			/* add engine info to g_engine_list */
-			g_engine_list = g_list_append(g_engine_list, info);
+
+		closedir(dp);
+	} else {
+		SLOG(LOG_WARN, TAG_STTD, "[Engine Agent WARNING] Fail to open default directory"); 
+	}
+	
+	/* Get file name from downloadable engine directory */
+	dp  = opendir(ENGINE_DIRECTORY_DOWNLOAD);
+	if (NULL != dp) {
+		while (NULL != (dirp = readdir(dp))) {
+			sttengine_info_s* info;
+			char* filepath;
+			int filesize;
+
+			filesize = strlen(ENGINE_DIRECTORY_DOWNLOAD) + strlen(dirp->d_name) + 5;
+			filepath = (char*) g_malloc0(sizeof(char) * filesize);
+
+			if (NULL != filepath) {
+				strncpy(filepath, ENGINE_DIRECTORY_DOWNLOAD, strlen(ENGINE_DIRECTORY_DOWNLOAD) );
+				strncat(filepath, "/", strlen("/") );
+				strncat(filepath, dirp->d_name, strlen(dirp->d_name) );
+			} else {
+				SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Memory not enough!!" );
+				continue;	
+			}
+
+			/* get its info and update engine list */
+			if (0 == __internal_get_engine_info(filepath, &info)) {
+				/* add engine info to g_engine_list */
+				g_engine_list = g_list_append(g_engine_list, info);
+			}
+
+			if (NULL != filepath)
+				g_free(filepath);
 		}
 
-		if (NULL != filepath)
-			g_free(filepath);
+		closedir(dp);
+	} else {
+		SLOG(LOG_WARN, TAG_STTD, "[Engine Agent WARNING] Fail to open downloadable directory"); 
 	}
-
-	closedir(dp);
 
 	if (0 >= g_list_length(g_engine_list)) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] No Engine"); 
@@ -567,7 +604,6 @@ int __internal_set_current_engine(const char* engine_uuid)
 	g_cur_engine.is_loaded = false;
 	g_cur_engine.is_set = true;
 	g_cur_engine.need_network = data->use_network;
-	g_cur_engine.support_silence_detection = data->support_silence_detection;
 
 	g_cur_engine.profanity_filter = g_default_profanity_filter;
 	g_cur_engine.punctuation_override = g_default_punctuation_override;
@@ -654,11 +690,16 @@ int sttd_engine_agent_load_current_engine()
 		return STTD_ERROR_OPERATION_FAILED;
 	}
 	
+	/* check and set profanity filter */
 	ret = g_cur_engine.pefuncs->set_profanity_filter(g_cur_engine.profanity_filter);
 	if (0 != ret) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine ERROR] Fail to set profanity filter value to engine");
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent] Not support profanity filter");
+		g_cur_engine.support_profanity_filter = false;
+	} else {
+		g_cur_engine.support_profanity_filter = true;
 	}
 	
+	/* check and set punctuation */
 	if (NULL == g_cur_engine.pefuncs->set_punctuation) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] set_punctuation of engine is NULL!!");
 		return STTD_ERROR_OPERATION_FAILED;
@@ -666,19 +707,24 @@ int sttd_engine_agent_load_current_engine()
 
 	ret = g_cur_engine.pefuncs->set_punctuation(g_cur_engine.punctuation_override);
 	if (0 != ret) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine ERROR] Fail to set punctuation override value to engine");
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine ERROR] Not support punctuation override");
+		g_cur_engine.support_punctuation_override = false;
+	} else {
+		g_cur_engine.support_punctuation_override = true;
 	}
-	
-	if (true == g_cur_engine.support_silence_detection) {
-		if (NULL == g_cur_engine.pefuncs->set_silence_detection) {
-			SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] set_silence_detection of engine is NULL!!");
-			return STTD_ERROR_OPERATION_FAILED;
-		}
 
-		ret = g_cur_engine.pefuncs->set_silence_detection(g_cur_engine.silence_detection);
-		if (0 != ret) {
-			SLOG(LOG_ERROR, TAG_STTD, "[Engine ERROR] Fail to set silence detection value(%s)", g_cur_engine.silence_detection ? "true":"false");
-		}
+	/* check and set silence detection */
+	if (NULL == g_cur_engine.pefuncs->set_silence_detection) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] set_silence_detection of engine is NULL!!");
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+	ret = g_cur_engine.pefuncs->set_silence_detection(g_cur_engine.silence_detection);
+	if (0 != ret) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine ERROR] Not support silence detection");
+		g_cur_engine.support_silence_detection = false;
+	} else {
+		g_cur_engine.support_silence_detection = true;
 	}
 	
 	/* select default language */
@@ -797,6 +843,30 @@ bool sttd_engine_agent_need_network()
 	}
 
 	return g_cur_engine.need_network;
+}
+
+int sttd_engine_get_option_supported(bool* silence, bool* profanity, bool* punctuation)
+{
+	if (false == g_agent_init) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized" );
+		return STTD_ERROR_INVALID_STATE;
+	}
+
+	if (false == g_cur_engine.is_loaded) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not loaded engine");
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+	if (NULL == silence || NULL == profanity || NULL == punctuation) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Invalid Parameter"); 
+		return STTD_ERROR_INVALID_PARAMETER;
+	}
+
+	*silence = g_cur_engine.support_silence_detection;
+	*profanity = g_cur_engine.support_profanity_filter;
+	*punctuation = g_cur_engine.support_punctuation_override;
+
+	return 0;
 }
 
 /*

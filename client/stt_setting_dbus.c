@@ -15,6 +15,8 @@
 #include "stt_main.h"
 #include "stt_setting_dbus.h"
 
+static int g_waiting_time = 1500;
+
 static DBusConnection* g_conn = NULL;
 
 int stt_setting_dbus_open_connection()
@@ -85,6 +87,47 @@ int stt_setting_dbus_close_connection()
 	return 0;
 }
 
+
+int stt_setting_dbus_request_hello()
+{
+	DBusMessage* msg;
+
+	msg = dbus_message_new_method_call(
+		STT_SERVER_SERVICE_NAME, 
+		STT_SERVER_SERVICE_OBJECT_PATH, 
+		STT_SERVER_SERVICE_INTERFACE, 
+		STT_SETTING_METHOD_HELLO);
+
+	if (NULL == msg) { 
+		SLOG(LOG_ERROR, TAG_STTC, ">>>> Request setting hello : Fail to make message \n"); 
+		return STT_SETTING_ERROR_OPERATION_FAILED;
+	} else {
+		SLOG(LOG_DEBUG, TAG_STTC, ">>>> Request setting hello");
+	}
+
+	DBusError err;
+	dbus_error_init(&err);
+
+	DBusMessage* result_msg = NULL;
+	int result = 0;
+
+	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, 500, &err);
+
+	dbus_message_unref(msg);
+
+	if (NULL != result_msg) {
+		dbus_message_unref(result_msg);
+
+		SLOG(LOG_DEBUG, TAG_STTC, "<<<< setting hello");
+		result = 0;
+	} else {
+		SLOG(LOG_ERROR, TAG_STTC, "<<<< setting hello : no response");
+		result = -1;
+	}
+
+	return result;
+}
+
 int stt_setting_dbus_request_initialize()
 {
 	DBusMessage* msg;
@@ -114,7 +157,7 @@ int stt_setting_dbus_request_initialize()
 	DBusMessage* result_msg;
 	int result = STT_SETTING_ERROR_OPERATION_FAILED;
 
-	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, 3000, &err);
+	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, g_waiting_time, &err);
 
 	if (NULL != result_msg) {
 		dbus_message_get_args(result_msg, &err, DBUS_TYPE_INT32, &result, DBUS_TYPE_INVALID);
@@ -165,7 +208,7 @@ int stt_setting_dbus_request_finalilze(void)
 	DBusMessage* result_msg;
 	int result = STT_SETTING_ERROR_OPERATION_FAILED;
 
-	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, 3000, &err);
+	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, g_waiting_time, &err);
 
 	if (NULL != result_msg) {
 		dbus_message_get_args(result_msg, &err, DBUS_TYPE_INT32, &result, DBUS_TYPE_INVALID);
@@ -221,7 +264,7 @@ int stt_setting_dbus_request_get_engine_list(stt_setting_supported_engine_cb cal
 	DBusMessage* result_msg;
 	int result = STT_SETTING_ERROR_OPERATION_FAILED;
 
-	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, 3000, &err);
+	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, g_waiting_time, &err);
 
 	if (NULL != result_msg) {
 		DBusMessageIter args;
@@ -313,7 +356,7 @@ int stt_setting_dbus_request_get_engine(char** engine_id)
 	int result = STT_SETTING_ERROR_OPERATION_FAILED;
 	char* temp;
 
-	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, 3000, &err);
+	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, g_waiting_time, &err);
 
 	if (NULL != result_msg) {
 		dbus_message_get_args(result_msg, &err, DBUS_TYPE_INT32, &result, DBUS_TYPE_STRING, &temp, DBUS_TYPE_INVALID);
@@ -379,7 +422,7 @@ int stt_setting_dbus_request_set_engine(const char* engine_id)
 	DBusMessage* result_msg;
 	int result = STT_SETTING_ERROR_OPERATION_FAILED;
 
-	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, 3000, &err);
+	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, g_waiting_time, &err);
 
 	if (NULL != result_msg) {
 		dbus_message_get_args(result_msg, &err, DBUS_TYPE_INT32, &result, DBUS_TYPE_INVALID);
@@ -437,7 +480,7 @@ int stt_setting_dbus_request_get_language_list(stt_setting_supported_language_cb
 	DBusMessage* result_msg;
 	int result = STT_SETTING_ERROR_OPERATION_FAILED;
 
-	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, 3000, &err);
+	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, g_waiting_time, &err);
 
 	if (NULL != result_msg) {
 		DBusMessageIter args;
@@ -531,7 +574,7 @@ int stt_setting_dbus_request_get_default_language(char** language)
 	int result = STT_SETTING_ERROR_OPERATION_FAILED;
 	char* temp_char;
 
-	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, 3000, &err);
+	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, g_waiting_time, &err);
 
 	if (NULL != result_msg) {
 		dbus_message_get_args(result_msg, &err, 
@@ -602,7 +645,7 @@ int stt_setting_dbus_request_set_default_language(const char* language)
 	DBusMessage* result_msg;
 	int result = STT_SETTING_ERROR_OPERATION_FAILED;
 
-	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, 3000, &err);
+	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, g_waiting_time, &err);
 
 	if (NULL != result_msg) {
 		dbus_message_get_args(result_msg, &err, 
@@ -663,7 +706,7 @@ int stt_setting_dbus_request_get_engine_setting(stt_setting_engine_setting_cb ca
 	DBusMessage* result_msg;
 	int result = STT_SETTING_ERROR_OPERATION_FAILED;
 
-	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, 3000, &err);
+	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, g_waiting_time, &err);
 
 	if (NULL != result_msg) {
 		DBusMessageIter args;
@@ -761,7 +804,7 @@ int stt_setting_dbus_request_set_engine_setting(const char* key, const char* val
 	DBusMessage* result_msg;
 	int result = STT_SETTING_ERROR_OPERATION_FAILED;
 
-	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, 3000, &err);
+	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, g_waiting_time, &err);
 
 	if (NULL != result_msg) {
 		dbus_message_get_args(result_msg, &err, DBUS_TYPE_INT32, &result, DBUS_TYPE_INVALID);
@@ -819,7 +862,7 @@ int stt_setting_dbus_request_get_profanity_filter(bool* value)
 	DBusMessage* result_msg;
 	int result = STT_SETTING_ERROR_OPERATION_FAILED;
 
-	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, 3000, &err);
+	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, g_waiting_time, &err);
 
 	if (NULL != result_msg)	{
 		dbus_message_get_args(result_msg, &err, DBUS_TYPE_INT32, &result, DBUS_TYPE_INT32, value, DBUS_TYPE_INVALID);
@@ -874,7 +917,7 @@ int stt_setting_dbus_request_set_profanity_filter(const bool value)
 	DBusMessage* result_msg;
 	int result = STT_SETTING_ERROR_OPERATION_FAILED;
 
-	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, 3000, &err);
+	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, g_waiting_time, &err);
 
 	if (NULL != result_msg)	{
 		dbus_message_get_args(result_msg, &err, DBUS_TYPE_INT32, &result, DBUS_TYPE_INVALID);
@@ -933,7 +976,7 @@ int stt_setting_dbus_request_get_punctuation_override(bool* value)
 	DBusMessage* result_msg;
 	int result = STT_SETTING_ERROR_OPERATION_FAILED;
 
-	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, 3000, &err);
+	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, g_waiting_time, &err);
 
 	if (NULL != result_msg)	{
 		dbus_message_get_args(result_msg, &err, DBUS_TYPE_INT32, &result, DBUS_TYPE_INT32, value, DBUS_TYPE_INVALID);
@@ -988,7 +1031,7 @@ int stt_setting_dbus_request_set_punctuation_override(const bool value )
 	DBusMessage* result_msg;
 	int result = STT_SETTING_ERROR_OPERATION_FAILED;
 
-	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, 3000, &err);
+	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, g_waiting_time, &err);
 
 	if (NULL != result_msg)	{
 		dbus_message_get_args(result_msg, &err, DBUS_TYPE_INT32, &result, DBUS_TYPE_INVALID);
@@ -1048,7 +1091,7 @@ int stt_setting_dbus_request_get_silence_detection(bool* value)
 	DBusMessage* result_msg;
 	int result = STT_SETTING_ERROR_OPERATION_FAILED;
 
-	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, 3000, &err);
+	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, g_waiting_time, &err);
 
 	if (NULL == result_msg)	{
 		dbus_message_unref(msg);
@@ -1100,7 +1143,7 @@ int stt_setting_dbus_request_set_silence_detection(const bool value)
 	DBusMessage* result_msg;
 	int result = STT_SETTING_ERROR_OPERATION_FAILED;
 
-	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, 3000, &err);
+	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, g_waiting_time, &err);
 
 	if (NULL != result_msg)	{
 		dbus_message_get_args(result_msg, &err, DBUS_TYPE_INT32, &result, DBUS_TYPE_INVALID);

@@ -60,6 +60,10 @@ int stt_client_new(stt_h* stt)
 	client->error_cb = NULL;
 	client->error_user_data = NULL;
 
+	client->silence_supported = false;
+	client->profanity_supported = false;
+	client->punctuation_supported = false;
+
 	client->profanity = STT_OPTION_PROFANITY_AUTO;	
 	client->punctuation = STT_OPTION_PUNCTUATION_AUTO;
 	client->silence = STT_OPTION_SILENCE_DETECTION_AUTO;
@@ -193,5 +197,20 @@ int stt_client_not_use_callback(stt_client_s* client)
 	return 0;
 }
 
+
+int stt_client_set_option_supported(stt_h stt, bool silence, bool profanity, bool punctuation)
+{
+	stt_client_s* client = stt_client_get(stt);
+	
+	/* check handle */
+	if (NULL == client) 
+		return STT_ERROR_INVALID_PARAMETER;
+	
+	client->silence_supported = silence;
+	client->profanity_supported = profanity;
+	client->punctuation_supported = punctuation;
+
+	return 0;
+}
 
 

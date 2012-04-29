@@ -18,6 +18,8 @@
 #include "stt_setting.h"
 #include "stt_setting_dbus.h"
 
+#define CONNECTION_RETRY_COUNT 2
+
 static bool g_is_setting_initialized = false;
 
 static int __check_stt_daemon();
@@ -27,15 +29,11 @@ int stt_setting_initialize ()
 	SLOG(LOG_DEBUG, TAG_STTC, "===== Initialize STT Setting");
 
 	int ret = 0;
-
-	/* Check daemon */
-	__check_stt_daemon();
-
 	if (true == g_is_setting_initialized) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] STT Setting has already been initialized. \n");
+		SLOG(LOG_WARN, TAG_STTC, "[WARNING] STT Setting has already been initialized. \n");
 		SLOG(LOG_DEBUG, TAG_STTC, "=====");
 		SLOG(LOG_DEBUG, TAG_STTC, " ");
-		return STT_SETTING_ERROR_INVALID_STATE;
+		return STT_SETTING_ERROR_NONE;
 	}
 
 	if (0 != stt_setting_dbus_open_connection()) {
@@ -45,8 +43,13 @@ int stt_setting_initialize ()
 		return STT_SETTING_ERROR_OPERATION_FAILED;
 	}
 
+	/* Send hello */
+	if (0 != stt_setting_dbus_request_hello()) {
+		__check_stt_daemon();
+	}
+
 	/* do request */
-	int i = 0;
+	int i = 1;
 	while(1) {
 		ret = stt_setting_dbus_request_initialize();
 
@@ -54,8 +57,8 @@ int stt_setting_initialize ()
 			SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Engine not found");
 			break;
 		} else if(ret) {
-			sleep(1);
-			if (i == 10) {
+			usleep(1);
+			if (i == CONNECTION_RETRY_COUNT) {
 				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Connection Time out");
 				ret = STT_SETTING_ERROR_TIMED_OUT;			    
 				break;
@@ -67,7 +70,7 @@ int stt_setting_initialize ()
 		}
 	}
 
-	if (0 == ret) {
+	if (STT_SETTING_ERROR_NONE == ret) {
 		g_is_setting_initialized = true;
 		SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] Initialize");
 	}
@@ -86,10 +89,10 @@ int stt_setting_finalize ()
 	int ret = 0;
 
 	if (false == g_is_setting_initialized) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Not initialized");
+		SLOG(LOG_WARN, TAG_STTC, "[WARNING] Not initialized");
 		SLOG(LOG_DEBUG, TAG_STTC, "=====");
 		SLOG(LOG_DEBUG, TAG_STTC, " ");
-		return STT_SETTING_ERROR_INVALID_STATE;
+		return STT_SETTING_ERROR_NONE;
 	}
 
 	ret = stt_setting_dbus_request_finalilze();
@@ -545,35 +548,28 @@ static bool __stt_is_alive()
 	FILE *fp = NULL;
 	char buff[256] = {'\0',};
 	char cmd[256] = {'\0',};
-	int i=0;
 
-	memset(buff, '\0', sizeof(char));
-	memset(cmd, '\0', sizeof(char));
+	memset(buff, '\0', sizeof(char) * 256);
+	memset(cmd, '\0', sizeof(char) * 256);
 
-	if ((fp = popen("ps -eo \"cmd\"", "r")) == NULL) {
-		SLOG(LOG_DEBUG, TAG_STTC, "[STT ERROR] popen error \n");
+	fp = popen("ps", "r");
+	if (NULL == fp) {
+		SLOG(LOG_DEBUG, TAG_STTC, "[STT SETTING ERROR] popen error \n");
 		return FALSE;
 	}
 
 	while (fgets(buff, 255, fp)) {
-		if (i == 0) {
-			i++;
-			continue;
-		}
-
-		sscanf(buff, "%s", cmd);
+		strcpy(cmd, buff + 26);
 
 		if( 0 == strncmp(cmd, "[stt-daemon]", strlen("[stt-daemon]")) ||
-			0 == strncmp(cmd, "stt-daemon", strlen("stt-daemon")) ||
-			0 == strncmp(cmd, "/usr/bin/stt-daemon", strlen("/usr/bin/stt-daemon"))
-			) {
+		0 == strncmp(cmd, "stt-daemon", strlen("stt-daemon")) ||
+		0 == strncmp(cmd, "/usr/bin/stt-daemon", strlen("/usr/bin/stt-daemon"))) {
 			SLOG(LOG_DEBUG, TAG_STTC, "stt-daemon is ALIVE !! \n");
 			fclose(fp);
 			return TRUE;
 		}
-
-		i++;
 	}
+
 	fclose(fp);
 
 	SLOG(LOG_DEBUG, TAG_STTC, "THERE IS NO stt-daemon !! \n");
@@ -603,8 +599,6 @@ int __check_stt_daemon()
 		return 0;
 	
 	/* fork-exec stt-daemom */
-	SLOG(LOG_DEBUG, TAG_STTC, "THERE IS NO stt-daemon \n");
-
 	int pid = 0, i = 0;
 	struct sigaction act, dummy;
 	act.sa_handler = NULL;
@@ -621,7 +615,7 @@ int __check_stt_daemon()
 
 	switch(pid) {
 	case -1:
-		SLOG(LOG_DEBUG, TAG_STTC, "fail to create STT-DAEMON \n");
+		SLOG(LOG_DEBUG, TAG_STTC, "Fail to create stt-daemon");
 		break;
 
 	case 0:

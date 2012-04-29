@@ -63,6 +63,8 @@ int sttd_print_enginelist();
 /** Get state of current engine to need network */
 bool sttd_engine_agent_need_network();
 
+int sttd_engine_get_option_supported(bool* silence, bool* profanity, bool* punctuation);
+
 /*
 * STT Engine Interfaces for client
 */

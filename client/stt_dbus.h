@@ -27,7 +27,9 @@ int stt_dbus_open_connection();
 int stt_dbus_close_connection();
 
 
-int stt_dbus_request_initialize(int uid);
+int stt_dbus_request_hello();
+
+int stt_dbus_request_initialize(int uid, bool* silence_supported, bool* profanity_supported, bool* punctuation_supported);
 
 int stt_dbus_request_finalize(int uid);
 

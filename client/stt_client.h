@@ -40,6 +40,10 @@ typedef struct {
 	void*			error_user_data;
 
 	/* option */
+	bool	silence_supported;
+	bool	profanity_supported;
+	bool	punctuation_supported;
+
 	stt_option_profanity_e		profanity;	
 	stt_option_punctuation_e	punctuation;
 	stt_option_silence_detection_e	silence;
@@ -64,6 +68,8 @@ int stt_client_get_size();
 int stt_client_use_callback(stt_client_s* client);
 
 int stt_client_not_use_callback(stt_client_s* client);
+
+int stt_client_set_option_supported(stt_h stt, bool silence, bool profanity, bool punctuation);
 
 #ifdef __cplusplus
 }

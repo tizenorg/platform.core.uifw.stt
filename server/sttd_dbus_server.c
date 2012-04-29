@@ -23,6 +23,30 @@
 * Dbus Client-Daemon Server
 */ 
 
+int sttd_dbus_server_hello(DBusConnection* conn, DBusMessage* msg)
+{
+	SLOG(LOG_DEBUG, TAG_STTD, ">>>>> STT Hello");
+
+	DBusMessage* reply;
+	reply = dbus_message_new_method_return(msg);
+
+	if (NULL != reply) {
+		if (!dbus_connection_send(conn, reply, NULL)) {
+			SLOG(LOG_ERROR, TAG_STTD, "[OUT ERROR] Out Of Memory!");
+		}
+
+		dbus_connection_flush(conn);
+		dbus_message_unref(reply);
+	} else {
+		SLOG(LOG_ERROR, TAG_STTD, "[OUT ERROR] Fail to create reply message!!"); 
+	}
+
+	SLOG(LOG_DEBUG, TAG_STTD, "<<<<<");
+	SLOG(LOG_DEBUG, TAG_STTD, "  ");
+
+	return 0;
+}
+
 int sttd_dbus_server_initialize(DBusConnection* conn, DBusMessage* msg)
 {
 	DBusError err;
@@ -30,6 +54,10 @@ int sttd_dbus_server_initialize(DBusConnection* conn, DBusMessage* msg)
 
 	int pid;
 	int uid;
+	bool silence_supported = false;
+	bool profanity_supported = false;
+	bool punctuation_supported = false;
+
 	int ret = STTD_ERROR_OPERATION_FAILED;
 
 	dbus_message_get_args(msg, &err,
@@ -45,17 +73,23 @@ int sttd_dbus_server_initialize(DBusConnection* conn, DBusMessage* msg)
 		ret = STTD_ERROR_OPERATION_FAILED;
 	} else {
 		SLOG(LOG_DEBUG, TAG_STTD, "[IN] stt initialize : pid(%d), uid(%d)", pid , uid); 
-		ret =  sttd_server_initialize(pid, uid);
+		ret =  sttd_server_initialize(pid, uid, &silence_supported, &profanity_supported, &punctuation_supported);
 	}
 
 	DBusMessage* reply;
 	reply = dbus_message_new_method_return(msg);
 
 	if (NULL != reply) {
-		dbus_message_append_args(reply, DBUS_TYPE_INT32, &ret, DBUS_TYPE_INVALID);
+		dbus_message_append_args(reply, 
+			DBUS_TYPE_INT32, &ret, 
+			DBUS_TYPE_INT32, &silence_supported,
+			DBUS_TYPE_INT32, &profanity_supported,
+			DBUS_TYPE_INT32, &punctuation_supported,
+			DBUS_TYPE_INVALID);
 
 		if (0 == ret) {
-			SLOG(LOG_DEBUG, TAG_STTD, "[OUT SUCCESS] Result(%d)", ret); 
+			SLOG(LOG_DEBUG, TAG_STTD, "[OUT SUCCESS] Result(%d), silence(%d), profanity(%d), punctuation(%d)", 
+				ret, silence_supported, profanity_supported, punctuation_supported); 
 		} else {
 			SLOG(LOG_ERROR, TAG_STTD, "[OUT ERROR] Result(%d)", ret); 
 		}

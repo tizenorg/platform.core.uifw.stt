@@ -21,9 +21,9 @@
 #include "stt_client.h"
 #include "stt_dbus.h"
 
-#define CONNECTION_RETRY_COUNT 3
+#define CONNECTION_RETRY_COUNT 2
 
-int __check_stt_daemon();
+static int __check_stt_daemon();
 
 int stt_create(stt_h* stt)
 {
@@ -36,14 +36,16 @@ int stt_create(stt_h* stt)
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
-	/* check stt-daemon. */
-	__check_stt_daemon();	
-
 	if (0 == stt_client_get_size()) {
 		if (0 != stt_dbus_open_connection()) {
 			SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to open connection\n ");
 			return STT_ERROR_OPERATION_FAILED;
 		}
+	}
+
+	/* Send hello */
+	if (0 != stt_dbus_request_hello()) {
+		__check_stt_daemon();
 	}
 
 	if (0 != stt_client_new(stt)) {
@@ -52,16 +54,20 @@ int stt_create(stt_h* stt)
 	}
 
 	/* request initialization */
-	int i = 0;
+	int i = 1;
+	bool silence_supported = false;
+	bool profanity_supported = false;
+	bool punctuation_supported = false;
+
 	while (1) {
-		ret = stt_dbus_request_initialize((*stt)->handle);
+		ret = stt_dbus_request_initialize((*stt)->handle, &silence_supported, &profanity_supported, &punctuation_supported);
 		
 		if (STT_ERROR_ENGINE_NOT_FOUND == ret) {
 			stt_client_destroy(*stt);
 			SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to initialize : STT Engine Not founded");
 			return ret;
 		} else if(0 != ret) {
-			sleep(1);
+			usleep(1);
 			if(CONNECTION_RETRY_COUNT == i) {
 				stt_client_destroy(*stt);
 				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to initialize : TIMED OUT");
@@ -70,6 +76,9 @@ int stt_create(stt_h* stt)
 			i++;
 		} else {
 			/* success to connect stt-daemon */
+			stt_client_set_option_supported(*stt, silence_supported, profanity_supported, punctuation_supported);
+			SLOG(LOG_DEBUG, TAG_STTC, "Supported options : silence(%s), profanity(%s), punctuation(%s)", 
+				silence_supported ? "true" : "false", profanity_supported ? "true" : "false", punctuation_supported ? "true" : "false");
 			break;
 		}
 	}
@@ -260,11 +269,15 @@ int stt_set_profanity_filter(stt_h stt, stt_option_profanity_e type)
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
-	if (type >= STT_OPTION_PROFANITY_FALSE && type <= STT_OPTION_PROFANITY_AUTO)
-		client->profanity = type;	
-	else {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Type is invalid");
-		return STT_ERROR_INVALID_PARAMETER;
+	if (true == client->profanity_supported) {
+		if (type >= STT_OPTION_PROFANITY_FALSE && type <= STT_OPTION_PROFANITY_AUTO)
+			client->profanity = type;	
+		else {
+			SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Type is invalid");
+			return STT_ERROR_INVALID_PARAMETER;
+		}
+	} else {
+		return STT_ERROR_NOT_SUPPORTED_FEATURE; 
 	}
 
 	return STT_ERROR_NONE;
@@ -284,11 +297,15 @@ int stt_set_punctuation_override(stt_h stt, stt_option_punctuation_e type)
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 	
-	if (type >= STT_OPTION_PUNCTUATION_FALSE && type <= STT_OPTION_PUNCTUATION_AUTO)
-		client->punctuation = type;	
-	else {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Type is invalid");
-		return STT_ERROR_INVALID_PARAMETER;
+	if (true == client->punctuation_supported) {
+		if (type >= STT_OPTION_PUNCTUATION_FALSE && type <= STT_OPTION_PUNCTUATION_AUTO)
+			client->punctuation = type;	
+		else {
+			SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Type is invalid");
+			return STT_ERROR_INVALID_PARAMETER;
+		}
+	} else {
+		return STT_ERROR_NOT_SUPPORTED_FEATURE; 
 	}
 
 	return STT_ERROR_NONE;
@@ -308,11 +325,15 @@ int stt_set_silence_detection(stt_h stt, stt_option_silence_detection_e type)
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
-	if (type >= STT_OPTION_SILENCE_DETECTION_FALSE && type <= STT_OPTION_SILENCE_DETECTION_AUTO)
-		client->silence = type;	
-	else {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Type is invalid");
-		return STT_ERROR_INVALID_PARAMETER;
+	if (true == client->silence_supported) {
+		if (type >= STT_OPTION_SILENCE_DETECTION_FALSE && type <= STT_OPTION_SILENCE_DETECTION_AUTO)
+			client->silence = type;	
+		else {
+			SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Type is invalid");
+			return STT_ERROR_INVALID_PARAMETER;
+		}
+	} else {
+		return STT_ERROR_NOT_SUPPORTED_FEATURE; 
 	}
 
 	return STT_ERROR_NONE;
@@ -828,39 +849,37 @@ int stt_unset_error_cb(stt_h stt)
 static bool __stt_is_alive()
 {
 	FILE *fp = NULL;
-	char buff[256];
-	char cmd[256];
-	int i=0;
+	char buff[256] = {'\0',};
+	char cmd[256] = {'\0',};
 
 	memset(buff, '\0', 256);
 	memset(cmd, '\0', 256);
 
-	if ((fp = popen("ps -eo \"cmd\"", "r")) == NULL) {
-		SLOG(LOG_DEBUG, TAG_STTC, "[ERROR] popen error \n");
+	fp = popen("ps", "r");
+	if (NULL == fp) {
+		SLOG(LOG_DEBUG, TAG_STTC, "[STT SETTING ERROR] popen error \n");
 		return FALSE;
 	}
 
-	while(fgets(buff, 255, fp)) {
-		if (i == 0) {
-			i++;
-			continue;
-		}
-
-		sscanf(buff, "%s", cmd);
+	while (fgets(buff, 255, fp)) {
+		strcpy(cmd, buff + 26);
 
 		if( 0 == strncmp(cmd, "[stt-daemon]", strlen("[stt-daemon]")) ||
-			0 == strncmp(cmd, "stt-daemon", strlen("stt-daemon")) ||
-			0 == strncmp(cmd, "/usr/bin/stt-daemon", strlen("/usr/bin/stt-daemon"))
-			) {
+		0 == strncmp(cmd, "stt-daemon", strlen("stt-daemon")) ||
+		0 == strncmp(cmd, "/usr/bin/stt-daemon", strlen("/usr/bin/stt-daemon"))) {
+			SLOG(LOG_DEBUG, TAG_STTC, "stt-daemon is ALIVE !! \n");
 			fclose(fp);
 			return TRUE;
 		}
-		i++;
 	}
+
 	fclose(fp);
+
+	SLOG(LOG_DEBUG, TAG_STTC, "THERE IS NO stt-daemon !! \n");
 
 	return FALSE;
 }
+
 
 static void __my_sig_child(int signo, siginfo_t *info, void *data)
 {
@@ -885,8 +904,6 @@ int __check_stt_daemon()
 		return 0;
 	
 	/* fork-exec stt-daemon */
-	SLOG(LOG_DEBUG, TAG_STTC, "THERE IS NO stt-daemon \n");
-
 	int pid, i;
 	struct sigaction act, dummy;
 

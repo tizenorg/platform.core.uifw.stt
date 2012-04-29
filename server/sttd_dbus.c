@@ -32,6 +32,10 @@ int sttdc_send_result(int uid, const char* type, const char** data, int data_cou
 		return -1;
 	}
 
+	char service_name[64];
+	memset(service_name, 0, 64);
+	snprintf(service_name, 64, "%s%d", STT_CLIENT_SERVICE_NAME, pid);
+
 	char target_if_name[128];
 	snprintf(target_if_name, sizeof(target_if_name), "%s%d", STT_CLIENT_SERVICE_INTERFACE, pid);
 
@@ -39,10 +43,11 @@ int sttdc_send_result(int uid, const char* type, const char** data, int data_cou
 	
 	SLOG(LOG_DEBUG, TAG_STTD, "[Dbus] send result signal : uid(%d), type(%s), result count(%d)", uid, type, data_count);
 
-	msg = dbus_message_new_signal(
-		STT_CLIENT_SERVICE_OBJECT_PATH,  
-		target_if_name,                  
-		STT_SIGNAL_RESULT );              
+	msg = dbus_message_new_method_call(
+		service_name, 
+		STT_CLIENT_SERVICE_OBJECT_PATH, 
+		target_if_name, 
+		STT_METHOD_RESULT);
 
 	if (NULL == msg) { 
 		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] Fail to create message"); 
@@ -135,17 +140,22 @@ int sttdc_send_partial_result(int uid, const char* data)
 		return -1;
 	}
 
+	char service_name[64];
+	memset(service_name, 0, 64);
+	snprintf(service_name, 64, "%s%d", STT_CLIENT_SERVICE_NAME, pid);
+
 	char target_if_name[128];
 	snprintf(target_if_name, sizeof(target_if_name), "%s%d", STT_CLIENT_SERVICE_INTERFACE, pid);
 
 	DBusMessage* msg;
 
 	SLOG(LOG_DEBUG, TAG_STTD, "[Dbus] send result signal : uid(%d), result(%s)", uid, data);
-
-	msg = dbus_message_new_signal(
-		STT_CLIENT_SERVICE_OBJECT_PATH,  
-		target_if_name,                  
-		STT_SIGNAL_PARTIAL_RESULT );              
+ 
+	msg = dbus_message_new_method_call(
+		service_name, 
+		STT_CLIENT_SERVICE_OBJECT_PATH, 
+		target_if_name, 
+		STT_METHOD_PARTIAL_RESULT);
 
 	if (NULL == msg) { 
 		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] Fail to create message"); 
@@ -190,15 +200,21 @@ int sttdc_send_error_signal(int uid, int reason, char *err_msg)
 		return -1;
 	}
 
+	char service_name[64];
+	memset(service_name, 0, 64);
+	snprintf(service_name, 64, "%s%d", STT_CLIENT_SERVICE_NAME, pid);
+
 	char target_if_name[128];
 	snprintf(target_if_name, sizeof(target_if_name), "%s%d", STT_CLIENT_SERVICE_INTERFACE, pid);
 
 	DBusMessage* msg;
 	SLOG(LOG_DEBUG, TAG_STTD, "[Dbus] send error signal : reason(%d), Error Msg(%s)", reason, err_msg);
-	msg = dbus_message_new_signal(
-		STT_CLIENT_SERVICE_OBJECT_PATH,  /* object name of the signal */
-		target_if_name,                  /* interface name of the signal */
-		STT_SIGNAL_ERROR );              /* name of the signal */
+
+	msg = dbus_message_new_method_call(
+		service_name, 
+		STT_CLIENT_SERVICE_OBJECT_PATH, 
+		target_if_name, 
+		STT_METHOD_PARTIAL_RESULT);
 
 	if (NULL == msg) { 
 		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] Fail to create message"); 
@@ -231,6 +247,10 @@ int sttd_send_stop(int uid)
 		return -1;
 	}
 
+	char service_name[64];
+	memset(service_name, 0, 64);
+	snprintf(service_name, 64, "%s%d", STT_CLIENT_SERVICE_NAME, pid);
+
 	char target_if_name[64];
 	snprintf(target_if_name, sizeof(target_if_name), "%s%d", STT_CLIENT_SERVICE_INTERFACE, pid);
 
@@ -238,11 +258,11 @@ int sttd_send_stop(int uid)
 
 	DBusMessage* msg;
 
-	/* create a signal & check for errors */
-	msg = dbus_message_new_signal(
-		STT_SERVER_SERVICE_OBJECT_PATH,	/* object name of the signal */
-		target_if_name,			/* interface name of the signal */
-		STT_SIGNAL_STOP );		/* name of the signal */
+	msg = dbus_message_new_method_call(
+		service_name, 
+		STT_CLIENT_SERVICE_OBJECT_PATH, 
+		target_if_name, 
+		STT_METHOD_STOPED);
 
 	if (NULL == msg) { 
 		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] Fail to create stop message"); 
@@ -283,10 +303,13 @@ static Eina_Bool listener_event_callback(void* data, Ecore_Fd_Handler *fd_handle
 
 
 	/* daemon internal event */
-	if (dbus_message_is_signal(msg, STT_SERVER_SERVICE_INTERFACE, STT_SIGNAL_STOP_BY_DAEMON))
+	if (dbus_message_is_method_call(msg, STT_SERVER_SERVICE_INTERFACE, STTD_METHOD_STOP_BY_DAEMON))
 		sttd_dbus_server_stop_by_daemon(msg);
 
 	/* client event */
+	else if (dbus_message_is_method_call(msg, STT_SERVER_SERVICE_INTERFACE, STT_METHOD_HELLO))
+		sttd_dbus_server_hello(conn, msg);
+
 	else if (dbus_message_is_method_call(msg, STT_SERVER_SERVICE_INTERFACE, STT_METHOD_INITIALIZE))
 		sttd_dbus_server_initialize(conn, msg);
 	
@@ -316,6 +339,9 @@ static Eina_Bool listener_event_callback(void* data, Ecore_Fd_Handler *fd_handle
 
 
 	/* setting event */
+	else if (dbus_message_is_method_call(msg, STT_SERVER_SERVICE_INTERFACE, STT_SETTING_METHOD_HELLO))
+		sttd_dbus_server_hello(conn, msg);
+
 	else if (dbus_message_is_method_call(msg, STT_SERVER_SERVICE_INTERFACE, STT_SETTING_METHOD_INITIALIZE))
 		sttd_dbus_server_setting_initialize(conn, msg);
 
@@ -459,10 +485,11 @@ int sttd_send_stop_recognition_by_daemon(int uid)
 {
 	DBusMessage* msg;
 
-	msg = dbus_message_new_signal(
-		STT_SERVER_SERVICE_OBJECT_PATH,	/* object name of the signal */
-		STT_SERVER_SERVICE_INTERFACE,	/* interface name of the signal */
-		STT_SIGNAL_STOP_BY_DAEMON );	/* name of the signal */
+	msg = dbus_message_new_method_call(
+		STT_SERVER_SERVICE_NAME, 
+		STT_SERVER_SERVICE_OBJECT_PATH, 
+		STT_SERVER_SERVICE_INTERFACE, 
+		STTD_METHOD_STOP_BY_DAEMON);
 
 	if (NULL == msg) { 
 		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] >>>> Fail to make message for 'stop by daemon'"); 

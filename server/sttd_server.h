@@ -29,7 +29,7 @@ int sttd_initialize();
 * API for client
 */
 
-int sttd_server_initialize(int pid, int uid);
+int sttd_server_initialize(int pid, int uid, bool* silence, bool* profanity, bool* punctuation);
 
 int sttd_server_finalize(const int uid);
 

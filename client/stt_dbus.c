@@ -18,6 +18,9 @@
 
 #include <Ecore.h>
 
+static int g_waiting_time = 1500;
+static int g_waiting_start_time = 2000;
+
 static Ecore_Fd_Handler* g_fd_handler = NULL;
 
 static DBusConnection* g_conn = NULL;
@@ -35,6 +38,7 @@ static Eina_Bool listener_event_callback(void* data, Ecore_Fd_Handler *fd_handle
 {
 	DBusConnection* conn = (DBusConnection*)data;
 	DBusMessage* msg = NULL;
+	DBusMessage *reply = NULL;
 
 	if (NULL == conn)
 		return ECORE_CALLBACK_RENEW;
@@ -50,10 +54,11 @@ static Eina_Bool listener_event_callback(void* data, Ecore_Fd_Handler *fd_handle
 
 	DBusError err;
 	dbus_error_init(&err);
+
 	char if_name[64];
 	snprintf(if_name, 64, "%s%d", STT_CLIENT_SERVICE_INTERFACE, getpid());
 
-	if( dbus_message_is_signal(msg, if_name, STT_SIGNAL_RESULT)) {
+	if (dbus_message_is_method_call(msg, if_name, STT_METHOD_RESULT)) {
 		SLOG(LOG_DEBUG, TAG_STTC, "===== Get Result");
 		int uid = 0;
 		DBusMessageIter args;
@@ -122,11 +127,17 @@ static Eina_Bool listener_event_callback(void* data, Ecore_Fd_Handler *fd_handle
 		} else {
 			SLOG(LOG_ERROR, TAG_STTC, "<<<< stt get result : invalid uid \n");
 		} 
+		
+		reply = dbus_message_new_method_return(msg);
+		dbus_connection_send(conn, reply, NULL);
+		dbus_connection_flush(conn);
+		dbus_message_unref(reply); 
+
 		SLOG(LOG_DEBUG, TAG_STTC, "=====");
 		SLOG(LOG_DEBUG, TAG_STTC, " ");
-	}/* STT_SIGNAL_RESULT */
+	}/* STT_METHOD_RESULT */
 
-	else if( dbus_message_is_signal(msg, if_name, STT_SIGNAL_PARTIAL_RESULT)) {
+	else if (dbus_message_is_method_call(msg, if_name, STT_METHOD_PARTIAL_RESULT)) {
 		SLOG(LOG_DEBUG, TAG_STTC, "===== Get Partial Result");
 		int uid = 0;
 		DBusMessageIter args;
@@ -152,11 +163,16 @@ static Eina_Bool listener_event_callback(void* data, Ecore_Fd_Handler *fd_handle
 		} else {
 			SLOG(LOG_ERROR, TAG_STTC, "<<<< stt get partial result : invalid uid \n");
 		}
+		reply = dbus_message_new_method_return(msg);
+		dbus_connection_send(conn, reply, NULL);
+		dbus_connection_flush(conn);
+		dbus_message_unref(reply); 
+
 		SLOG(LOG_DEBUG, TAG_STTC, "=====");
 		SLOG(LOG_DEBUG, TAG_STTC, " ");
-	}/* STT_SIGNAL_PARTIAL_RESULT */
+	}/* STT_METHOD_PARTIAL_RESULT */
 
-	else if( dbus_message_is_signal(msg, if_name, STT_SIGNAL_STOP)) {
+	else if (dbus_message_is_method_call(msg, if_name, STT_METHOD_STOPED)) {
 		SLOG(LOG_DEBUG, TAG_STTC, "===== Get Silence Detection");
 		int uid;
 		dbus_message_get_args(msg, &err,
@@ -170,11 +186,17 @@ static Eina_Bool listener_event_callback(void* data, Ecore_Fd_Handler *fd_handle
 			SLOG(LOG_DEBUG, TAG_STTC, "<<<< Get stop by daemon signal : uid(%d)\n", uid);
 			__stt_cb_stop_by_daemon(uid);
 		}
+
+		reply = dbus_message_new_method_return(msg);
+		dbus_connection_send(conn, reply, NULL);
+		dbus_connection_flush(conn);
+		dbus_message_unref(reply); 
+
 		SLOG(LOG_DEBUG, TAG_STTC, "=====");
 		SLOG(LOG_DEBUG, TAG_STTC, " ");
-	}/* STT_SIGNAL_STOP */
+	}/* STT_METHOD_STOP */
 
-	else if( dbus_message_is_signal(msg, if_name, STT_SIGNAL_ERROR)) {
+	else if (dbus_message_is_method_call(msg, if_name, STT_METHOD_ERROR)) {
 		SLOG(LOG_DEBUG, TAG_STTC, "===== Get Error");
 		int uid;
 		int reason;
@@ -193,9 +215,15 @@ static Eina_Bool listener_event_callback(void* data, Ecore_Fd_Handler *fd_handle
 			SLOG(LOG_DEBUG, TAG_STTC, "<<<< Get Error signal : uid(%d), reason(%d), msg(%s)\n", uid, reason, err_msg);
 			__stt_cb_error(uid, reason);
 		}
+
+		reply = dbus_message_new_method_return(msg);
+		dbus_connection_send(conn, reply, NULL);
+		dbus_connection_flush(conn);
+		dbus_message_unref(reply); 
+
 		SLOG(LOG_DEBUG, TAG_STTC, "=====");
 		SLOG(LOG_DEBUG, TAG_STTC, " ");
-	}/* STT_SIGNAL_ERROR */
+	}/* STT_METHOD_ERROR */
 
 	/* free the message */
 	dbus_message_unref(msg);
@@ -304,7 +332,48 @@ int stt_dbus_close_connection()
 	return 0;
 }
 
-int stt_dbus_request_initialize(int uid)
+int stt_dbus_request_hello()
+{
+	DBusMessage* msg;
+
+	msg = dbus_message_new_method_call(
+		STT_SERVER_SERVICE_NAME, 
+		STT_SERVER_SERVICE_OBJECT_PATH, 
+		STT_SERVER_SERVICE_INTERFACE, 
+		STT_METHOD_HELLO);
+
+	if (NULL == msg) { 
+		SLOG(LOG_ERROR, TAG_STTC, ">>>> Request stt hello : Fail to make message \n"); 
+		return STT_ERROR_OPERATION_FAILED;
+	} else {
+		SLOG(LOG_DEBUG, TAG_STTC, ">>>> Request stt hello");
+	}
+
+	DBusError err;
+	dbus_error_init(&err);
+
+	DBusMessage* result_msg = NULL;
+	int result = 0;
+
+	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, 500, &err);
+
+	dbus_message_unref(msg);
+
+	if (NULL != result_msg) {
+		dbus_message_unref(result_msg);
+
+		SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt hello");
+		result = 0;
+	} else {
+		SLOG(LOG_ERROR, TAG_STTC, "<<<< stt hello : no response");
+		result = STT_ERROR_OPERATION_FAILED;
+	}
+
+	return result;
+}
+
+
+int stt_dbus_request_initialize(int uid, bool* silence_supported, bool* profanity_supported, bool* punctuation_supported)
 {
 	DBusMessage* msg;
 
@@ -333,10 +402,15 @@ int stt_dbus_request_initialize(int uid)
 	DBusMessage* result_msg;
 	int result = STT_ERROR_OPERATION_FAILED;
 
-	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, 3000, &err);
+	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, g_waiting_time, &err);
 
 	if (NULL != result_msg) {
-		dbus_message_get_args(result_msg, &err, DBUS_TYPE_INT32, &result, DBUS_TYPE_INVALID);
+		dbus_message_get_args(result_msg, &err, 
+			DBUS_TYPE_INT32, &result, 
+			DBUS_TYPE_INT32, silence_supported,
+			DBUS_TYPE_INT32, profanity_supported,
+			DBUS_TYPE_INT32, punctuation_supported,
+			DBUS_TYPE_INVALID);
 
 		if (dbus_error_is_set(&err)) { 
 			SLOG(LOG_ERROR, TAG_STTC, "<<<< Get arguments error (%s)\n", err.message);
@@ -350,7 +424,8 @@ int stt_dbus_request_initialize(int uid)
 	}
 
 	if (0 == result) {
-		SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt initialize : result = %d \n", result);
+		SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt initialize : result = %d , silence(%d), profanity(%d), punctuation(%d)", 
+			result, *silence_supported, *profanity_supported, *punctuation_supported);
 	} else {
 		SLOG(LOG_ERROR, TAG_STTC, "<<<< stt initialize : result = %d \n", result);
 	}
@@ -385,7 +460,7 @@ int stt_dbus_request_finalize(int uid)
 	DBusMessage* result_msg;
 	int result = STT_ERROR_OPERATION_FAILED;
 
-	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, 3000, &err);
+	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, g_waiting_time, &err);
 
 	if (NULL != result_msg) {
 		dbus_message_get_args(result_msg, &err, 
@@ -445,7 +520,7 @@ int stt_dbus_request_get_support_langs(int uid, stt_h stt, stt_supported_languag
 	DBusMessageIter args;
 	int result = STT_ERROR_OPERATION_FAILED;
 
-	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, 3000, &err );
+	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, g_waiting_time, &err );
 
 	if (NULL != result_msg) {
 		if (dbus_message_iter_init(result_msg, &args)) {
@@ -528,7 +603,7 @@ int stt_dbus_request_get_default_lang(int uid, char** language)
 	int result = STT_ERROR_OPERATION_FAILED;
 	char* temp_lang = NULL;
 
-	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, 3000, &err);
+	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, g_waiting_time, &err);
 
 	if (NULL != result_msg) {
 		dbus_message_get_args(result_msg, &err,
@@ -591,7 +666,7 @@ int stt_dbus_request_is_partial_result_supported(int uid, bool* partial_result)
 	int result = STT_ERROR_OPERATION_FAILED;
 	int support = -1;
 
-	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, 3000, &err);
+	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, g_waiting_time, &err);
 
 	if (NULL != result_msg) {
 		dbus_message_get_args(result_msg, &err,
@@ -659,7 +734,7 @@ int stt_dbus_request_start(int uid, const char* lang, const char* type, int prof
 	DBusMessage* result_msg;
 	int result = STT_ERROR_OPERATION_FAILED;
 
-	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, 3000, &err);
+	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, g_waiting_start_time, &err);
 
 	if (NULL != result_msg) {
 		dbus_message_get_args(result_msg, &err,
@@ -715,7 +790,7 @@ int stt_dbus_request_stop(int uid)
 	DBusMessage* result_msg;
 	int result = STT_ERROR_OPERATION_FAILED;
 
-	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, 3000, &err);
+	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, g_waiting_time, &err);
 
 	if (NULL != result_msg) {
 		dbus_message_get_args(result_msg, &err,
@@ -771,7 +846,7 @@ int stt_dbus_request_cancel(int uid)
 	DBusMessage* result_msg;
 	int result = STT_ERROR_OPERATION_FAILED;
 
-	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, 3000, &err);
+	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, g_waiting_time, &err);
 
 	if (NULL != result_msg) {
 		dbus_message_get_args(result_msg, &err,
@@ -833,7 +908,7 @@ int stt_dbus_request_get_audio_volume(int uid, float* volume)
 	int result = STT_ERROR_OPERATION_FAILED;
 	double vol = 0;
 
-	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, 3000, &err);
+	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, g_waiting_time, &err);
 
 	if (NULL != result_msg) {
 		dbus_message_get_args(result_msg, &err,

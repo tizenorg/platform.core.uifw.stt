@@ -38,7 +38,7 @@ typedef enum {
 	STTP_ERROR_INVALID_STATE	= -0x0100031,	/**< Invalid state */
 	STTP_ERROR_INVALID_LANGUAGE	= -0x0100032,	/**< Invalid language */
 	STTP_ERROR_OPERATION_FAILED	= -0x0100034,	/**< Operation failed */
-	STTP_ERROR_NOT_SUPPORTED	= -0x0100035	/**< Not supported function */
+	STTP_ERROR_NOT_SUPPORTED_FEATURE= -0x0100035	/**< Not supported feature */
 }sttp_error_e;
 
 /**
@@ -149,15 +149,79 @@ typedef enum {
 */
 #define STTP_RECOGNITION_TYPE_COMMAND_TTS		"stt.recognition.type.COMMAND.TTS"
 
+/** 
+* @brief Result message : None message
+*/
+#define STTP_RESULT_MESSAGE_NONE		"stt.result.message.none"
+
+/** 
+* @brief Result warning message : The speech has started too soon
+*/
+#define STTP_RESULT_MESSAGE_WARNING_TOO_SOON	"stt.result.message.warning.too.soon"
+
+/** 
+* @brief Result warning message : The speech is too short
+*/
+#define STTP_RESULT_MESSAGE_WARNING_TOO_SHORT	"stt.result.message.warning.too.short"
+
+/** 
+* @brief Result warning message : The speech is too long
+*/
+#define STTP_RESULT_MESSAGE_WARNING_TOO_LONG	"stt.result.message.warning.too.long"
+
+/** 
+* @brief Result warning message : The speech is too quiet to listen
+*/
+#define STTP_RESULT_MESSAGE_WARNING_TOO_QUIET	"stt.result.message.warning.too.quiet"
+
+/** 
+* @brief Result warning message : The speech is too loud to listen
+*/
+#define STTP_RESULT_MESSAGE_WARNING_TOO_LOUD	"stt.result.message.warning.too.loud"
+
+/** 
+* @brief Result warning message : The speech is too fast to listen
+*/
+#define STTP_RESULT_MESSAGE_WARNING_TOO_FAST	"stt.result.message.warning.too.fast"
+
+/** 
+* @brief Result error message : Recognition was failed because the speech started too soon
+*/
+#define STTP_RESULT_MESSAGE_ERROR_TOO_SOON	"stt.result.message.error.too.soon"
+
+/** 
+* @brief Result error message : Recognition was failed because the speech started too short
+*/
+#define STTP_RESULT_MESSAGE_ERROR_TOO_SHORT	"stt.result.message.error.too.short"
+
+/** 
+* @brief Result error message : Recognition was failed because the speech started too long
+*/
+#define STTP_RESULT_MESSAGE_ERROR_TOO_LONG	"stt.result.message.error.too.long"
+
+/** 
+* @brief Result error message : Recognition was failed because the speech started too quiet to listen
+*/
+#define STTP_RESULT_MESSAGE_ERROR_TOO_QUIET	"stt.result.message.error.too.quiet"
+
+/** 
+* @brief Result error message : Recognition was failed because the speech started too loud to listen 
+*/
+#define STTP_RESULT_MESSAGE_ERROR_TOO_LOUD	"stt.result.message.error.too.loud"
+
+/** 
+* @brief Result error message : Recognition was failed because the speech started too fast to listen
+*/
+#define STTP_RESULT_MESSAGE_ERROR_TOO_FAST	"stt.result.message.error.too.fast"
 
 /** 
 * @brief Called to get recognition result.
 * 
 * @param[in] event A result event
-* @param[in] type A recognition type
+* @param[in] type A recognition type (e.g. #STTP_RECOGNITION_TYPE_FREE, #STTP_RECOGNITION_TYPE_COMMAND)
 * @param[in] data Result texts
 * @param[in] data_count Result text count
-* @param[in] msg engine A Message
+* @param[in] msg Engine message (e.g. #STTP_RESULT_MESSAGE_WARNING_TOO_SOON, #STTP_RESULT_MESSAGE_ERROR_TOO_SHORT)
 * @param[in] user_data	The user data passed from the start function
 *
 * @pre sttpe_stop() will invoke this callback.
@@ -321,7 +385,7 @@ typedef int (* sttpe_get_recording_format)(sttp_audio_type_e* types, int* rate, 
 * @return 0 on success, otherwise a negative error value
 * @retval #STTP_ERROR_NONE Successful
 * @retval #STTP_ERROR_INVALID_STATE Not initialized
-* @retval #STTP_ERROR_NOT_SUPPORTED Not supported
+* @retval #STTP_ERROR_NOT_SUPPORTED_FEATURE Not supported feature
 */
 typedef int (* sttpe_set_profanity_filter)(bool value);
 
@@ -333,7 +397,7 @@ typedef int (* sttpe_set_profanity_filter)(bool value);
 * @return 0 on success, otherwise a negative error value
 * @retval #STTP_ERROR_NONE Successful
 * @retval #STTP_ERROR_INVALID_STATE Not initialized
-* @retval #STTP_ERROR_NOT_SUPPORTED Not supported
+* @retval #STTP_ERROR_NOT_SUPPORTED_FEATURE Not supported feature
 */
 typedef int (* sttpe_set_punctuation_override)(bool value);
 
@@ -345,7 +409,7 @@ typedef int (* sttpe_set_punctuation_override)(bool value);
 * @return 0 on success, otherwise a negative error value
 * @retval #STTP_ERROR_NONE Successful
 * @retval #STTP_ERROR_INVALID_STATE Not initialized
-* @retval #STTP_ERROR_NOT_SUPPORTED Not supported
+* @retval #STTP_ERROR_NOT_SUPPORTED_FEATURE Not supported feature
 */
 typedef int (* sttpe_set_silence_detection)(bool value);
 
@@ -353,7 +417,7 @@ typedef int (* sttpe_set_silence_detection)(bool value);
 * @brief Start recognition.
 *
 * @param[in] language A language. 
-* @param[in] type A recognition type.
+* @param[in] type A recognition type. (e.g. #STTP_RECOGNITION_TYPE_FREE, #STTP_RECOGNITION_TYPE_WEB_SEARCH)
 * @param[in] user_data The user data to be passed to the callback function. 
 *
 * @return 0 on success, otherwise a negative error value

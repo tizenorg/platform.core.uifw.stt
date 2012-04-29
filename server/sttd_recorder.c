@@ -576,14 +576,16 @@ int sttd_recorder_start()
 
 	/* Check if initialized */
 	ret = __recorder_setup();
-	if (ret) {
+	if (0 != ret) {
 		SLOG(LOG_DEBUG, TAG_STTD, "[Recorder] Fail to call __recorder_setup");
+		return STTD_ERROR_OPERATION_FAILED;
 	}
 
 	/* Start camcorder */
 	ret = __recorder_run();
-	if (ret) {
-		SLOG(LOG_DEBUG, TAG_STTD, "[Recorder] Fail to call __recorder_run");                
+	if (0 != ret) {
+		SLOG(LOG_DEBUG, TAG_STTD, "[Recorder] Fail to call __recorder_run");    
+		return STTD_ERROR_OPERATION_FAILED;
 	}
 
 	__recorder_state_set(STTD_RECORDER_STATE_RECORDING);

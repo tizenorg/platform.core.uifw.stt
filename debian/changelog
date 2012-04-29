@@ -1,7 +1,7 @@
-stt (0.1.1) unstable; urgency=low
+stt (0.1.1-1) unstable; urgency=low
 
-  * Beta release
-  * Git: tizen2/pkgs/s/stt
-  * Tag: stt_0.1.1
+  * 1.0 release
+  * Git: pkgs/s/stt
+  * Tag: stt_0.1.1-1
 
- -- Dongyeol Lee <dy3.lee@samsung.com>  Fri, 17 Feb 2012 13:49:31 +0900
+ -- Dongyeol Lee <dy3.lee@samsung.com>  Mon, 19 Mar 2012 10:54:03 +0900

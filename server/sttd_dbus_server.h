@@ -23,6 +23,9 @@ extern "C" {
 
 #include <dbus/dbus.h>
 
+
+int sttd_dbus_server_hello(DBusConnection* conn, DBusMessage* msg);
+
 /*
 * Dbus Server functions for APIs
 */ 

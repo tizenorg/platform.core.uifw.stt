@@ -34,8 +34,11 @@ extern "C" {
 
 #define TAG_STTD "sttd"
 
-#define ENGINE_DIRECTORY "/usr/lib/voice/stt/1.0/engine"
-#define ENGINE_DIRECTORY_DOWNLOAD "/opt/apps/voice/stt/engine"
+#define ENGINE_DIRECTORY_DEFAULT		"/usr/lib/voice/stt/1.0/engine"
+#define ENGINE_DIRECTORY_DEFAULT_SETTING	"/usr/lib/voice/stt/1.0/setting"
+
+#define ENGINE_DIRECTORY_DOWNLOAD		"/opt/apps/voice/stt/1.0/engine"
+#define ENGINE_DIRECTORY_DOWNLOAD_SETTING	"/opt/apps/voice/stt/1.0/setting"
 
 /* for debug message */
 #define RECORDER_DEBUG
@@ -51,7 +54,8 @@ typedef enum {
 	STTD_ERROR_INVALID_STATE	= -0x0100031,	/**< Invalid state */
 	STTD_ERROR_INVALID_LANGUAGE	= -0x0100032,	/**< Invalid language */
 	STTD_ERROR_ENGINE_NOT_FOUND	= -0x0100033,	/**< No available engine  */	
-	STTD_ERROR_OPERATION_FAILED	= -0x0100034	/**< Operation failed  */
+	STTD_ERROR_OPERATION_FAILED	= -0x0100034,	/**< Operation failed  */
+	STTD_ERROR_NOT_SUPPORTED_FEATURE= -0x0100035	/**< Not supported feature of current engine */
 }stt_error_e;
 
 typedef struct {
