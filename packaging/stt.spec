@@ -5,6 +5,7 @@ Release:    1
 Group:      libs
 License:    Samsung
 Source0:    stt-0.1.1.tar.gz
+Source1001: packaging/stt.manifest 
 Requires(post): /sbin/ldconfig
 Requires(postun): /sbin/ldconfig
 BuildRequires:  pkgconfig(glib-2.0)
@@ -38,6 +39,7 @@ Speech To Text header files for STT development.
 
 
 %build
+cp %{SOURCE1001} .
 cmake . -DCMAKE_INSTALL_PREFIX=/usr
 make %{?jobs:-j%jobs}
 
@@ -57,6 +59,7 @@ rm -rf %{buildroot}
 
 
 %files
+%manifest stt.manifest
 %defattr(-,root,root,-)
 %{_libdir}/libstt.so
 %{_libdir}/libstt_setting.so
@@ -64,6 +67,7 @@ rm -rf %{buildroot}
 
 
 %files devel
+%manifest stt.manifest
 %defattr(-,root,root,-)
 %{_libdir}/pkgconfig/stt.pc
 %{_libdir}/pkgconfig/stt-setting.pc
