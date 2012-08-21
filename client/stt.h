@@ -208,7 +208,8 @@ typedef enum {
 * @brief Enumerations of state.
 */
 typedef enum {
-	STT_STATE_READY = 0,			/**< 'READY' state */
+	STT_STATE_CREATED = 0,			/**< 'CREATED' state */
+	STT_STATE_READY,			/**< 'READY' state */
 	STT_STATE_RECORDING,			/**< 'RECORDING' state */
 	STT_STATE_PROCESSING			/**< 'PROCESSING' state*/
 }stt_state_e;
@@ -295,10 +296,6 @@ typedef void (*stt_partial_result_cb)(stt_h stt, const char* data, void *user_da
 *
 * @pre An application registers this callback using stt_set_state_changed_cb() to detect changing state.
 *
-* @see stt_start()
-* @see stt_stop()
-* @see stt_cancel()
-* @see stt_result_cb()
 * @see stt_set_state_changed_cb()
 * @see stt_unset_state_changed_cb()
 */
@@ -323,8 +320,8 @@ typedef void (*stt_error_cb)(stt_h stt, stt_error_e reason, void *user_data);
 *
 * @param[in] stt The handle for STT
 * @param[in] language A language is specified as an ISO 3166 alpha-2 two letter country-code \n
-* followed by ISO 639-1 for the two-letter language code. \n
-* For example, "ko_KR" for Korean, "en_US" for American English.
+*		followed by ISO 639-1 for the two-letter language code. \n
+*		For example, "ko_KR" for Korean, "en_US" for American English.
 * @param[in] user_data The user data passed from the foreach function
 *
 * @return @c true to continue with the next iteration of the loop, \n @c false to break out of the loop.
@@ -336,24 +333,23 @@ typedef bool(*stt_supported_language_cb)(stt_h stt, const char* language, void* 
 
 
 /**
-* @brief Creates a handle for STT and connects daemon. 
+* @brief Creates a handle for STT. 
 *
 * @param[out] stt The handle for STT
 *
 * @return 0 on success, otherwise a negative error value
 * @retval #STT_ERROR_NONE Successful
-* @retval #STT_ERROR_TIMED_OUT The daemon is blocked or do not exist
-* @retval #STT_ERROR_ENGINE_NOT_FOUND No available engine \n Engine should be installed
 * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
-* @retval #STT_ERROR_OUT_OF_MEMORY Out of memory
 * @retval #STT_ERROR_OPERATION_FAILED Operation failure
+*
+* @post If this function is called, the STT state will be #STT_STATE_CREATED.
 *
 * @see stt_destroy()
 */
 int stt_create(stt_h* stt);
 
 /**
-* @brief Destroys the handle and disconnects the daemon.
+* @brief Destroys the handle.
 *
 * @param[in] stt The handle for STT
 *
@@ -364,6 +360,40 @@ int stt_create(stt_h* stt);
 * @see stt_create()
 */
 int stt_destroy(stt_h stt);
+
+/**
+* @brief Connects the daemon. 
+*
+* @param[in] stt The handle for STT
+*
+* @return 0 on success, otherwise a negative error value
+* @retval #STT_ERROR_NONE Successful
+* @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
+* @retval #STT_ERROR_INVALID_STATE Invalid state
+*
+* @pre The state should be #STT_STATE_CREATED.
+* @post If this function is called, the STT state will be #STT_STATE_READY.
+*
+* @see stt_unprepare()
+*/
+int stt_prepare(stt_h stt);
+
+/**
+* @brief Disconnects the daemon.
+*
+* @param[in] stt The handle for STT
+*
+* @return 0 on success, otherwise a negative error value
+* @retval #STT_ERROR_NONE Successful
+* @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
+* @retval #STT_ERROR_INVALID_STATE Invalid state
+*
+* @pre The state should be #STT_STATE_READY.
+* @post If this function is called, the STT state will be #STT_STATE_CREATED.
+*
+* @see stt_prepare()
+*/
+int stt_unprepare(stt_h stt);
 
 /**
 * @brief Retrieves all supported languages of current engine using callback function.
@@ -393,8 +423,8 @@ int stt_foreach_supported_languages(stt_h stt, stt_supported_language_cb callbac
 *
 * @param[in] stt The handle for STT
 * @param[out] language A language is specified as an ISO 3166 alpha-2 two letter country-code \n
-* followed by ISO 639-1 for the two-letter language code. \n
-* For example, "ko_KR" for Korean, "en_US" for American English.
+*			followed by ISO 639-1 for the two-letter language code. \n
+*			For example, "ko_KR" for Korean, "en_US" for American English.
 *
 * @return 0 on success, otherwise a negative error value
 * @retval #STT_ERROR_NONE Successful
@@ -601,7 +631,7 @@ int stt_get_recording_volume(stt_h stt, float* volume);
 * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
 * @retval #STT_ERROR_INVALID_STATE Invalid state
 *
-* @pre The state should be #STT_STATE_READY.
+* @pre The state should be #STT_STATE_CREATED.
 *
 * @see stt_result_cb()
 * @see stt_unset_result_cb()
@@ -618,7 +648,7 @@ int stt_set_result_cb(stt_h stt, stt_result_cb callback, void* user_data);
 * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
 * @retval #STT_ERROR_INVALID_STATE Invalid state
 *
-* @pre The state should be #STT_STATE_READY.
+* @pre The state should be #STT_STATE_CREATED.
 *
 * @see stt_set_result_cb()
 */
@@ -636,6 +666,8 @@ int stt_unset_result_cb(stt_h stt);
 * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
 * @retval #STT_ERROR_INVALID_STATE Invalid state
 *
+* @pre The state should be #STT_STATE_CREATED.
+*
 * @see stt_partial_result_cb()
 * @see stt_unset_partial_result_cb()
 */
@@ -651,7 +683,7 @@ int stt_set_partial_result_cb(stt_h stt, stt_partial_result_cb callback, void* u
 * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
 * @retval #STT_ERROR_INVALID_STATE Invalid state
 *
-* @pre The state should be #STT_STATE_READY.
+* @pre The state should be #STT_STATE_CREATED.
 *
 * @see stt_set_partial_result_cb()
 */
@@ -669,7 +701,7 @@ int stt_unset_partial_result_cb(stt_h stt);
 * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
 * @retval #STT_ERROR_INVALID_STATE Invalid state
 *
-* @pre The state should be #STT_STATE_READY.
+* @pre The state should be #STT_STATE_CREATED.
 *
 * @see stt_state_changed_cb()
 * @see stt_unset_state_changed_cb()
@@ -686,7 +718,7 @@ int stt_set_state_changed_cb(stt_h stt, stt_state_changed_cb callback, void* use
 * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
 * @retval #STT_ERROR_INVALID_STATE Invalid state
 *
-* @pre The state should be #STT_STATE_READY.
+* @pre The state should be #STT_STATE_CREATED.
 *
 * @see stt_set_state_changed_cb()
 */
@@ -704,7 +736,7 @@ int stt_unset_state_changed_cb(stt_h stt);
 * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
 * @retval #STT_ERROR_INVALID_STATE Invalid state
 *
-* @pre The state should be #STT_STATE_READY.
+* @pre The state should be #STT_STATE_CREATED.
 *
 * @see stt_error_cb()
 * @see stt_unset_error_cb()
@@ -721,7 +753,7 @@ int stt_set_error_cb(stt_h stt, stt_error_cb callback, void* user_data);
 * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
 * @retval #STT_ERROR_INVALID_STATE Invalid state
 *
-* @pre The state should be #STT_STATE_READY.
+* @pre The state should be #STT_STATE_CREATED.
 *
 * @see stt_set_error_cb()
 */

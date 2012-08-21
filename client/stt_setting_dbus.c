@@ -82,6 +82,8 @@ int stt_setting_dbus_close_connection()
 
 	dbus_bus_release_name(g_conn, service_name, &err);
 
+	dbus_connection_close(g_conn);
+
 	g_conn = NULL;
 
 	return 0;

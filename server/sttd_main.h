@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2011 Samsung Electronics Co., Ltd All Rights Reserved 
+*  Copyright (c) 2011 Samsung Electronics Co., Ltd All Rights Reserved 
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -34,14 +34,17 @@ extern "C" {
 
 #define TAG_STTD "sttd"
 
+#define BASE_DIRECTORY_DEFAULT			"/usr/lib/voice/stt/1.0/"
 #define ENGINE_DIRECTORY_DEFAULT		"/usr/lib/voice/stt/1.0/engine"
 #define ENGINE_DIRECTORY_DEFAULT_SETTING	"/usr/lib/voice/stt/1.0/setting"
 
+#define BASE_DIRECTORY_DOWNLOAD			"/opt/apps/voice/stt/1.0/"
 #define ENGINE_DIRECTORY_DOWNLOAD		"/opt/apps/voice/stt/1.0/engine"
 #define ENGINE_DIRECTORY_DOWNLOAD_SETTING	"/opt/apps/voice/stt/1.0/setting"
 
 /* for debug message */
 #define RECORDER_DEBUG
+#define CLIENT_DATA_DEBUG
 
 typedef enum {
 	STTD_ERROR_NONE			= 0,		/**< Successful */

@@ -35,11 +35,13 @@ typedef enum {
 	STT_SETTING_ERROR_OUT_OF_MEMORY		= -ENOMEM,	/**< Out of Memory */
 	STT_SETTING_ERROR_IO_ERROR		= -EIO,		/**< I/O error */
 	STT_SETTING_ERROR_INVALID_PARAMETER	= -EINVAL,	/**< Invalid parameter */
-	STT_SETTING_ERROR_INVALID_STATE		= -0x0100021,	/**< Invalid state */
-	STT_SETTING_ERROR_INVALID_LANGUAGE	= -0x0100022,	/**< Invalid language */
-	STT_SETTING_ERROR_ENGINE_NOT_FOUND	= -0x0100023,	/**< No available STT-engine  */
-	STT_SETTING_ERROR_TIMED_OUT		= -0x0100024,	/**< No answer from STT daemon */
-	STT_SETTING_ERROR_OPERATION_FAILED	= -0x0100025,	/**< STT daemon failed  */
+	STT_SETTING_ERROR_TIMED_OUT		= -ETIMEDOUT,	/**< No answer from the daemon */
+	STT_SETTING_ERROR_OUT_OF_NETWORK	= -ENETDOWN,	/**< Out of network */
+	STT_SETTING_ERROR_INVALID_STATE		= -0x0100031,	/**< Invalid state */
+	STT_SETTING_ERROR_INVALID_LANGUAGE	= -0x0100032,	/**< Invalid language */
+	STT_SETTING_ERROR_ENGINE_NOT_FOUND	= -0x0100033,	/**< No available STT-engine  */
+	STT_SETTING_ERROR_OPERATION_FAILED	= -0x0100034,	/**< STT daemon failed  */
+	STT_SETTING_ERROR_NOT_SUPPORTED_FEATURE	= -0x0100035	/**< Not supported feature of current engine */
 }stt_setting_error_e;
 
 /**

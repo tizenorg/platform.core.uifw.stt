@@ -60,6 +60,7 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 %{_libdir}/libstt.so
 %{_libdir}/libstt_setting.so
+%{_libdir}/voice/stt/1.0/sttd.conf
 %{_bindir}/stt-daemon
 
 

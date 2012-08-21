@@ -1546,11 +1546,13 @@ int sttd_dbus_server_stop_by_daemon(DBusMessage* msg)
 		sttd_server_stop(uid);
 
 		/* check silence detection option from config */
-		int ret = sttd_send_stop(uid); 
+		int ret = sttdc_send_set_state(uid, (int)APP_STATE_PROCESSING);
 		if (0 == ret) {
 			SLOG(LOG_DEBUG, TAG_STTD, "[OUT SUCCESS] Result(%d)", ret); 
 		} else {
 			SLOG(LOG_ERROR, TAG_STTD, "[OUT ERROR] Result(%d)", ret); 
+			/* Remove client */
+			sttd_server_finalize(uid);
 		}
 	}
 	

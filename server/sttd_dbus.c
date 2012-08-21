@@ -22,6 +22,131 @@
 #include "stt_defs.h"
 
 static DBusConnection* g_conn;
+static int g_waiting_time = 3000;
+
+int sttdc_send_hello(int uid)
+{
+	int pid = sttd_client_get_pid(uid);
+
+	if (0 > pid) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] pid is NOT valid");
+		return -1;
+	}
+
+	char service_name[64];
+	memset(service_name, 0, 64);
+	snprintf(service_name, 64, "%s%d", STT_CLIENT_SERVICE_NAME, pid);
+
+	char target_if_name[128];
+	snprintf(target_if_name, sizeof(target_if_name), "%s%d", STT_CLIENT_SERVICE_INTERFACE, pid);
+
+	DBusMessage* msg;
+
+	SLOG(LOG_DEBUG, TAG_STTD, "[Dbus] Send hello message : uid(%d)", uid);
+
+	msg = dbus_message_new_method_call(
+		service_name, 
+		STT_CLIENT_SERVICE_OBJECT_PATH, 
+		target_if_name, 
+		STTD_METHOD_HELLO);
+
+	if (NULL == msg) { 
+		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] Fail to create message"); 
+		return -1;
+	}
+
+	dbus_message_append_args(msg, DBUS_TYPE_INT32, &uid, DBUS_TYPE_INVALID);
+
+	DBusError err;
+	dbus_error_init(&err);
+
+	DBusMessage* result_msg;
+	int result = -1;
+
+	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, g_waiting_time, &err);
+	dbus_message_unref(msg);
+
+	if (NULL != result_msg) {
+		dbus_message_get_args(result_msg, &err, DBUS_TYPE_INT32, &result, DBUS_TYPE_INVALID);
+
+		if (dbus_error_is_set(&err)) { 
+			SLOG(LOG_ERROR, TAG_STTD, "[Dbus] Get arguments error (%s)\n", err.message);
+			dbus_error_free(&err); 
+			result = -1;
+		}
+
+		dbus_message_unref(result_msg);
+	} else {
+		SLOG(LOG_DEBUG, TAG_STTD, "[Dbus] Result message is NULL. Client is not available");
+		result = 0;
+	}
+
+	return result;
+}
+
+int sttdc_send_get_state(int uid, int* state)
+{
+	int pid = sttd_client_get_pid(uid);
+
+	if (0 > pid) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] pid is NOT valid");
+		return -1;
+	}
+
+	char service_name[64];
+	memset(service_name, 0, 64);
+	snprintf(service_name, 64, "%s%d", STT_CLIENT_SERVICE_NAME, pid);
+
+	char target_if_name[128];
+	snprintf(target_if_name, sizeof(target_if_name), "%s%d", STT_CLIENT_SERVICE_INTERFACE, pid);
+
+	DBusMessage* msg;
+
+	SLOG(LOG_DEBUG, TAG_STTD, "[Dbus] Send get state message : uid(%d)", uid);
+
+	msg = dbus_message_new_method_call(
+		service_name, 
+		STT_CLIENT_SERVICE_OBJECT_PATH, 
+		target_if_name, 
+		STTD_METHOD_GET_STATE);
+
+	if (NULL == msg) { 
+		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] Fail to create message"); 
+		return -1;
+	}
+
+	dbus_message_append_args(msg, DBUS_TYPE_INT32, &uid, DBUS_TYPE_INVALID);
+
+	DBusError err;
+	dbus_error_init(&err);
+
+	DBusMessage* result_msg;
+	int tmp = -1;
+	int result = 0;
+
+	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, g_waiting_time, &err);
+	dbus_message_unref(msg);
+
+	if (NULL != result_msg) {
+		dbus_message_get_args(result_msg, &err, DBUS_TYPE_INT32, &tmp, DBUS_TYPE_INVALID);
+
+		if (dbus_error_is_set(&err)) { 
+			SLOG(LOG_ERROR, TAG_STTD, "[Dbus] Get arguments error (%s)\n", err.message);
+			dbus_error_free(&err); 
+			result = -1;
+		} else {
+			*state = tmp;
+			result = 0;
+		}
+
+		dbus_message_unref(result_msg);
+	} else {
+		SLOG(LOG_ERROR, TAG_STTD, "[Dbus] Result message is NULL. Client is not available");
+		result = -1;
+	}
+	
+	return result;
+}
 
 int sttdc_send_result(int uid, const char* type, const char** data, int data_count, const char* result_msg)
 {
@@ -47,7 +172,7 @@ int sttdc_send_result(int uid, const char* type, const char** data, int data_cou
 		service_name, 
 		STT_CLIENT_SERVICE_OBJECT_PATH, 
 		target_if_name, 
-		STT_METHOD_RESULT);
+		STTD_METHOD_RESULT);
 
 	if (NULL == msg) { 
 		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] Fail to create message"); 
@@ -155,7 +280,7 @@ int sttdc_send_partial_result(int uid, const char* data)
 		service_name, 
 		STT_CLIENT_SERVICE_OBJECT_PATH, 
 		target_if_name, 
-		STT_METHOD_PARTIAL_RESULT);
+		STTD_METHOD_PARTIAL_RESULT);
 
 	if (NULL == msg) { 
 		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] Fail to create message"); 
@@ -214,7 +339,7 @@ int sttdc_send_error_signal(int uid, int reason, char *err_msg)
 		service_name, 
 		STT_CLIENT_SERVICE_OBJECT_PATH, 
 		target_if_name, 
-		STT_METHOD_PARTIAL_RESULT);
+		STTD_METHOD_ERROR);
 
 	if (NULL == msg) { 
 		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] Fail to create message"); 
@@ -227,23 +352,29 @@ int sttdc_send_error_signal(int uid, int reason, char *err_msg)
 		DBUS_TYPE_STRING, &err_msg,
 		DBUS_TYPE_INVALID);
 	
-	if (!dbus_connection_send(g_conn, msg, NULL)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] Fail to send message : Out Of Memory !"); 
-		return -1;
-	}
+	DBusError err;
+	dbus_error_init(&err);
 
-	dbus_connection_flush(g_conn);
+	DBusMessage* result_msg;
+
+	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, g_waiting_time, &err);
 	dbus_message_unref(msg);
+
+	if (NULL != result_msg) {
+		dbus_message_unref(result_msg);
+	} else {
+		SLOG(LOG_DEBUG, TAG_STTD, "[Dbus] Result message is NULL.");
+	}
 
 	return 0;
 }
 
-int sttd_send_stop(int uid)
+int sttdc_send_set_state(int uid, int state)
 {
 	int pid = sttd_client_get_pid(uid);
 
 	if (0 > pid) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] pid is NOT valid" );
+		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] pid is NOT valid");
 		return -1;
 	}
 
@@ -251,38 +382,54 @@ int sttd_send_stop(int uid)
 	memset(service_name, 0, 64);
 	snprintf(service_name, 64, "%s%d", STT_CLIENT_SERVICE_NAME, pid);
 
-	char target_if_name[64];
+	char target_if_name[128];
 	snprintf(target_if_name, sizeof(target_if_name), "%s%d", STT_CLIENT_SERVICE_INTERFACE, pid);
 
-	SLOG(LOG_DEBUG, TAG_STTD, "[Dbus] send %s signal : ifname(%s), uid(%d)", signal, target_if_name, uid);
-
 	DBusMessage* msg;
+
+	SLOG(LOG_DEBUG, TAG_STTD, "[Dbus] Send change state message : uid(%d), state(%d)", uid, state);
 
 	msg = dbus_message_new_method_call(
 		service_name, 
 		STT_CLIENT_SERVICE_OBJECT_PATH, 
 		target_if_name, 
-		STT_METHOD_STOPED);
+		STTD_METHOD_SET_STATE);
 
 	if (NULL == msg) { 
-		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] Fail to create stop message"); 
+		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] Fail to create message"); 
 		return -1;
 	}
 
-	dbus_message_append_args(msg, DBUS_TYPE_INT32, &uid, DBUS_TYPE_INVALID);
+	dbus_message_append_args(msg, 
+		DBUS_TYPE_INT32, &uid, 
+		DBUS_TYPE_INT32, &state, 
+		DBUS_TYPE_INVALID);
 
-	/* send the message and flush the connection */
-	if (!dbus_connection_send(g_conn, msg, NULL)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] Out Of Memory!"); 
-		return -1;
-	}
+	DBusError err;
+	dbus_error_init(&err);
 
-	dbus_connection_flush(g_conn);
+	DBusMessage* result_msg;
+	int result = -1;
+
+	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, g_waiting_time, &err);
 	dbus_message_unref(msg);
 
-	return 0;
-}
+	if (NULL != result_msg) {
+		dbus_message_get_args(result_msg, &err, DBUS_TYPE_INT32, &result, DBUS_TYPE_INVALID);
 
+		if (dbus_error_is_set(&err)) { 
+			SLOG(LOG_ERROR, TAG_STTD, "[Dbus] Get arguments error (%s)\n", err.message);
+			dbus_error_free(&err); 
+			result = -1;
+		}
+
+		dbus_message_unref(result_msg);
+	} else {
+		SLOG(LOG_DEBUG, TAG_STTD, "[Dbus] Result message is NULL. Client is not available");
+	}
+
+	return result;
+}
 
 static Eina_Bool listener_event_callback(void* data, Ecore_Fd_Handler *fd_handler)
 {
@@ -392,8 +539,9 @@ static Eina_Bool listener_event_callback(void* data, Ecore_Fd_Handler *fd_handle
 	else if (dbus_message_is_method_call(msg, STT_SERVER_SERVICE_INTERFACE, STT_SETTING_METHOD_SET_ENGINE_SETTING))
 		sttd_dbus_server_setting_set_engine_setting(conn, msg);
 
-	else 
-		return ECORE_CALLBACK_RENEW; 
+
+	/* free the message */
+	dbus_message_unref(msg);
 
 	return ECORE_CALLBACK_RENEW;
 }

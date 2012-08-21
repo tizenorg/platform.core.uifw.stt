@@ -61,6 +61,10 @@ static bool g_init = false;
 
 static char g_temp_file_name[128] = {'\0',};
 
+#ifdef BUF_SAVE_MODE
+static FILE* g_pFile;
+#endif 
+
 /* Recorder obj */
 sttd_recorder_s *__recorder_getinstance();
 void __recorder_state_set(sttd_recorder_state state);

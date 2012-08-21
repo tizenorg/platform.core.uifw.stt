@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2011 Samsung Electronics Co., Ltd All Rights Reserved 
+*  Copyright (c) 2011 Samsung Electronics Co., Ltd All Rights Reserved 
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -15,43 +15,33 @@
 #ifndef __STTD_CONFIG_H_
 #define __STTD_CONFIG_H_
 
-#include <stdbool.h>
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define STTD_CONFIG_PREFIX "db/sttd/"
+int sttd_config_initialize();
 
-#define CONFIG_KEY_DEFAULT_ENGINE_ID	STTD_CONFIG_PREFIX"engine"
-#define CONFIG_KEY_DEFAULT_LANGUAGE	STTD_CONFIG_PREFIX"language"
-#define CONFIG_KEY_PROFANITY_FILTER	STTD_CONFIG_PREFIX"profanity"
-#define CONFIG_KEY_PUNCTUATION_OVERRIDE	STTD_CONFIG_PREFIX"punctuation"
-#define CONFIG_KEY_SILENCE_DETECTION	STTD_CONFIG_PREFIX"silence"
+int sttd_config_finalize();
 
+int sttd_config_get_default_engine(char** engine_id);
 
-/*
-* stt-daemon config
-*/
+int sttd_config_set_default_engine(const char* engine_id);
 
-int sttd_config_get_char_type(const char* key, char** value);
+int sttd_config_get_default_language(char** language);
 
-int sttd_config_set_char_type(const char* key, const char* value);
+int sttd_config_set_default_language(const char* langauge);
 
-int sttd_config_get_bool_type(const char* key, bool* value);
+int sttd_config_get_default_silence_detection(int* silence);
 
-int sttd_config_set_bool_type(const char* key, const bool value);
+int sttd_config_set_default_silence_detection(int silence);
 
+int sttd_config_get_default_profanity_filter(int* profanity);
 
-/*
-* interface for engine plug-in
-*/
+int sttd_config_set_default_profanity_filter(int profanity);
 
-int sttd_config_set_persistent_data(const char* engine_id, const char* key, const char* value);
+int sttd_config_get_default_punctuation_override(int* punctuation);
 
-int sttd_config_get_persistent_data(const char* engine_id, const char* key, char** value);
-
-int sttd_config_remove_persistent_data(const char* engine_id, const char* key);
+int sttd_config_set_default_punctuation_override(int punctuation);
 
 
 #ifdef __cplusplus

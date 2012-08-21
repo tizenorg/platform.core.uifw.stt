@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2011 Samsung Electronics Co., Ltd All Rights Reserved 
+*  Copyright (c) 2011 Samsung Electronics Co., Ltd All Rights Reserved 
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -11,199 +11,251 @@
 *  limitations under the License.
 */
 
-
-#include <vconf.h>
-
 #include "sttd_main.h"
 #include "sttd_config.h"
 
 
-/*
-* stt-daemon config
-*/
+#define CONFIG_FILE_PATH	BASE_DIRECTORY_DOWNLOAD"sttd.conf"
+#define CONFIG_DEFAULT		BASE_DIRECTORY_DEFAULT"sttd.conf"
 
-int sttd_config_get_char_type(const char* key, char** value)
+#define ENGINE_ID	"ENGINE_ID"
+#define LANGUAGE	"LANGUAGE"
+#define SILENCE		"SILENCE"
+#define PROFANITY	"PROFANITY"
+#define PUNCTUATION	"PUNCTUATION"
+
+
+static char*	g_engine_id;
+static char*	g_language;
+static int	g_silence;
+static int	g_profanity;
+static int	g_punctuation;
+
+int __sttd_config_save()
 {
-	if (NULL == key || NULL == value) {
-		SLOG(LOG_ERROR, TAG_STTD, "[STTD Config ERROR] Input parameter is NULL");
-		return STTD_ERROR_INVALID_PARAMETER;
-	} 
+	FILE* config_fp;
+	config_fp = fopen(CONFIG_FILE_PATH, "w+");
 
-	*value = vconf_get_str(key);
-	if (NULL == *value) {
-		SLOG(LOG_ERROR, TAG_STTD, "[STTD Config ERROR] Fail to get char type from config : key(%s)", key);
+	if (NULL == config_fp) {
+		// make file and file default
+		SLOG(LOG_ERROR, TAG_STTD, "[Config ERROR] Fail to load config (engine id)");
 		return -1;
 	}
+
+	/* Write engine id */
+	fprintf(config_fp, "%s %s\n", ENGINE_ID, g_engine_id);
+
+	/* Write language */
+	fprintf(config_fp, "%s %s\n", LANGUAGE, g_language);
+
+	/* Write silence detection */
+	fprintf(config_fp, "%s %d\n", SILENCE, g_silence);
+
+	/* Write profanity */
+	fprintf(config_fp, "%s %d\n", PROFANITY, g_profanity);
+
+	/* Write punctuation */
+	fprintf(config_fp, "%s %d\n", PUNCTUATION, g_punctuation);
+
+	fclose(config_fp);
 
 	return 0;
 }
 
-int sttd_config_set_char_type(const char* key, const char* value)
+int __sttd_config_load()
 {
-	if (NULL == key || NULL == value) {
-		SLOG(LOG_ERROR, TAG_STTD, "[STTD Config ERROR] Input parameter is NULL");
-		return STTD_ERROR_INVALID_PARAMETER;
-	} 
+	FILE* config_fp;
+	char buf_id[256] = {0};
+	char buf_param[256] = {0};
+	int int_param = 0;
 
-	if (0 != vconf_set_str(key, value)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[STTD Config ERROR] Fail to set char type"); 
-		return -1;
+	config_fp = fopen(CONFIG_FILE_PATH, "r");
+
+	if (NULL == config_fp) {
+		SLOG(LOG_WARN, TAG_STTD, "[Config WARNING] Not open file(%s)", CONFIG_FILE_PATH);
+
+		config_fp = fopen(CONFIG_DEFAULT, "r");
+		if (NULL == config_fp) {
+			SLOG(LOG_WARN, TAG_STTD, "[Config WARNING] Not open original config file(%s)", CONFIG_FILE_PATH);
+			__sttd_config_save();
+			return 0;
+		}
 	}
+
+	/* Read engine id */
+	fscanf(config_fp, "%s %s", buf_id, buf_param);
+	if (0 == strncmp(ENGINE_ID, buf_id, strlen(ENGINE_ID))) {
+		g_engine_id = strdup(buf_param);
+	} else {
+		fclose(config_fp);
+		SLOG(LOG_WARN, TAG_STTD, "[Config WARNING] Fail to load config (engine id)");
+		__sttd_config_save();
+		return 0;
+	}
+
+	/* Read language */
+	fscanf(config_fp, "%s %s", buf_id, buf_param);
+	if (0 == strncmp(LANGUAGE, buf_id, strlen(LANGUAGE))) {
+		g_language = strdup(buf_param);
+	} else {
+		fclose(config_fp);
+		SLOG(LOG_WARN, TAG_STTD, "[Config WARNING] Fail to load config (language)");
+		__sttd_config_save();
+		return 0;
+	}
+
+	/* Read silence detection */
+	fscanf(config_fp, "%s %d", buf_id, &int_param);
+	if (0 == strncmp(SILENCE, buf_id, strlen(SILENCE))) {
+		g_silence = int_param;
+	} else {
+		fclose(config_fp);
+		SLOG(LOG_WARN, TAG_STTD, "[Config WARNING] Fail to load config (silence)");
+		__sttd_config_save();
+		return 0;
+	}
+
+	/* Read profanity filter */
+	fscanf(config_fp, "%s %d", buf_id, &int_param);
+	if (0 == strncmp(PROFANITY, buf_id, strlen(PROFANITY))) {
+		g_profanity = int_param;
+	} else {
+		fclose(config_fp);
+		SLOG(LOG_WARN, TAG_STTD, "[Config WARNING] Fail to load config (profanity filter)");
+		__sttd_config_save();
+		return 0;
+	}
+
+	/* Read punctuation override */
+	fscanf(config_fp, "%s %d", buf_id, &int_param);
+	if (0 == strncmp(PUNCTUATION, buf_id, strlen(PUNCTUATION))) {
+		g_punctuation = int_param;
+	} else {
+		fclose(config_fp);
+		SLOG(LOG_WARN, TAG_STTD, "[Config WARNING] Fail to load config (punctuation override)");
+		__sttd_config_save();
+		return 0;
+	}
+
+	SLOG(LOG_DEBUG, TAG_STTD, "[Config] Load config : engine(%s), language(%s), silence(%d), profanity(%d), punctuation(%d)",
+		g_engine_id, g_language, g_silence, g_profanity, g_punctuation);
 
 	return 0;
 }
 
-int sttd_config_get_bool_type(const char* key, bool* value)
+int sttd_config_initialize()
 {
-	if (NULL == key || NULL == value) {
-		SLOG(LOG_ERROR, TAG_STTD, "[STTD Config ERROR] Input parameter is NULL");
-		return STTD_ERROR_INVALID_PARAMETER;
-	} 
+	g_engine_id = NULL;
+	g_language = NULL;
+	g_silence = 1;
+	g_profanity = 0;
+	g_punctuation = 0;
 
-	int result ;
-	if (0 != vconf_get_int(key, &result)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[STTD Config ERROR] Fail to get bool type config : key(%s)", key);
-		return -1;
-	}
-
-	*value = (bool) result;
+	__sttd_config_load();
 
 	return 0;
 }
 
-int sttd_config_set_bool_type(const char* key, const bool value)
+int sttd_config_finalize()
 {
-	if (NULL == key) {
-		SLOG(LOG_ERROR, TAG_STTD, "[STTD Config ERROR] Input parameter is NULL");
-		return STTD_ERROR_INVALID_PARAMETER;
-	} 
+	__sttd_config_save();
+	return 0;
+}
 
-	int result = (int)value;
-	if (0 != vconf_set_int(key, result)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[STTD Config ERROR] Fail to get bool type config : key(%s)", key);
+int sttd_config_get_default_engine(char** engine_id)
+{
+	if (NULL == engine_id)
 		return -1;
-	}
+
+	*engine_id = strdup(g_engine_id);
+	return 0;
+}
+
+int sttd_config_set_default_engine(const char* engine_id)
+{
+	if (NULL == engine_id)
+		return -1;
+
+	if (NULL != g_engine_id)
+		free(g_engine_id);
+
+	g_engine_id = strdup(engine_id);
+	__sttd_config_save();
+	return 0;
+}
+
+int sttd_config_get_default_language(char** language)
+{
+	if (NULL == language)
+		return -1;
+
+	*language = strdup(g_language);
 
 	return 0;
 }
 
-/*
-* plug-in daemon interface
-*/
-
-int __make_key_for_engine(const char* engine_id, const char* key, char** out_key)
+int sttd_config_set_default_language(const char* language)
 {
-	int key_size = strlen(STTD_CONFIG_PREFIX) + strlen(engine_id) + strlen(key) + 2; /* 2 means both '/' and '\0'*/
+	if (NULL == language)
+		return -1;
 
-	*out_key = (char*) malloc( sizeof(char) * key_size);
+	if (NULL != g_language)
+		free(g_language);
 
-	snprintf(*out_key, key_size, "%s%s/%s", STTD_CONFIG_PREFIX, engine_id, key );
+	g_language = strdup(language);
+
+	__sttd_config_save();
 
 	return 0;
 }
 
-int sttd_config_set_persistent_data(const char* engine_id, const char* key, const char* value)
+int sttd_config_get_default_silence_detection(int* silence)
 {
-	if (NULL == engine_id || NULL == key || NULL == value) {
-		SLOG(LOG_ERROR, TAG_STTD, "[STTD Config ERROR] BAD Parameter"); 
-		return STTD_ERROR_INVALID_PARAMETER;
-	}
-
-	char* vconf_key = NULL;
-	if (0 != __make_key_for_engine(engine_id, key, &vconf_key)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[STTD Config ERROR] Fail __make_key_for_engine()");
-		return -1;
-	}
-
-	if (NULL == vconf_key)		
+	if (NULL == silence)
 		return -1;
 
-	if (0 != vconf_set_str(vconf_key, value)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[STTD Config ERROR] Fail to set key, value");
-
-		if (vconf_key != NULL)	
-			free(vconf_key);
-
-		return -1;
-	}
-
-	SLOG(LOG_DEBUG, TAG_STTD, "[STTD Config DEBUG] sttd_config_set_persistent_data : key(%s), value(%s)", vconf_key, value);
-
-	if (NULL != vconf_key)	
-		free(vconf_key);
+	*silence = g_silence;
 
 	return 0;
 }
 
-int sttd_config_get_persistent_data(const char* engine_id, const char* key, char** value)
+int sttd_config_set_default_silence_detection(int silence)
 {
-	if (NULL == engine_id) {
-		SLOG(LOG_ERROR, TAG_STTD, "[STTD Config ERROR] BAD Parameter"); 
-		return STTD_ERROR_INVALID_PARAMETER;
-	}
+	g_silence = silence;
+	__sttd_config_save();
+	return 0;
+}
 
-	char* vconf_key = NULL;
-
-	if (0 != __make_key_for_engine(engine_id, key, &vconf_key)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[STTD Config ERROR] Fail __make_key_for_engine()");
-		return -1;
-	}
-
-	if (NULL == vconf_key)
+int sttd_config_get_default_profanity_filter(int* profanity)
+{
+	if (NULL == profanity)
 		return -1;
 
-	char* temp;
-	temp = vconf_get_str(vconf_key);
-	if (NULL == temp) {
-		SLOG(LOG_ERROR, TAG_STTD, "[STTD Config ERROR] Fail to get value");
-
-		if(vconf_key != NULL)	
-			free(vconf_key);
-
-		return -1;
-	}
-
-	*value = g_strdup(temp);
-
-	SLOG(LOG_DEBUG, TAG_STTD, "[STTD Config DEBUG] sttd_config_get_persistent_data : key(%s), value(%s)", vconf_key, *value);
-
-	if (vconf_key != NULL)	free(vconf_key);
-	if (temp != NULL)	free(temp);
+	*profanity = g_profanity;
 
 	return 0;
 }
 
-int sttd_config_remove_persistent_data(const char* engine_id, const char* key)
+int sttd_config_set_default_profanity_filter(int profanity)
 {
-	if (NULL == engine_id || NULL == key) {
-		SLOG(LOG_ERROR, TAG_STTD, "[STTD Config ERROR] BAD Parameter"); 
-		return STTD_ERROR_INVALID_PARAMETER;
-	}
+	g_profanity = profanity;
+	__sttd_config_save();
+	return 0;
+}
 
-	char* vconf_key = NULL;
-	if (0 != __make_key_for_engine(engine_id, key, &vconf_key)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[STTD Config ERROR] Fail __make_key_for_engine()");
-		return -1;
-	}
-
-	if (NULL == vconf_key)		
+int sttd_config_get_default_punctuation_override(int* punctuation)
+{
+	if (NULL == punctuation)
 		return -1;
 
-	if (0 != vconf_unset(vconf_key)) {	
-		SLOG(LOG_ERROR, TAG_STTD, "[STTD Config ERROR] Fail to remove key");
-
-		if(vconf_key != NULL)	
-			free(vconf_key);
-
-		return -1;
-	}
-
-	SLOG(LOG_DEBUG, TAG_STTD, "[STTD Config DEBUG] sttd_config_remove_persistent_data : key(%s)", vconf_key);
-
-	if( NULL != vconf_key )		
-		free(vconf_key);
+	*punctuation = g_punctuation;
 
 	return 0;
 }
 
-
+int sttd_config_set_default_punctuation_override(int punctuation)
+{
+	g_punctuation = punctuation;
+	__sttd_config_save();
+	return 0;
+}

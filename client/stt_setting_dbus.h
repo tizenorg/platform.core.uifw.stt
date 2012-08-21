@@ -26,6 +26,8 @@ int stt_setting_dbus_open_connection();
 int stt_setting_dbus_close_connection();
 
 
+int stt_setting_dbus_request_hello();
+
 int stt_setting_dbus_request_initialize();
 
 int stt_setting_dbus_request_finalilze();

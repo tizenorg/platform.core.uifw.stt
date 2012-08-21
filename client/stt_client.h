@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2011 Samsung Electronics Co., Ltd All Rights Reserved 
+*  Copyright (c) 2011 Samsung Electronics Co., Ltd All Rights Reserved 
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -49,10 +49,21 @@ typedef struct {
 	stt_option_silence_detection_e	silence;
 
 	/* state */
+	stt_state_e	before_state;
 	stt_state_e	current_state;
 
 	/* mutex */
 	int		cb_ref_count;
+
+	/* result data */
+	char*	partial_result;
+	char*	type;
+	char**	data_list;
+	int	data_count;
+	char*	msg;
+
+	/* error data */
+	int	reason;
 }stt_client_s;
 
 int stt_client_new(stt_h* stt);

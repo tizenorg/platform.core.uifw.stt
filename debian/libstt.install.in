@@ -1,3 +1,4 @@
 @PREFIX@/lib/libstt.so*
 @PREFIX@/lib/libstt_setting.so*
 @PREFIX@/bin/stt-daemon
+@PREFIX@/lib/voice/stt/1.0/sttd.conf

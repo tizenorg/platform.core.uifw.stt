@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2011 Samsung Electronics Co., Ltd All Rights Reserved 
+*  Copyright (c) 2011 Samsung Electronics Co., Ltd All Rights Reserved 
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -68,7 +68,13 @@ int stt_client_new(stt_h* stt)
 	client->punctuation = STT_OPTION_PUNCTUATION_AUTO;
 	client->silence = STT_OPTION_SILENCE_DETECTION_AUTO;
 
-	client->current_state = STT_STATE_READY; 
+	client->type = NULL;
+	client->data_list = NULL;
+	client->data_count = 0;
+	client->msg = NULL;
+
+	client->before_state = STT_STATE_CREATED;
+	client->current_state = STT_STATE_CREATED; 
 
 	client->cb_ref_count = 0;
 

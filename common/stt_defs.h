@@ -37,7 +37,7 @@ extern "C" {
 
 
 /******************************************************************************************
-* Message Definition for APIs
+* Message Definition for Client
 *******************************************************************************************/
 
 #define STT_METHOD_HELLO		"stt_method_hello"
@@ -52,10 +52,12 @@ extern "C" {
 #define STT_METHOD_STOP			"stt_method_stop"
 #define STT_METHOD_CANCEL		"stt_method_cancel"
 
-#define STT_METHOD_RESULT		"sttd_method_result"
-#define STT_METHOD_PARTIAL_RESULT	"sttd_method_partial_result"
-#define STT_METHOD_STOPED		"sttd_method_stop"
-#define STT_METHOD_ERROR		"sttd_method_error"
+#define STTD_METHOD_RESULT		"sttd_method_result"
+#define STTD_METHOD_PARTIAL_RESULT	"sttd_method_partial_result"
+#define STTD_METHOD_ERROR		"sttd_method_error"
+#define STTD_METHOD_HELLO		"sttd_method_hello"
+#define STTD_METHOD_SET_STATE		"sttd_method_set_state"
+#define STTD_METHOD_GET_STATE		"sttd_method_get_state"
 
 #define STTD_METHOD_STOP_BY_DAEMON	"sttd_method_stop_by_daemon"
 

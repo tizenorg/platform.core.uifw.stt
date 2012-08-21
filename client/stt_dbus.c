@@ -17,6 +17,7 @@
 #include "stt_defs.h"
 
 #include <Ecore.h>
+#include "stt_client.h"
 
 static int g_waiting_time = 1500;
 static int g_waiting_start_time = 2000;
@@ -32,7 +33,7 @@ extern int __stt_cb_result(int uid, const char* type, const char** data, int dat
 	
 extern int __stt_cb_partial_result(int uid, const char* data);
 
-extern int __stt_cb_stop_by_daemon(int uid);
+extern int __stt_cb_set_state(int uid, int state);
 
 static Eina_Bool listener_event_callback(void* data, Ecore_Fd_Handler *fd_handler)
 {
@@ -58,7 +59,127 @@ static Eina_Bool listener_event_callback(void* data, Ecore_Fd_Handler *fd_handle
 	char if_name[64];
 	snprintf(if_name, 64, "%s%d", STT_CLIENT_SERVICE_INTERFACE, getpid());
 
-	if (dbus_message_is_method_call(msg, if_name, STT_METHOD_RESULT)) {
+	if (dbus_message_is_method_call(msg, if_name, STTD_METHOD_HELLO)) {
+		SLOG(LOG_DEBUG, TAG_STTC, "===== Get Hello");
+		int uid = 0;
+		int response = -1;
+
+		dbus_message_get_args(msg, &err, DBUS_TYPE_INT32, &uid, DBUS_TYPE_INVALID);
+
+		if (uid > 0) {
+			SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt get hello : uid(%d) \n", uid);
+			
+			/* check uid */
+			stt_client_s* client = stt_client_get_by_uid(uid);
+			if( NULL != client ) 
+				response = 1;
+			else 
+				response = 0;
+		} else {
+			SLOG(LOG_ERROR, TAG_STTC, "<<<< stt get hello : invalid uid \n");
+		}
+
+		reply = dbus_message_new_method_return(msg);
+		
+		if (NULL != reply) {
+			dbus_message_append_args(reply, DBUS_TYPE_INT32, &response, DBUS_TYPE_INVALID);
+
+			if (!dbus_connection_send(conn, reply, NULL))
+				SLOG(LOG_ERROR, TAG_STTC, ">>>> stt get hello : fail to send reply");
+			else 
+				SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt get hello : result(%d)", response);
+
+			dbus_connection_flush(conn);
+			dbus_message_unref(reply); 
+		} else {
+			SLOG(LOG_ERROR, TAG_STTC, ">>>> stt get hello : fail to create reply message");
+		}
+		
+		SLOG(LOG_DEBUG, TAG_STTC, "=====");
+		SLOG(LOG_DEBUG, TAG_STTC, " ");
+	} /* STTD_METHOD_HELLO */
+
+	else if (dbus_message_is_method_call(msg, if_name, STTD_METHOD_SET_STATE)) {
+		SLOG(LOG_DEBUG, TAG_STTC, "===== Set State");
+		int uid = 0;
+		int response = -1;
+		int state = -1;
+
+		dbus_message_get_args(msg, &err, 
+			DBUS_TYPE_INT32, &uid, 
+			DBUS_TYPE_INT32, &state,
+			DBUS_TYPE_INVALID);
+
+		if (uid > 0 && state >= 0) {
+			SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt set state : uid(%d), state(%d)", uid, state);
+
+			response = __stt_cb_set_state(uid, state);
+		} else {
+			SLOG(LOG_ERROR, TAG_STTC, "<<<< stt set state : invalid uid or state");
+		}
+
+		reply = dbus_message_new_method_return(msg);
+
+		if (NULL != reply) {
+			dbus_message_append_args(reply, DBUS_TYPE_INT32, &response, DBUS_TYPE_INVALID);
+
+			if (!dbus_connection_send(conn, reply, NULL))
+				SLOG(LOG_ERROR, TAG_STTC, ">>>> stt set state : fail to send reply");
+			else 
+				SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt set state : result(%d)", response);
+
+			dbus_connection_flush(conn);
+			dbus_message_unref(reply); 
+		} else {
+			SLOG(LOG_ERROR, TAG_STTC, ">>>> stt set state : fail to create reply message");
+		}
+
+		SLOG(LOG_DEBUG, TAG_STTC, "=====");
+		SLOG(LOG_DEBUG, TAG_STTC, " ");
+	} /* STTD_METHOD_SET_STATE */
+
+	else if (dbus_message_is_method_call(msg, if_name, STTD_METHOD_GET_STATE)) {
+		SLOG(LOG_DEBUG, TAG_STTC, "===== Get state");
+		int uid = 0;
+		int response = -1;
+
+		dbus_message_get_args(msg, &err, DBUS_TYPE_INT32, &uid, DBUS_TYPE_INVALID);
+
+		if (uid > 0) {
+			SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt get state : uid(%d) \n", uid);
+
+			/* check state */
+			stt_client_s* client = stt_client_get_by_uid(uid);
+			if( NULL != client ) 
+				response = client->current_state;
+			else 
+				SLOG(LOG_ERROR, TAG_STTC, "invalid uid \n");
+			
+		} else {
+			SLOG(LOG_ERROR, TAG_STTC, "<<<< stt get state : invalid uid \n");
+		}
+
+		reply = dbus_message_new_method_return(msg);
+
+		if (NULL != reply) {
+			dbus_message_append_args(reply, DBUS_TYPE_INT32, &response, DBUS_TYPE_INVALID);
+
+			if (!dbus_connection_send(conn, reply, NULL))
+				SLOG(LOG_ERROR, TAG_STTC, ">>>> stt get state : fail to send reply");
+			else 
+				SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt get state : result(%d)", response);
+
+			dbus_connection_flush(conn);
+			dbus_message_unref(reply); 
+		} else {
+			SLOG(LOG_ERROR, TAG_STTC, ">>>> stt get hello : fail to create reply message");
+		}
+
+		SLOG(LOG_DEBUG, TAG_STTC, "=====");
+		SLOG(LOG_DEBUG, TAG_STTC, " ");
+	} /* STTD_METHOD_GET_STATE */
+
+	else if (dbus_message_is_method_call(msg, if_name, STTD_METHOD_RESULT)) {
 		SLOG(LOG_DEBUG, TAG_STTC, "===== Get Result");
 		int uid = 0;
 		DBusMessageIter args;
@@ -128,16 +249,11 @@ static Eina_Bool listener_event_callback(void* data, Ecore_Fd_Handler *fd_handle
 			SLOG(LOG_ERROR, TAG_STTC, "<<<< stt get result : invalid uid \n");
 		} 
 		
-		reply = dbus_message_new_method_return(msg);
-		dbus_connection_send(conn, reply, NULL);
-		dbus_connection_flush(conn);
-		dbus_message_unref(reply); 
-
 		SLOG(LOG_DEBUG, TAG_STTC, "=====");
 		SLOG(LOG_DEBUG, TAG_STTC, " ");
-	}/* STT_METHOD_RESULT */
+	}/* STTD_METHOD_RESULT */
 
-	else if (dbus_message_is_method_call(msg, if_name, STT_METHOD_PARTIAL_RESULT)) {
+	else if (dbus_message_is_method_call(msg, if_name, STTD_METHOD_PARTIAL_RESULT)) {
 		SLOG(LOG_DEBUG, TAG_STTC, "===== Get Partial Result");
 		int uid = 0;
 		DBusMessageIter args;
@@ -163,40 +279,12 @@ static Eina_Bool listener_event_callback(void* data, Ecore_Fd_Handler *fd_handle
 		} else {
 			SLOG(LOG_ERROR, TAG_STTC, "<<<< stt get partial result : invalid uid \n");
 		}
-		reply = dbus_message_new_method_return(msg);
-		dbus_connection_send(conn, reply, NULL);
-		dbus_connection_flush(conn);
-		dbus_message_unref(reply); 
 
 		SLOG(LOG_DEBUG, TAG_STTC, "=====");
 		SLOG(LOG_DEBUG, TAG_STTC, " ");
-	}/* STT_METHOD_PARTIAL_RESULT */
+	}/* STTD_METHOD_PARTIAL_RESULT */
 
-	else if (dbus_message_is_method_call(msg, if_name, STT_METHOD_STOPED)) {
-		SLOG(LOG_DEBUG, TAG_STTC, "===== Get Silence Detection");
-		int uid;
-		dbus_message_get_args(msg, &err,
-			DBUS_TYPE_INT32, &uid,
-			DBUS_TYPE_INVALID);
-
-		if (dbus_error_is_set(&err)) { 
-			SLOG(LOG_ERROR, TAG_STTC, "<<<< Get stop by daemon signal : Get arguments error (%s)\n", err.message);
-			dbus_error_free(&err); 
-		} else {
-			SLOG(LOG_DEBUG, TAG_STTC, "<<<< Get stop by daemon signal : uid(%d)\n", uid);
-			__stt_cb_stop_by_daemon(uid);
-		}
-
-		reply = dbus_message_new_method_return(msg);
-		dbus_connection_send(conn, reply, NULL);
-		dbus_connection_flush(conn);
-		dbus_message_unref(reply); 
-
-		SLOG(LOG_DEBUG, TAG_STTC, "=====");
-		SLOG(LOG_DEBUG, TAG_STTC, " ");
-	}/* STT_METHOD_STOP */
-
-	else if (dbus_message_is_method_call(msg, if_name, STT_METHOD_ERROR)) {
+	else if (dbus_message_is_method_call(msg, if_name, STTD_METHOD_ERROR)) {
 		SLOG(LOG_DEBUG, TAG_STTC, "===== Get Error");
 		int uid;
 		int reason;
@@ -209,21 +297,30 @@ static Eina_Bool listener_event_callback(void* data, Ecore_Fd_Handler *fd_handle
 			DBUS_TYPE_INVALID);
 
 		if (dbus_error_is_set(&err)) { 
-			SLOG(LOG_ERROR, TAG_STTC, "<<<< Get Error signal : Get arguments error (%s)\n", err.message);
+			SLOG(LOG_ERROR, TAG_STTC, "<<<< stt Get Error message : Get arguments error (%s)\n", err.message);
 			dbus_error_free(&err); 
 		} else {
-			SLOG(LOG_DEBUG, TAG_STTC, "<<<< Get Error signal : uid(%d), reason(%d), msg(%s)\n", uid, reason, err_msg);
+			SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt Get Error message : uid(%d), reason(%d), msg(%s)\n", uid, reason, err_msg);
 			__stt_cb_error(uid, reason);
 		}
 
 		reply = dbus_message_new_method_return(msg);
-		dbus_connection_send(conn, reply, NULL);
-		dbus_connection_flush(conn);
-		dbus_message_unref(reply); 
+
+		if (NULL != reply) {
+			if (!dbus_connection_send(conn, reply, NULL))
+				SLOG(LOG_ERROR, TAG_STTC, ">>>> stt Error message : fail to send reply");
+			else 
+				SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt Error message");
+
+			dbus_connection_flush(conn);
+			dbus_message_unref(reply); 
+		} else {
+			SLOG(LOG_ERROR, TAG_STTC, ">>>> stt Error message : fail to create reply message");
+		}
 
 		SLOG(LOG_DEBUG, TAG_STTC, "=====");
 		SLOG(LOG_DEBUG, TAG_STTC, " ");
-	}/* STT_METHOD_ERROR */
+	}/* STTD_METHOD_ERROR */
 
 	/* free the message */
 	dbus_message_unref(msg);
@@ -327,6 +424,9 @@ int stt_dbus_close_connection()
 
 	dbus_bus_release_name (g_conn, service_name, &err);
 
+	dbus_connection_close(g_conn);
+
+	g_fd_handler = NULL;
 	g_conn = NULL;
 
 	return 0;
