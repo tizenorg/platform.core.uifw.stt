@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2011 Samsung Electronics Co., Ltd All Rights Reserved 
+*  Copyright (c) 2012, 2013 Samsung Electronics Co., Ltd All Rights Reserved 
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -13,29 +13,87 @@
 
 
 #include <sys/wait.h>
+#include <Ecore.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <dirent.h>
 
 #include "stt_main.h"
 #include "stt_setting.h"
 #include "stt_setting_dbus.h"
 
-static bool g_is_setting_initialized = false;
 
-static int __check_stt_daemon();
+static int __check_setting_stt_daemon();
+
+static bool g_is_daemon_started = false;
+
+static Ecore_Timer* g_setting_connect_timer = NULL;
+
+static stt_setting_state_e g_state = STT_SETTING_STATE_NONE;
+
+static stt_setting_initialized_cb g_initialized_cb;
+
+static void* g_user_data;
+
+static int g_reason;
+
+/* API Implementation */
+static Eina_Bool __stt_setting_initialized(void *data)
+{
+	g_initialized_cb(g_state, g_reason, g_user_data);
+
+	return EINA_FALSE;
+}
+
+static Eina_Bool __stt_setting_connect_daemon(void *data)
+{
+	/* Send hello */
+	if (0 != stt_setting_dbus_request_hello()) {
+		if (false == g_is_daemon_started) {
+			g_is_daemon_started = true;
+			__check_setting_stt_daemon();
+		}
+		return EINA_TRUE;
+	}
+
+	SLOG(LOG_DEBUG, TAG_STTC, "===== Connect daemon");
+
+	/* do request initialize */
+	int ret = -1;
+
+	ret = stt_setting_dbus_request_initialize();
+
+	if (STT_SETTING_ERROR_ENGINE_NOT_FOUND == ret) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Engine not found");
+	} else if (STT_SETTING_ERROR_NONE != ret) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to connection : %d", ret);
+	} else {
+		/* success to connect stt-daemon */
+		g_state = STT_SETTING_STATE_READY;
+	}
+
+	g_reason = ret;
+
+	ecore_timer_add(0, __stt_setting_initialized, NULL);
+
+	g_setting_connect_timer = NULL;
+
+	SLOG(LOG_DEBUG, TAG_STTC, "=====");
+	SLOG(LOG_DEBUG, TAG_STTC, " ");
+
+	return EINA_FALSE;
+}
 
 int stt_setting_initialize ()
 {
 	SLOG(LOG_DEBUG, TAG_STTC, "===== Initialize STT Setting");
 
 	int ret = 0;
-
-	/* Check daemon */
-	__check_stt_daemon();
-
-	if (true == g_is_setting_initialized) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] STT Setting has already been initialized. \n");
+	if (STT_SETTING_STATE_READY == g_state) {
+		SLOG(LOG_WARN, TAG_STTC, "[WARNING] STT Setting has already been initialized. \n");
 		SLOG(LOG_DEBUG, TAG_STTC, "=====");
 		SLOG(LOG_DEBUG, TAG_STTC, " ");
-		return STT_SETTING_ERROR_INVALID_STATE;
+		return STT_SETTING_ERROR_NONE;
 	}
 
 	if (0 != stt_setting_dbus_open_connection()) {
@@ -45,8 +103,13 @@ int stt_setting_initialize ()
 		return STT_SETTING_ERROR_OPERATION_FAILED;
 	}
 
+	/* Send hello */
+	if (0 != stt_setting_dbus_request_hello()) {
+		__check_setting_stt_daemon();
+	}
+
 	/* do request */
-	int i = 0;
+	int i = 1;
 	while(1) {
 		ret = stt_setting_dbus_request_initialize();
 
@@ -55,7 +118,7 @@ int stt_setting_initialize ()
 			break;
 		} else if(ret) {
 			sleep(1);
-			if (i == 10) {
+			if (i == 3) {
 				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Connection Time out");
 				ret = STT_SETTING_ERROR_TIMED_OUT;			    
 				break;
@@ -67,8 +130,8 @@ int stt_setting_initialize ()
 		}
 	}
 
-	if (0 == ret) {
-		g_is_setting_initialized = true;
+	if (STT_SETTING_ERROR_NONE == ret) {
+		g_state = STT_SETTING_STATE_READY;
 		SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] Initialize");
 	}
 
@@ -78,6 +141,34 @@ int stt_setting_initialize ()
 	return ret;
 }
 
+int stt_setting_initialize_async(stt_setting_initialized_cb callback, void* user_data)
+{
+	SLOG(LOG_DEBUG, TAG_STTC, "===== Initialize STT Setting");
+
+	if (STT_SETTING_STATE_READY == g_state) {
+		SLOG(LOG_WARN, TAG_STTC, "[WARNING] STT Setting has already been initialized. \n");
+		SLOG(LOG_DEBUG, TAG_STTC, "=====");
+		SLOG(LOG_DEBUG, TAG_STTC, " ");
+		return STT_SETTING_ERROR_NONE;
+	}
+
+	if( 0 != stt_setting_dbus_open_connection() ) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to open connection\n ");
+		SLOG(LOG_DEBUG, TAG_STTC, "=====");
+		SLOG(LOG_DEBUG, TAG_STTC, " ");
+		return STT_SETTING_ERROR_OPERATION_FAILED;
+	}
+
+	g_initialized_cb = callback;
+	g_user_data = user_data;
+
+	g_setting_connect_timer = ecore_timer_add(0, __stt_setting_connect_daemon, NULL);
+
+	SLOG(LOG_DEBUG, TAG_STTC, "=====");
+	SLOG(LOG_DEBUG, TAG_STTC, " ");
+
+	return STT_SETTING_ERROR_NONE;
+}
 
 int stt_setting_finalize ()
 {
@@ -85,28 +176,27 @@ int stt_setting_finalize ()
 	
 	int ret = 0;
 
-	if (false == g_is_setting_initialized) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Not initialized");
-		SLOG(LOG_DEBUG, TAG_STTC, "=====");
-		SLOG(LOG_DEBUG, TAG_STTC, " ");
-		return STT_SETTING_ERROR_INVALID_STATE;
+	if (STT_SETTING_STATE_READY == g_state) {
+		ret = stt_setting_dbus_request_finalilze();
+		if (0 != ret) {
+			SLOG(LOG_ERROR, TAG_STTC, "Fail : finialize(%d)", ret);
+		}
 	}
 
-	ret = stt_setting_dbus_request_finalilze();
-	if (0 != ret) {
-		SLOG(LOG_ERROR, TAG_STTC, "Fail : finialize(%d)", ret);
-		SLOG(LOG_DEBUG, TAG_STTC, "=====");
-		SLOG(LOG_DEBUG, TAG_STTC, " ");
-		return ret;
+	if (NULL != g_setting_connect_timer) {
+		SLOG(LOG_DEBUG, TAG_STTC, "Setting Connect Timer is deleted");
+		ecore_timer_del(g_setting_connect_timer);
 	}
-    
+
+	g_is_daemon_started = false;
+
 	if (0 != stt_setting_dbus_close_connection()) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to close connection");
 	} else {
 		SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] Finalize");
 	}
 
-	g_is_setting_initialized = false;
+	g_state = STT_SETTING_STATE_NONE;
 
 	SLOG(LOG_DEBUG, TAG_STTC, "=====");
 	SLOG(LOG_DEBUG, TAG_STTC, " ");
@@ -118,7 +208,7 @@ int stt_setting_foreach_supported_engines(stt_setting_supported_engine_cb callba
 {
 	SLOG(LOG_DEBUG, TAG_STTC, "===== Foreach supported engines");
 
-	if (false == g_is_setting_initialized) {
+	if (STT_SETTING_STATE_NONE == g_state) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Not initialized");
 		SLOG(LOG_DEBUG, TAG_STTC, "=====");
 		SLOG(LOG_DEBUG, TAG_STTC, " ");
@@ -149,7 +239,7 @@ int stt_setting_get_engine(char** engine_id)
 {
 	SLOG(LOG_DEBUG, TAG_STTC, "===== Get current engine");
 
-	if (false == g_is_setting_initialized) {
+	if (STT_SETTING_STATE_NONE == g_state) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Not initialized");
 		SLOG(LOG_DEBUG, TAG_STTC, "=====");
 		SLOG(LOG_DEBUG, TAG_STTC, " ");
@@ -180,7 +270,7 @@ int stt_setting_set_engine(const char* engine_id)
 {
 	SLOG(LOG_DEBUG, TAG_STTC, "===== Set current engine");
 
-	if (false == g_is_setting_initialized) {
+	if (STT_SETTING_STATE_NONE == g_state) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Not initialized");
 		SLOG(LOG_DEBUG, TAG_STTC, "=====");
 		SLOG(LOG_DEBUG, TAG_STTC, " ");
@@ -211,7 +301,7 @@ int stt_setting_foreach_supported_languages(stt_setting_supported_language_cb ca
 {
 	SLOG(LOG_DEBUG, TAG_STTC, "===== Foreach supported languages");
 
-	if (false == g_is_setting_initialized) {
+	if (STT_SETTING_STATE_NONE == g_state) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Not initialized");
 		SLOG(LOG_DEBUG, TAG_STTC, "=====");
 		SLOG(LOG_DEBUG, TAG_STTC, " ");
@@ -243,7 +333,7 @@ int stt_setting_get_default_language(char** language)
 {
 	SLOG(LOG_DEBUG, TAG_STTC, "===== Get default language");
 
-	if (false == g_is_setting_initialized) {
+	if (STT_SETTING_STATE_NONE == g_state) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Not initialized");
 		SLOG(LOG_DEBUG, TAG_STTC, "=====");
 		SLOG(LOG_DEBUG, TAG_STTC, " ");
@@ -274,7 +364,7 @@ int stt_setting_set_default_language(const char* language)
 {
 	SLOG(LOG_DEBUG, TAG_STTC, "===== Set default language");
 
-	if (false == g_is_setting_initialized) {
+	if (STT_SETTING_STATE_NONE == g_state) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Not initialized");
 		SLOG(LOG_DEBUG, TAG_STTC, "=====");
 		SLOG(LOG_DEBUG, TAG_STTC, " ");
@@ -307,7 +397,7 @@ int stt_setting_get_profanity_filter(bool* value)
 
 	int ret = 0;
 
-	if (false == g_is_setting_initialized) {
+	if (STT_SETTING_STATE_NONE == g_state) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Not initialized");
 		SLOG(LOG_DEBUG, TAG_STTC, "=====");
 		SLOG(LOG_DEBUG, TAG_STTC, " ");
@@ -340,7 +430,7 @@ int stt_setting_set_profanity_filter(const bool value)
 
 	int ret = 0;
 
-	if (!g_is_setting_initialized) {
+	if (STT_SETTING_STATE_NONE == g_state) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] not initialized");
 		SLOG(LOG_DEBUG, TAG_STTC, "=====");
 		SLOG(LOG_DEBUG, TAG_STTC, " ");
@@ -366,7 +456,7 @@ int stt_setting_get_punctuation_override(bool* value)
 
 	int ret = 0;
 
-	if (!g_is_setting_initialized) {
+	if (STT_SETTING_STATE_NONE == g_state) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] not initialized");
 		SLOG(LOG_DEBUG, TAG_STTC, "=====");
 		SLOG(LOG_DEBUG, TAG_STTC, " ");
@@ -399,7 +489,7 @@ int stt_setting_set_punctuation_override(bool value)
 
 	int ret = 0;
 
-	if (!g_is_setting_initialized) {
+	if (STT_SETTING_STATE_NONE == g_state) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] not initialized");
 		SLOG(LOG_DEBUG, TAG_STTC, "=====");
 		SLOG(LOG_DEBUG, TAG_STTC, " ");
@@ -425,7 +515,7 @@ int stt_setting_get_silence_detection(bool* value)
 
 	int ret = 0;
 
-	if (!g_is_setting_initialized) {
+	if (STT_SETTING_STATE_NONE == g_state) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] not initialized");
 		SLOG(LOG_DEBUG, TAG_STTC, "=====");
 		SLOG(LOG_DEBUG, TAG_STTC, " ");
@@ -458,7 +548,7 @@ int stt_setting_set_silence_detection(bool value)
 
 	int ret = 0;
 
-	if (!g_is_setting_initialized) {
+	if (STT_SETTING_STATE_NONE == g_state) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] not initialized");
 		SLOG(LOG_DEBUG, TAG_STTC, "=====");
 		SLOG(LOG_DEBUG, TAG_STTC, " ");
@@ -484,7 +574,7 @@ int stt_setting_foreach_engine_settings(stt_setting_engine_setting_cb callback, 
 
 	int ret = 0;
 
-	if (!g_is_setting_initialized) {
+	if (STT_SETTING_STATE_NONE == g_state) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] not initialized");
 		SLOG(LOG_DEBUG, TAG_STTC, "=====");
 		SLOG(LOG_DEBUG, TAG_STTC, " ");
@@ -517,7 +607,7 @@ int stt_setting_set_engine_setting(const char* key, const char* value)
 
 	int ret = 0;
 
-	if (!g_is_setting_initialized) {
+	if (STT_SETTING_STATE_NONE == g_state) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] not initialized");
 		return STT_SETTING_ERROR_INVALID_STATE;
 	}
@@ -540,88 +630,83 @@ int stt_setting_set_engine_setting(const char* key, const char* value)
 	return ret;
 }
 
-static bool __stt_is_alive()
+int __setting_get_cmd_line(char *file, char *buf) 
 {
 	FILE *fp = NULL;
-	char buff[256] = {'\0',};
-	char cmd[256] = {'\0',};
-	int i=0;
+	int i;
 
-	memset(buff, '\0', sizeof(char));
-	memset(cmd, '\0', sizeof(char));
+	fp = fopen(file, "r");
+	if (fp == NULL) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Get command line");
+		return -1;
+	}
 
-	if ((fp = popen("ps -eo \"cmd\"", "r")) == NULL) {
-		SLOG(LOG_DEBUG, TAG_STTC, "[STT ERROR] popen error \n");
+	memset(buf, 0, 256);
+	fgets(buf, 256, fp);
+	fclose(fp);
+
+	return 0;
+}
+
+static bool __stt_setting_is_alive()
+{
+	DIR *dir;
+	struct dirent *entry;
+	struct stat filestat;
+	
+	int pid;
+	char cmdLine[256];
+	char tempPath[256];
+
+	dir  = opendir("/proc");
+	if (NULL == dir) {
+		SLOG(LOG_ERROR, TAG_STTC, "process checking is FAILED");
 		return FALSE;
 	}
 
-	while (fgets(buff, 255, fp)) {
-		if (i == 0) {
-			i++;
+	while ((entry = readdir(dir)) != NULL) {
+		if (0 != lstat(entry->d_name, &filestat))
+			continue;
+
+		if (!S_ISDIR(filestat.st_mode))
+			continue;
+
+		pid = atoi(entry->d_name);
+		if (pid <= 0) continue;
+
+		sprintf(tempPath, "/proc/%d/cmdline", pid);
+		if (0 != __setting_get_cmd_line(tempPath, cmdLine)) {
 			continue;
 		}
 
-		sscanf(buff, "%s", cmd);
-
-		if( 0 == strncmp(cmd, "[stt-daemon]", strlen("[stt-daemon]")) ||
-			0 == strncmp(cmd, "stt-daemon", strlen("stt-daemon")) ||
-			0 == strncmp(cmd, "/usr/bin/stt-daemon", strlen("/usr/bin/stt-daemon"))
-			) {
-			SLOG(LOG_DEBUG, TAG_STTC, "stt-daemon is ALIVE !! \n");
-			fclose(fp);
-			return TRUE;
+		if ( 0 == strncmp(cmdLine, "[stt-daemon]", strlen("[stt-daemon]")) ||
+			0 == strncmp(cmdLine, "stt-daemon", strlen("stt-daemon")) ||
+			0 == strncmp(cmdLine, "/usr/bin/stt-daemon", strlen("/usr/bin/stt-daemon"))) {
+				SLOG(LOG_DEBUG, TAG_STTC, "stt-daemon is ALIVE !! \n");
+				closedir(dir);
+				return TRUE;
 		}
-
-		i++;
 	}
-	fclose(fp);
-
 	SLOG(LOG_DEBUG, TAG_STTC, "THERE IS NO stt-daemon !! \n");
 
+	closedir(dir);
 	return FALSE;
+
 }
 
-static void __my_sig_child(int signo, siginfo_t *info, void *data)
+int __check_setting_stt_daemon()
 {
-	int status = 0;
-	pid_t child_pid, child_pgid;
-
-	child_pgid = getpgid(info->si_pid);
-	SLOG(LOG_DEBUG, TAG_STTC, "Signal handler: dead pid = %d, pgid = %d\n", info->si_pid, child_pgid);
-
-	while ((child_pid = waitpid(-1, &status, WNOHANG)) > 0) {
-		if(child_pid == child_pgid)
-			killpg(child_pgid, SIGKILL);
-	}
-
-	return;
-}
-
-int __check_stt_daemon()
-{
-	if (TRUE == __stt_is_alive()) 
+	if (TRUE == __stt_setting_is_alive()) 
 		return 0;
 	
 	/* fork-exec stt-daemom */
-	SLOG(LOG_DEBUG, TAG_STTC, "THERE IS NO stt-daemon \n");
-
 	int pid = 0, i = 0;
-	struct sigaction act, dummy;
-	act.sa_handler = NULL;
-	act.sa_sigaction = __my_sig_child;
-	sigemptyset(&act.sa_mask);
-	act.sa_flags = SA_NOCLDSTOP | SA_SIGINFO;
-	
-	if (sigaction(SIGCHLD, &act, &dummy) < 0) {
-		SLOG(LOG_ERROR, TAG_STTC, "%s\n", "Cannot make a signal handler\n");
-		return -1;
-	}
 
 	pid = fork();
 
 	switch(pid) {
 	case -1:
-		SLOG(LOG_DEBUG, TAG_STTC, "fail to create STT-DAEMON \n");
+		SLOG(LOG_DEBUG, TAG_STTC, "Fail to create stt-daemon");
 		break;
 
 	case 0:
@@ -633,7 +718,6 @@ int __check_stt_daemon()
 		break;
 
 	default:
-		sleep(1);
 		break;
 	}
 

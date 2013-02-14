@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2011 Samsung Electronics Co., Ltd All Rights Reserved 
+*  Copyright (c) 2012, 2013 Samsung Electronics Co., Ltd All Rights Reserved 
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -35,12 +35,22 @@ typedef enum {
 	STT_SETTING_ERROR_OUT_OF_MEMORY		= -ENOMEM,	/**< Out of Memory */
 	STT_SETTING_ERROR_IO_ERROR		= -EIO,		/**< I/O error */
 	STT_SETTING_ERROR_INVALID_PARAMETER	= -EINVAL,	/**< Invalid parameter */
-	STT_SETTING_ERROR_INVALID_STATE		= -0x0100021,	/**< Invalid state */
-	STT_SETTING_ERROR_INVALID_LANGUAGE	= -0x0100022,	/**< Invalid language */
-	STT_SETTING_ERROR_ENGINE_NOT_FOUND	= -0x0100023,	/**< No available STT-engine  */
-	STT_SETTING_ERROR_TIMED_OUT		= -0x0100024,	/**< No answer from STT daemon */
-	STT_SETTING_ERROR_OPERATION_FAILED	= -0x0100025,	/**< STT daemon failed  */
+	STT_SETTING_ERROR_TIMED_OUT		= -ETIMEDOUT,	/**< No answer from the daemon */
+	STT_SETTING_ERROR_OUT_OF_NETWORK	= -ENETDOWN,	/**< Out of network */
+	STT_SETTING_ERROR_INVALID_STATE		= -0x0100031,	/**< Invalid state */
+	STT_SETTING_ERROR_INVALID_LANGUAGE	= -0x0100032,	/**< Invalid language */
+	STT_SETTING_ERROR_ENGINE_NOT_FOUND	= -0x0100033,	/**< No available STT-engine  */
+	STT_SETTING_ERROR_OPERATION_FAILED	= -0x0100034,	/**< STT daemon failed  */
+	STT_SETTING_ERROR_NOT_SUPPORTED_FEATURE	= -0x0100035	/**< Not supported feature of current engine */
 }stt_setting_error_e;
+
+/** 
+* @brief Enumerations of setting state.
+*/
+typedef enum {
+	STT_SETTING_STATE_NONE = 0,
+	STT_SETTING_STATE_READY
+} stt_setting_state_e;
 
 /**
 * @brief Called to get a engine information.
@@ -88,6 +98,18 @@ typedef bool(*stt_setting_supported_language_cb)(const char* engine_id, const ch
 */
 typedef bool(*stt_setting_engine_setting_cb)(const char* engine_id, const char* key, const char* value, void* user_data);
 
+/**
+* @brief Called to initialize setting.
+*
+* @param[in] state Current state.
+* @param[in] reason Error reason.
+* @param[in] user_data User data passed from the stt_setting_initialize_async().
+*
+* @pre stt_setting_initialize_async() will invoke this callback. 
+*
+* @see stt_setting_initialize_async()
+*/
+typedef void(*stt_setting_initialized_cb)(stt_setting_state_e state, stt_setting_error_e reason, void* user_data);
 
 /**
 * @brief Initialize STT setting and connect to stt-daemon.
@@ -101,6 +123,7 @@ typedef bool(*stt_setting_engine_setting_cb)(const char* engine_id, const char* 
 * @see stt_setting_finalize()
 */
 int stt_setting_initialize(void);
+int stt_setting_initialize_async(stt_setting_initialized_cb callback, void* user_data);
 
 /**
 * @brief finalize stt setting and disconnect to stt-daemon. 

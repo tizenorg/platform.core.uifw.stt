@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2011 Samsung Electronics Co., Ltd All Rights Reserved 
+* Copyright (c) 2012, 2013 Samsung Electronics Co., Ltd All Rights Reserved 
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -23,6 +23,30 @@
 * Dbus Client-Daemon Server
 */ 
 
+int sttd_dbus_server_hello(DBusConnection* conn, DBusMessage* msg)
+{
+	SLOG(LOG_DEBUG, TAG_STTD, ">>>>> STT Hello");
+
+	DBusMessage* reply;
+	reply = dbus_message_new_method_return(msg);
+
+	if (NULL != reply) {
+		if (!dbus_connection_send(conn, reply, NULL)) {
+			SLOG(LOG_ERROR, TAG_STTD, "[OUT ERROR] Out Of Memory!");
+		}
+
+		dbus_connection_flush(conn);
+		dbus_message_unref(reply);
+	} else {
+		SLOG(LOG_ERROR, TAG_STTD, "[OUT ERROR] Fail to create reply message!!"); 
+	}
+
+	SLOG(LOG_DEBUG, TAG_STTD, "<<<<<");
+	SLOG(LOG_DEBUG, TAG_STTD, "  ");
+
+	return 0;
+}
+
 int sttd_dbus_server_initialize(DBusConnection* conn, DBusMessage* msg)
 {
 	DBusError err;
@@ -30,6 +54,10 @@ int sttd_dbus_server_initialize(DBusConnection* conn, DBusMessage* msg)
 
 	int pid;
 	int uid;
+	bool silence_supported = false;
+	bool profanity_supported = false;
+	bool punctuation_supported = false;
+
 	int ret = STTD_ERROR_OPERATION_FAILED;
 
 	dbus_message_get_args(msg, &err,
@@ -45,17 +73,23 @@ int sttd_dbus_server_initialize(DBusConnection* conn, DBusMessage* msg)
 		ret = STTD_ERROR_OPERATION_FAILED;
 	} else {
 		SLOG(LOG_DEBUG, TAG_STTD, "[IN] stt initialize : pid(%d), uid(%d)", pid , uid); 
-		ret =  sttd_server_initialize(pid, uid);
+		ret =  sttd_server_initialize(pid, uid, &silence_supported, &profanity_supported, &punctuation_supported);
 	}
 
 	DBusMessage* reply;
 	reply = dbus_message_new_method_return(msg);
 
 	if (NULL != reply) {
-		dbus_message_append_args(reply, DBUS_TYPE_INT32, &ret, DBUS_TYPE_INVALID);
+		dbus_message_append_args(reply, 
+			DBUS_TYPE_INT32, &ret, 
+			DBUS_TYPE_INT32, &silence_supported,
+			DBUS_TYPE_INT32, &profanity_supported,
+			DBUS_TYPE_INT32, &punctuation_supported,
+			DBUS_TYPE_INVALID);
 
 		if (0 == ret) {
-			SLOG(LOG_DEBUG, TAG_STTD, "[OUT SUCCESS] Result(%d)", ret); 
+			SLOG(LOG_DEBUG, TAG_STTD, "[OUT SUCCESS] Result(%d), silence(%d), profanity(%d), punctuation(%d)", 
+				ret, silence_supported, profanity_supported, punctuation_supported); 
 		} else {
 			SLOG(LOG_ERROR, TAG_STTD, "[OUT ERROR] Result(%d)", ret); 
 		}
@@ -685,22 +719,32 @@ int sttd_dbus_server_setting_get_engine_list(DBusConnection* conn, DBusMessage* 
 
 				while (NULL != iter) {
 					engine = iter->data;
-					SLOG(LOG_DEBUG, TAG_STTD, "engine id : %s, engine name : %s, ug_name, : %s", 
-						engine->engine_id, engine->engine_name, engine->ug_name);
 
-					dbus_message_iter_append_basic(&args, DBUS_TYPE_STRING, &(engine->engine_id) );
-					dbus_message_iter_append_basic(&args, DBUS_TYPE_STRING, &(engine->engine_name) );
-					dbus_message_iter_append_basic(&args, DBUS_TYPE_STRING, &(engine->ug_name) );
+					if (NULL != engine) {
 
-					if (NULL != engine->engine_id)
-						g_free(engine->engine_id);
-					if (NULL != engine->engine_name);
-						g_free(engine->engine_name);
-					if (NULL != engine->ug_name);
-						g_free(engine->ug_name);
-					if (NULL != engine);
+						if (NULL != engine->engine_id && NULL != engine->engine_name && NULL != engine->ug_name) {
+							SLOG(LOG_DEBUG, TAG_STTD, "engine id : %s, engine name : %s, ug_name, : %s", 
+								engine->engine_id, engine->engine_name, engine->ug_name);
+
+							dbus_message_iter_append_basic(&args, DBUS_TYPE_STRING, &(engine->engine_id) );
+							dbus_message_iter_append_basic(&args, DBUS_TYPE_STRING, &(engine->engine_name) );
+							dbus_message_iter_append_basic(&args, DBUS_TYPE_STRING, &(engine->ug_name) );
+						} else {
+							SLOG(LOG_ERROR, TAG_STTD, "[ERROR] Engine info is NULL");
+						}
+						
+						if (NULL != engine->engine_id)
+							g_free(engine->engine_id);
+						if (NULL != engine->engine_name)
+							g_free(engine->engine_name);
+						if (NULL != engine->ug_name)
+							g_free(engine->ug_name);
+						
 						g_free(engine);
-
+					} else {
+						SLOG(LOG_ERROR, TAG_STTD, "[ERROR] Engine info is NULL");
+					}
+					
 					engine_list = g_list_remove_link(engine_list, iter);
 
 					iter = g_list_first(engine_list);
@@ -1399,16 +1443,24 @@ int sttd_dbus_server_setting_get_engine_setting(DBusConnection* conn, DBusMessag
 					while (NULL != iter) {
 						setting = iter->data;
 
-						dbus_message_iter_append_basic(&args, DBUS_TYPE_STRING, &(setting->key) );
-						dbus_message_iter_append_basic(&args, DBUS_TYPE_STRING, &(setting->value) );
+						if (NULL != setting) {
+							if (NULL != setting->key && NULL != setting->value) {
+								dbus_message_iter_append_basic(&args, DBUS_TYPE_STRING, &(setting->key) );
+								dbus_message_iter_append_basic(&args, DBUS_TYPE_STRING, &(setting->value) );
+							} else {
+								SLOG(LOG_ERROR, TAG_STTD, "[ERROR] setting key is NULL"); 
+							}
 
-						if (NULL != setting->key)
-							g_free(setting->key);
-						if (NULL != setting->value)
-							g_free(setting->value);
-						if (NULL != setting);
+							if (NULL != setting->key) 
+								g_free(setting->key);
+							if (NULL != setting->value) 
+								g_free(setting->value);
+
 							g_free(setting);
-
+						} else {
+							SLOG(LOG_ERROR, TAG_STTD, "[ERROR] setting key is NULL"); 
+						}
+						
 						engine_setting_list = g_list_remove_link(engine_setting_list, iter);
 
 						iter = g_list_first(engine_setting_list);
@@ -1512,11 +1564,13 @@ int sttd_dbus_server_stop_by_daemon(DBusMessage* msg)
 		sttd_server_stop(uid);
 
 		/* check silence detection option from config */
-		int ret = sttd_send_stop(uid); 
+		int ret = sttdc_send_set_state(uid, (int)APP_STATE_PROCESSING);
 		if (0 == ret) {
 			SLOG(LOG_DEBUG, TAG_STTD, "[OUT SUCCESS] Result(%d)", ret); 
 		} else {
 			SLOG(LOG_ERROR, TAG_STTD, "[OUT ERROR] Result(%d)", ret); 
+			/* Remove client */
+			sttd_server_finalize(uid);
 		}
 	}
 	

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2011 Samsung Electronics Co., Ltd All Rights Reserved 
+* Copyright (c) 2012, 2013 Samsung Electronics Co., Ltd All Rights Reserved 
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -18,6 +18,9 @@
 #include "sttd_dbus.h"
 
 #include <Ecore.h>
+#include "sttd_server.h"
+
+#define CLIENT_CLEAN_UP_TIME 500
 
 int main(int argc, char** argv)
 {
@@ -37,6 +40,8 @@ int main(int argc, char** argv)
 
 	sttd_network_initialize();
 
+	ecore_timer_add(CLIENT_CLEAN_UP_TIME, sttd_cleanup_client, NULL);
+
 	printf("stt-daemon start...\n");
 
 	SLOG(LOG_DEBUG, TAG_STTD, "[Main] stt-daemon start..."); 
@@ -47,11 +52,17 @@ int main(int argc, char** argv)
 
 	ecore_main_loop_begin();
 
-	ecore_shutdown();
+	SLOG(LOG_DEBUG, TAG_STTD, "===== STT Daemon Finalize");
 
 	sttd_dbus_close_connection();
 
 	sttd_network_finalize();
+
+	ecore_shutdown();
+
+	SLOG(LOG_DEBUG, TAG_STTD, "=====");
+	SLOG(LOG_DEBUG, TAG_STTD, "  ");
+	SLOG(LOG_DEBUG, TAG_STTD, "  ");
 
 	return 0;
 }

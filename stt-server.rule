@@ -1,0 +1,13 @@
+stt-server system::homedir rwx
+stt-server system::app_logging wx
+stt-server dbus rw
+stt-server system::vconf rwx
+stt-server system::share rwx
+stt-server location_fw::db rw
+stt-server system::use_internet rw
+stt-server sound_server rw
+stt-server mdm-server w
+stt-server pulseaudio rwx
+system::use_internet stt-server w
+stt-server tts-server rwx
+stt-server sys-assert::core rwxat
