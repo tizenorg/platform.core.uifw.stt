@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2011 Samsung Electronics Co., Ltd All Rights Reserved 
+*  Copyright (c) 2012, 2013 Samsung Electronics Co., Ltd All Rights Reserved 
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -34,24 +34,32 @@ extern "C" {
 
 #define TAG_STTD "sttd"
 
-#define ENGINE_DIRECTORY "/usr/lib/voice/stt/1.0/engine"
-#define ENGINE_DIRECTORY_DOWNLOAD "/opt/apps/voice/stt/engine"
+#define BASE_DIRECTORY_DEFAULT			"/usr/lib/voice/stt/1.0/"
+#define ENGINE_DIRECTORY_DEFAULT		"/usr/lib/voice/stt/1.0/engine"
+#define ENGINE_DIRECTORY_DEFAULT_SETTING	"/usr/lib/voice/stt/1.0/setting"
+
+#define CONFIG_DIRECTORY			"/opt/home/app/.voice"
+
+#define ENGINE_DIRECTORY_DOWNLOAD		"/opt/usr/voice/stt/1.0/engine"
+#define ENGINE_DIRECTORY_DOWNLOAD_SETTING	"/opt/usr/voice/stt/1.0/setting"
 
 /* for debug message */
 #define RECORDER_DEBUG
+#define CLIENT_DATA_DEBUG
 
 typedef enum {
-	STTD_ERROR_NONE			= 0,		/**< Successful */
-	STTD_ERROR_OUT_OF_MEMORY	= -ENOMEM,	/**< Out of Memory */
-	STTD_ERROR_IO_ERROR		= -EIO,		/**< I/O error */
-	STTD_ERROR_INVALID_PARAMETER	= -EINVAL,	/**< Invalid parameter */
-	STTD_ERROR_TIMED_OUT		= -ETIMEDOUT,	/**< No answer from the daemon */
-	STTD_ERROR_RECORDER_BUSY	= -EBUSY,	/**< Busy recorder */
-	STTD_ERROR_OUT_OF_NETWORK	= -ENETDOWN,	/**< Out of network */
-	STTD_ERROR_INVALID_STATE	= -0x0100031,	/**< Invalid state */
-	STTD_ERROR_INVALID_LANGUAGE	= -0x0100032,	/**< Invalid language */
-	STTD_ERROR_ENGINE_NOT_FOUND	= -0x0100033,	/**< No available engine  */	
-	STTD_ERROR_OPERATION_FAILED	= -0x0100034	/**< Operation failed  */
+	STTD_ERROR_NONE			= 0,			/**< Successful */
+	STTD_ERROR_OUT_OF_MEMORY	= -ENOMEM,		/**< Out of Memory */
+	STTD_ERROR_IO_ERROR		= -EIO,			/**< I/O error */
+	STTD_ERROR_INVALID_PARAMETER	= -EINVAL,		/**< Invalid parameter */
+	STTD_ERROR_TIMED_OUT		= -ETIMEDOUT,		/**< No answer from the daemon */
+	STTD_ERROR_RECORDER_BUSY	= -EBUSY,		/**< Busy recorder */
+	STTD_ERROR_OUT_OF_NETWORK	= -ENETDOWN,		/**< Out of network */
+	STTD_ERROR_INVALID_STATE	= -0x0100000 | 0x31,	/**< Invalid state */
+	STTD_ERROR_INVALID_LANGUAGE	= -0x0100000 | 0x32,	/**< Invalid language */
+	STTD_ERROR_ENGINE_NOT_FOUND	= -0x0100000 | 0x33,	/**< No available engine  */	
+	STTD_ERROR_OPERATION_FAILED	= -0x0100000 | 0x34,	/**< Operation failed  */
+	STTD_ERROR_NOT_SUPPORTED_FEATURE= -0x0100000 | 0x35	/**< Not supported feature of current engine */
 }stt_error_e;
 
 typedef struct {

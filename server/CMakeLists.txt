@@ -24,11 +24,11 @@ INCLUDE_DIRECTORIES(${INCLUDEDIR})
 INCLUDE_DIRECTORIES("${CMAKE_SOURCE_DIR}/../common")
 
 ## Dependent packages ##
-INCLUDE(FindPkgConfig)
-pkg_check_modules(pkgs REQUIRED 
-	glib-2.0 dbus-1 
-	vconf dlog mm-player mm-common mm-camcorder openssl
-)
+#INCLUDE(FindPkgConfig)
+#pkg_check_modules(pkgs REQUIRED 
+#	glib-2.0 dbus-1 
+#	vconf dlog mm-player mm-common mm-camcorder openssl
+#)
 
 FOREACH(flag ${pkgs_CFLAGS})
 	SET(EXTRA_CFLAGS "${EXTRA_CFLAGS} ${flag}")
@@ -43,8 +43,9 @@ ADD_DEFINITIONS("-DPREFIX=\"${CMAKE_INSTALL_PREFIX}\"")
 
 ## Executable ##
 ADD_EXECUTABLE(${PROJECT_NAME} ${SRCS})
-TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${pkgs_LDFLAGS})
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} -ldl ${pkgs_LDFLAGS})
 
 ## Install
 INSTALL(TARGETS ${PROJECT_NAME} DESTINATION bin)
 INSTALL(FILES ${CMAKE_CURRENT_SOURCE_DIR}/sttp.h DESTINATION include)
+INSTALL(FILES ${CMAKE_CURRENT_SOURCE_DIR}/sttd.conf DESTINATION lib/voice/stt/1.0)

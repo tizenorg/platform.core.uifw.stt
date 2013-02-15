@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2011 Samsung Electronics Co., Ltd All Rights Reserved 
+*  Copyright (c) 2012, 2013 Samsung Electronics Co., Ltd All Rights Reserved 
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -43,7 +43,7 @@ int stt_client_new(stt_h* stt)
 
 	client = (stt_client_s*)g_malloc0 (sizeof(stt_client_s));
 
-	stt_h temp = (stt_h)g_malloc0(sizeof(stt_h));
+	stt_h temp = (stt_h)g_malloc0(sizeof(struct stt_s));
 	temp->handle = __client_generate_uid(getpid()); 
 
 	/* initialize client data */
@@ -60,11 +60,21 @@ int stt_client_new(stt_h* stt)
 	client->error_cb = NULL;
 	client->error_user_data = NULL;
 
+	client->silence_supported = false;
+	client->profanity_supported = false;
+	client->punctuation_supported = false;
+
 	client->profanity = STT_OPTION_PROFANITY_AUTO;	
 	client->punctuation = STT_OPTION_PUNCTUATION_AUTO;
 	client->silence = STT_OPTION_SILENCE_DETECTION_AUTO;
 
-	client->current_state = STT_STATE_READY; 
+	client->type = NULL;
+	client->data_list = NULL;
+	client->data_count = 0;
+	client->msg = NULL;
+
+	client->before_state = STT_STATE_CREATED;
+	client->current_state = STT_STATE_CREATED; 
 
 	client->cb_ref_count = 0;
 
@@ -193,5 +203,20 @@ int stt_client_not_use_callback(stt_client_s* client)
 	return 0;
 }
 
+
+int stt_client_set_option_supported(stt_h stt, bool silence, bool profanity, bool punctuation)
+{
+	stt_client_s* client = stt_client_get(stt);
+	
+	/* check handle */
+	if (NULL == client) 
+		return STT_ERROR_INVALID_PARAMETER;
+	
+	client->silence_supported = silence;
+	client->profanity_supported = profanity;
+	client->punctuation_supported = punctuation;
+
+	return 0;
+}
 
 

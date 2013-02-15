@@ -10,12 +10,11 @@ Requires(postun): /sbin/ldconfig
 BuildRequires:  pkgconfig(glib-2.0)
 BuildRequires:  pkgconfig(dbus-1)
 BuildRequires:  pkgconfig(ecore)
-BuildRequires:  pkgconfig(openssl)
+BuildRequires:  pkgconfig(ecore-file)
 BuildRequires:  pkgconfig(mm-player)
 BuildRequires:  pkgconfig(mm-common)
 BuildRequires:  pkgconfig(mm-sound)
 BuildRequires:  pkgconfig(mm-camcorder)
-BuildRequires:  pkgconfig(dnet)
 BuildRequires:  pkgconfig(dlog)
 BuildRequires:  pkgconfig(vconf)
 
@@ -44,25 +43,21 @@ make %{?jobs:-j%jobs}
 
 %install
 rm -rf %{buildroot}
+mkdir -p %{buildroot}/usr/share/license
 %make_install
-
-
-
 
 %post -p /sbin/ldconfig
 
 %postun -p /sbin/ldconfig
 
-
-
-
-
 %files
+%manifest stt-server.manifest
 %defattr(-,root,root,-)
 %{_libdir}/libstt.so
 %{_libdir}/libstt_setting.so
+%{_libdir}/voice/stt/1.0/sttd.conf
 %{_bindir}/stt-daemon
-
+/usr/share/license/*
 
 %files devel
 %defattr(-,root,root,-)

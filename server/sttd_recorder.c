@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2011 Samsung Electronics Co., Ltd All Rights Reserved 
+* Copyright (c) 2012, 2013 Samsung Electronics Co., Ltd All Rights Reserved 
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -60,6 +60,10 @@ static sttd_recorder_s *g_objRecorer = NULL;
 static bool g_init = false;
 
 static char g_temp_file_name[128] = {'\0',};
+
+#ifdef BUF_SAVE_MODE
+static FILE* g_pFile;
+#endif 
 
 /* Recorder obj */
 sttd_recorder_s *__recorder_getinstance();
@@ -576,14 +580,16 @@ int sttd_recorder_start()
 
 	/* Check if initialized */
 	ret = __recorder_setup();
-	if (ret) {
+	if (0 != ret) {
 		SLOG(LOG_DEBUG, TAG_STTD, "[Recorder] Fail to call __recorder_setup");
+		return STTD_ERROR_OPERATION_FAILED;
 	}
 
 	/* Start camcorder */
 	ret = __recorder_run();
-	if (ret) {
-		SLOG(LOG_DEBUG, TAG_STTD, "[Recorder] Fail to call __recorder_run");                
+	if (0 != ret) {
+		SLOG(LOG_DEBUG, TAG_STTD, "[Recorder] Fail to call __recorder_run");    
+		return STTD_ERROR_OPERATION_FAILED;
 	}
 
 	__recorder_state_set(STTD_RECORDER_STATE_RECORDING);
