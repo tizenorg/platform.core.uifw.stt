@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2011 Samsung Electronics Co., Ltd All Rights Reserved 
+*  Copyright (c) 2012, 2013 Samsung Electronics Co., Ltd All Rights Reserved 
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -27,17 +27,42 @@
 */
 static bool g_is_engine;
 
+static double g_state_check_time = 15.5;
+
 /*
 * STT Server Callback Functions											`				  *
 */
 
+Eina_Bool __stop_by_silence(void *data)
+{
+	SLOG(LOG_DEBUG, TAG_STTD, "===== Stop by silence detection");
+
+	int uid = 0;
+
+	uid = sttd_client_get_current_recording();
+
+	if (uid > 0) {
+		if (0 != sttd_server_stop(uid))
+			return EINA_FALSE;
+
+		int ret = sttdc_send_set_state(uid, (int)APP_STATE_PROCESSING);
+		if (0 != ret) {
+			SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to send state : result(%d)", ret); 
+
+			/* Remove client */
+			sttd_server_finalize(uid);
+		}	
+	}
+
+	SLOG(LOG_DEBUG, TAG_STTD, "=====");
+	SLOG(LOG_DEBUG, TAG_STTD, "  ");
+
+	return EINA_FALSE;
+}
+
 int audio_recorder_callback(const void* data, const unsigned int length)
 {
 	if (0 != sttd_engine_recognize_audio(data, length)) {
-		
-		/* send message for stop */
-		SLOG(LOG_DEBUG, TAG_STTD, "===== Fail to set recording data ");
-			
 		int uid = sttd_client_get_current_recording();
 
 		app_state_e state;
@@ -51,19 +76,16 @@ int audio_recorder_callback(const void* data, const unsigned int length)
 			return -1;
 		}
 
-		if (0 != sttd_send_stop_recognition_by_daemon(uid)) {
+		ecore_timer_add(0, __stop_by_silence, NULL);
+
+		/*if (0 != sttd_send_stop_recognition_by_daemon(uid)) {
 			SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail "); 
 		} else {
 			SLOG(LOG_DEBUG, TAG_STTD, "[Server SUCCESS] <<<< stop message : uid(%d)", uid); 
-		}
-
-		SLOG(LOG_DEBUG, TAG_STTD, "=====");
-		SLOG(LOG_DEBUG, TAG_STTD, "  ");
+		}*/
 		
 		return -1;
 	}
-	
-	
 
 	return 0;
 }
@@ -73,10 +95,17 @@ void sttd_server_recognition_result_callback(sttp_result_event_e event, const ch
 {
 	SLOG(LOG_DEBUG, TAG_STTD, "===== Recognition Result Callback");
 
+	if (NULL == user_data) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] user data is NULL"); 
+		SLOG(LOG_DEBUG, TAG_STTD, "=====");
+		SLOG(LOG_DEBUG, TAG_STTD, "  ");
+		return;
+	}
+
 	/* check uid */
 	int *uid = (int*)user_data;
 
-	SLOG(LOG_DEBUG, TAG_STTD, "[Server] uid (%d), event(%d)", uid, event); 
+	SLOG(LOG_DEBUG, TAG_STTD, "[Server] uid (%d), event(%d)", *uid, event); 
 
 	app_state_e state;
 	if (0 != sttd_client_get_state(*uid, &state)) {
@@ -85,6 +114,13 @@ void sttd_server_recognition_result_callback(sttp_result_event_e event, const ch
 		SLOG(LOG_DEBUG, TAG_STTD, "  ");
 		return;
 	}
+
+	/* Delete timer for processing time out */
+	Ecore_Timer* timer;
+	sttd_cliet_get_timer(*uid, &timer);
+
+	if (NULL != timer)
+		ecore_timer_del(timer);
 
 	/* send result to client */
 	if (STTP_RESULT_EVENT_SUCCESS == event && 0 < data_count && NULL != data) {
@@ -98,54 +134,26 @@ void sttd_server_recognition_result_callback(sttp_result_event_e event, const ch
 
 				if (0 != sttdc_send_error_signal(*uid, reason, "Fail to send recognition result")) {
 					SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to send error info . Remove client data"); 
-
-					/* clean client data */
-					sttd_client_delete(*uid);
 				}
 			}
 		} else {
-			SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Current state is NOT thinking"); 
-
-			int reason = (int)STTD_ERROR_INVALID_STATE;		
-			if (0 != sttdc_send_error_signal(*uid, reason, "Client state is NOT thinking. Client don't receive recognition result in current state.")) {
-				SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to send error info. Remove client data "); 
-
-				/* clean client data */
-				sttd_client_delete(*uid);		
-			}
+			SLOG(LOG_WARN, TAG_STTD, "[Server WARNING] Current state is NOT thinking."); 
 		}
-	} else if (STTP_RESULT_EVENT_NO_RESULT == event) {
+	} else if (STTP_RESULT_EVENT_NO_RESULT == event || STTP_RESULT_EVENT_ERROR == event) {
 
 		if (APP_STATE_PROCESSING == state ) {
-			if (0 != sttdc_send_result(*uid, NULL, NULL, 0, NULL)) {
+			if (0 != sttdc_send_result(*uid, type, NULL, 0, msg)) {
 				SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to send result "); 
 
 				/* send error msg */
 				int reason = (int)STTD_ERROR_INVALID_STATE;	
 				if (0 != sttdc_send_error_signal(*uid, reason, "[ERROR] Fail to send recognition result")) {
 					SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to send error info "); 
-					sttd_client_delete(*uid);
 				}
 			}
 		} else {
-			SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Current state is NOT thinking "); 
-
-			int reason = (int)STTD_ERROR_INVALID_STATE;		
-
-			if (0 != sttdc_send_error_signal(*uid, reason, "Client state is NOT thinking. Client don't receive recognition result in current state.")) {
-				SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to send error info. Remove client data"); 
-
-				/* clean client data */
-				sttd_client_delete(*uid);		
-			}
+			SLOG(LOG_WARN, TAG_STTD, "[Server ERROR] Current state is NOT thinking."); 
 		}
-	} else if (STTP_RESULT_EVENT_ERROR == event) {
-		int reason = (int)STTD_ERROR_OPERATION_FAILED;
-
-		if (0 != sttdc_send_error_signal(*uid, reason, "STT Engine ERROR : Recognition fail")) {
-			SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to send error info"); 
-			sttd_client_delete(*uid);
-		}	
 	} else {
 		/* nothing */
 	}
@@ -207,11 +215,7 @@ void sttd_server_silence_dectection_callback(void *user_param)
 		return;
 	}
 
-	if (0 != sttd_send_stop_recognition_by_daemon(uid)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail "); 
-	} else {
-		SLOG(LOG_DEBUG, TAG_STTD, "[Server SUCCESS] <<<< stop message : uid(%d)", uid); 
-	}
+	ecore_timer_add(0, __stop_by_silence, NULL);
 
 	SLOG(LOG_DEBUG, TAG_STTD, "=====");
 	SLOG(LOG_DEBUG, TAG_STTD, "  ");
@@ -220,12 +224,16 @@ void sttd_server_silence_dectection_callback(void *user_param)
 }
 
 /*
-* Daemon initialize
+* Daemon function
 */
 
 int sttd_initialize()
 {
 	int ret = 0;
+
+	if (sttd_config_initialize()) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server WARNING] Fail to initialize config.");
+	}
 
 	/* recoder init */
 	ret = sttd_recorder_init();
@@ -254,11 +262,46 @@ int sttd_initialize()
 	return 0;
 }
 
+Eina_Bool sttd_cleanup_client(void *data)
+{
+	int* client_list = NULL;
+	int client_count = 0;
+
+	if (0 != sttd_client_get_list(&client_list, &client_count)) 
+		return EINA_TRUE;
+	
+	if (NULL == client_list)
+		return EINA_TRUE;
+
+	int result;
+	int i = 0;
+
+	SLOG(LOG_DEBUG, TAG_STTD, "===== Clean up client ");
+
+	for (i = 0;i < client_count;i++) {
+		result = sttdc_send_hello(client_list[i]);
+
+		if (0 == result) {
+			SLOG(LOG_DEBUG, TAG_STTD, "[Server] uid(%d) should be removed.", client_list[i]); 
+			sttd_server_finalize(client_list[i]);
+		} else if (-1 == result) {
+			SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Hello result has error"); 
+		}
+	}
+
+	SLOG(LOG_DEBUG, TAG_STTD, "=====");
+	SLOG(LOG_DEBUG, TAG_STTD, "  ");
+
+	free(client_list);
+
+	return EINA_TRUE;
+}
+
 /*
 * STT Server Functions for Client
 */
 
-int sttd_server_initialize(int pid, int uid)
+int sttd_server_initialize(int pid, int uid, bool* silence, bool* profanity, bool* punctuation)
 {
 	if (false == g_is_engine) {
 		if (0 != sttd_engine_agent_initialize_current_engine()) {
@@ -295,8 +338,8 @@ int sttd_server_initialize(int pid, int uid)
 		return STTD_ERROR_OPERATION_FAILED;
 	}
 
-	sttd_recorder_channel	sttchannel;
-	sttd_recorder_audio_type	sttatype;
+	sttd_recorder_channel		sttchannel = STTD_RECORDER_CHANNEL_MONO;
+	sttd_recorder_audio_type	sttatype = STTD_RECORDER_PCM_S16;
 
 	switch (atype) {
 	case STTP_AUDIO_TYPE_PCM_S16_LE:	sttatype = STTD_RECORDER_PCM_S16;	break;
@@ -310,7 +353,7 @@ int sttd_server_initialize(int pid, int uid)
 		break;
 	}
 
-	switch (sttchannel) {
+	switch (channels) {
 	case 1:		sttchannel = STTD_RECORDER_CHANNEL_MONO;	break;
 	case 2:		sttchannel = STTD_RECORDER_CHANNEL_STEREO;	break;
 	default:	sttchannel = STTD_RECORDER_CHANNEL_MONO;	break;
@@ -321,13 +364,20 @@ int sttd_server_initialize(int pid, int uid)
 		return STTD_ERROR_OPERATION_FAILED;
 	}
 	
+	SLOG(LOG_DEBUG, TAG_STTD, "[Server] audio type(%d), channel(%d)", (int)atype, (int)sttchannel); 
+
 	/* Add client information to client manager */
 	if (0 != sttd_client_add(pid, uid)) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to add client info"); 
 		return STTD_ERROR_OPERATION_FAILED;
 	}
 
-	SLOG(LOG_DEBUG, TAG_STTD, "[Server SUCCESS] audio type(%d), channel(%d)", (int)atype, (int)sttchannel); 
+	if (0 != sttd_engine_get_option_supported(silence, profanity, punctuation)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to get engine options supported"); 
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+	SLOG(LOG_DEBUG, TAG_STTD, "[Server Success] Initialize"); 
 
 	return STTD_ERROR_NONE;
 }
@@ -342,10 +392,7 @@ int sttd_server_finalize(const int uid)
 	}
 
 	/* release recorder */
-	app_state_e appstate;
-	sttd_client_get_state(uid, &appstate);
-
-	if (APP_STATE_RECORDING == appstate || APP_STATE_PROCESSING == appstate) {
+	if (APP_STATE_RECORDING == state || APP_STATE_PROCESSING == state) {
 		sttd_recorder_cancel();
 		sttd_engine_recognize_cancel();
 	}
@@ -470,6 +517,39 @@ int sttd_server_get_audio_volume( const int uid, float* current_volume)
 	return STTD_ERROR_NONE;
 }
 
+Eina_Bool __check_recording_state(void *data)
+{	
+	/* current uid */
+	int uid = sttd_client_get_current_recording();
+	if (-1 == uid)
+		return EINA_FALSE;
+
+	app_state_e state;
+	if (0 != sttdc_send_get_state(uid, (int*)&state)) {
+		/* client is removed */
+		SLOG(LOG_DEBUG, TAG_STTD, "[Server] uid(%d) should be removed.", uid); 
+		sttd_server_finalize(uid);
+		return EINA_FALSE;
+	}
+
+	if (APP_STATE_READY == state) {
+		/* Cancel stt */
+		SLOG(LOG_DEBUG, TAG_STTD, "[Server] The state of uid(%d) is 'Ready'. The daemon should cancel recording", uid); 
+		sttd_server_cancel(uid);
+	} else if (APP_STATE_PROCESSING == state) {
+		/* Cancel stt and send change state */
+		SLOG(LOG_DEBUG, TAG_STTD, "[Server] The state of uid(%d) is 'Processing'. The daemon should cancel recording", uid); 
+		sttd_server_cancel(uid);
+		sttdc_send_set_state(uid, (int)APP_STATE_READY);
+	} else {
+		/* Normal state */
+		SLOG(LOG_DEBUG, TAG_STTD, "[Server] The states of daemon and client are identical"); 
+		return EINA_TRUE;
+	}
+
+	return EINA_FALSE;
+}
+
 int sttd_server_start(const int uid, const char* lang, const char* recognition_type, 
 		      int profanity, int punctuation, int silence)
 {
@@ -532,8 +612,41 @@ int sttd_server_start(const int uid, const char* lang, const char* recognition_t
 	/* change uid state */
 	sttd_client_set_state(uid, APP_STATE_RECORDING);
 
+	Ecore_Timer* timer = ecore_timer_add(g_state_check_time, __check_recording_state, NULL);
+	sttd_cliet_set_timer(uid, timer);
+
 	return STTD_ERROR_NONE;
 }
+
+Eina_Bool __time_out_for_processing(void *data)
+{	
+	/* current uid */
+	int uid = sttd_client_get_current_thinking();
+	if (-1 == uid)
+		return EINA_FALSE;
+
+	/* Cancel engine */
+	int ret = sttd_engine_recognize_cancel();
+	if (0 != ret) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to cancel : result(%d)", ret); 
+	}
+
+	if (0 != sttdc_send_result(uid, STTP_RECOGNITION_TYPE_FREE, NULL, 0, "Time out not to receive recognition result.")) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to send result "); 
+
+		/* send error msg */
+		int reason = (int)STTD_ERROR_TIMED_OUT;	
+		if (0 != sttdc_send_error_signal(uid, reason, "[ERROR] Fail to send recognition result")) {
+			SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to send error info "); 
+		}
+	}
+
+	/* Change uid state */
+	sttd_client_set_state(uid, APP_STATE_READY);
+
+	return EINA_FALSE;
+}
+
 
 int sttd_server_stop(const int uid)
 {
@@ -561,9 +674,18 @@ int sttd_server_stop(const int uid)
 	
 		return STTD_ERROR_OPERATION_FAILED;
 	}
+	
+	Ecore_Timer* timer;
+	sttd_cliet_get_timer(uid, &timer);
+
+	if (NULL != timer)
+		ecore_timer_del(timer);
 
 	/* change uid state */
 	sttd_client_set_state(uid, APP_STATE_PROCESSING);
+
+	timer = ecore_timer_add(g_state_check_time, __time_out_for_processing, NULL);
+	sttd_cliet_set_timer(uid, timer);
 
 	return STTD_ERROR_NONE;
 }
@@ -594,6 +716,10 @@ int sttd_server_cancel(const int uid)
 		return STTD_ERROR_OPERATION_FAILED;
 	}
 
+	Ecore_Timer* timer;
+	sttd_cliet_get_timer(uid, &timer);
+	ecore_timer_del(timer);
+
 	/* change uid state */
 	sttd_client_set_state(uid, APP_STATE_READY);
 
@@ -605,7 +731,7 @@ int sttd_server_cancel(const int uid)
 * STT Server Functions for setting
 *******************************************************************************************/
 
-int sttd_server_setting_initialize(int uid)
+int sttd_server_setting_initialize(int pid)
 {
 	if (false == g_is_engine) {
 		if (0 != sttd_engine_agent_initialize_current_engine()) {
@@ -617,10 +743,9 @@ int sttd_server_setting_initialize(int uid)
 		}
 	}
 
-	/* check if uid is valid */
-	app_state_e state;
-	if (0 == sttd_client_get_state(uid, &state)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] uid has already been registered"); 
+	/* check whether pid is valid */
+	if (true == sttd_setting_client_is(pid)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Setting pid is NOT valid "); 
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
@@ -632,26 +757,19 @@ int sttd_server_setting_initialize(int uid)
 		}
 	}
 
-	/* Add client information to client manager (For internal use) */
-	if (0 != sttd_client_add(uid, uid)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to add client info"); 
+	/* Add setting client information to client manager (For internal use) */
+	if (0 != sttd_setting_client_add(pid)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to add setting client"); 
 		return STTD_ERROR_OPERATION_FAILED;
 	}
 
 	return STTD_ERROR_NONE;
 }
 
-int sttd_server_setting_finalize(int uid)
+int sttd_server_setting_finalize(int pid)
 {
-	/* check if uid is valid */
-	app_state_e state;
-	if (0 != sttd_client_get_state(uid, &state)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] uid is NOT valid "); 
-		return STTD_ERROR_INVALID_PARAMETER;
-	}
-
 	/* Remove client information */
-	if (0 != sttd_client_delete(uid)) {
+	if (0 != sttd_setting_client_delete(pid)) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to delete setting client"); 
 	}
 
@@ -667,12 +785,11 @@ int sttd_server_setting_finalize(int uid)
 	return STTD_ERROR_NONE;
 }
 
-int sttd_server_setting_get_engine_list(int uid, GList** engine_list)
+int sttd_server_setting_get_engine_list(int pid, GList** engine_list)
 {
-	/* check if uid is valid */
-	app_state_e state;
-	if (0 != sttd_client_get_state(uid, &state)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] uid is NOT valid "); 
+	/* check whether pid is valid */
+	if (true != sttd_setting_client_is(pid)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Setting pid is NOT valid "); 
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
@@ -684,17 +801,17 @@ int sttd_server_setting_get_engine_list(int uid, GList** engine_list)
 	int ret = sttd_engine_setting_get_engine_list(engine_list); 
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to get engine list : result(%d)", ret); 
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	return STTD_ERROR_NONE;
 }
 
-int sttd_server_setting_get_engine(int uid, char** engine_id)
+int sttd_server_setting_get_engine(int pid, char** engine_id)
 {
-	app_state_e state;
-	if (0 != sttd_client_get_state(uid, &state)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] uid is NOT valid "); 
+	/* check whether pid is valid */
+	if (true != sttd_setting_client_is(pid)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Setting pid is NOT valid "); 
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
@@ -707,18 +824,17 @@ int sttd_server_setting_get_engine(int uid, char** engine_id)
 	int ret = sttd_engine_setting_get_engine(engine_id); 
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to get engine : result(%d)", ret); 
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	return STTD_ERROR_NONE;
 }
 
-int sttd_server_setting_set_engine(const int uid, const char* engine_id)
+int sttd_server_setting_set_engine(int pid, const char* engine_id)
 {
-	/* check if uid is valid */
-	app_state_e state;
-	if (0 != sttd_client_get_state(uid, &state)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] uid is NOT valid "); 
+	/* check whether pid is valid */
+	if (true != sttd_setting_client_is(pid)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Setting pid is NOT valid "); 
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
@@ -731,18 +847,17 @@ int sttd_server_setting_set_engine(const int uid, const char* engine_id)
 	int ret = sttd_engine_setting_set_engine(engine_id); 
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to set engine : result(%d)", ret); 
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	return STTD_ERROR_NONE;
 }
 
-int sttd_server_setting_get_lang_list(int uid, char** engine_id, GList** lang_list)
+int sttd_server_setting_get_lang_list(int pid, char** engine_id, GList** lang_list)
 {
-	/* check if uid is valid */
-	app_state_e state;
-	if (0 != sttd_client_get_state(uid, &state)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] uid is NOT valid "); 
+	/* check whether pid is valid */
+	if (true != sttd_setting_client_is(pid)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Setting pid is NOT valid "); 
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 	
@@ -754,18 +869,17 @@ int sttd_server_setting_get_lang_list(int uid, char** engine_id, GList** lang_li
 	int ret = sttd_engine_setting_get_lang_list(engine_id, lang_list); 
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to get language list : result(%d)", ret); 
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	return STTD_ERROR_NONE;
 }
 
-int sttd_server_setting_get_default_language(int uid, char** language)
+int sttd_server_setting_get_default_language(int pid, char** language)
 {
-	/* check if uid is valid */
-	app_state_e state;
-	if (0 != sttd_client_get_state(uid, &state)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] uid is NOT valid "); 
+	/* check whether pid is valid */
+	if (true != sttd_setting_client_is(pid)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Setting pid is NOT valid "); 
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
@@ -777,18 +891,17 @@ int sttd_server_setting_get_default_language(int uid, char** language)
 	int ret = sttd_engine_setting_get_default_lang(language); 
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to get default language : result(%d)", ret); 
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}	
 
 	return STTD_ERROR_NONE;
 }
 
-int sttd_server_setting_set_default_language(int uid, const char* language)
+int sttd_server_setting_set_default_language(int pid, const char* language)
 {
-	/* check if uid is valid */
-	app_state_e state;
-	if (0 != sttd_client_get_state(uid, &state)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] uid is NOT valid "); 
+	/* check whether pid is valid */
+	if (true != sttd_setting_client_is(pid)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Setting pid is NOT valid "); 
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
@@ -800,18 +913,17 @@ int sttd_server_setting_set_default_language(int uid, const char* language)
 	int ret = sttd_engine_setting_set_default_lang((char*)language); 
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to set default lang : result(%d)", ret); 
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}	
 
 	return STTD_ERROR_NONE;
 }
 
-int sttd_server_setting_get_profanity_filter(int uid, bool* value)
+int sttd_server_setting_get_profanity_filter(int pid, bool* value)
 {
-	/* check if uid is valid */
-	app_state_e state;
-	if (0 != sttd_client_get_state(uid, &state)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] uid is NOT valid "); 
+	/* check whether pid is valid */
+	if (true != sttd_setting_client_is(pid)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Setting pid is NOT valid "); 
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
@@ -824,18 +936,17 @@ int sttd_server_setting_get_profanity_filter(int uid, bool* value)
 	ret = sttd_engine_setting_get_profanity_filter(value);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to get profanity filter : result(%d)", ret); 
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}	
 
 	return STTD_ERROR_NONE;
 }
 
-int sttd_server_setting_set_profanity_filter(int uid, bool value)
+int sttd_server_setting_set_profanity_filter(int pid, bool value)
 {
-	/* check if uid is valid */
-	app_state_e state;
-	if (0 != sttd_client_get_state(uid, &state)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] uid is NOT valid "); 
+	/* check whether pid is valid */
+	if (true != sttd_setting_client_is(pid)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Setting pid is NOT valid "); 
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
@@ -843,18 +954,17 @@ int sttd_server_setting_set_profanity_filter(int uid, bool value)
 	ret = sttd_engine_setting_set_profanity_filter(value);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to set profanity filter: result(%d)", ret); 
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}	
 
 	return STTD_ERROR_NONE;
 }
 
-int sttd_server_setting_get_punctuation_override(int uid, bool* value)
+int sttd_server_setting_get_punctuation_override(int pid, bool* value)
 {
-	/* check if uid is valid */
-	app_state_e state;
-	if (0 != sttd_client_get_state(uid, &state)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] uid is NOT valid "); 
+	/* check whether pid is valid */
+	if (true != sttd_setting_client_is(pid)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Setting pid is NOT valid "); 
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
@@ -867,18 +977,17 @@ int sttd_server_setting_get_punctuation_override(int uid, bool* value)
 	ret = sttd_engine_setting_get_punctuation_override(value);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to get punctuation override : result(%d)", ret); 
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}	
 
 	return STTD_ERROR_NONE;
 }
 
-int sttd_server_setting_set_punctuation_override(int uid, bool value)
+int sttd_server_setting_set_punctuation_override(int pid, bool value)
 {
-	/* check if uid is valid */
-	app_state_e state;
-	if (0 != sttd_client_get_state(uid, &state)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] uid is NOT valid "); 
+	/* check whether pid is valid */
+	if (true != sttd_setting_client_is(pid)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Setting pid is NOT valid "); 
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
@@ -886,18 +995,17 @@ int sttd_server_setting_set_punctuation_override(int uid, bool value)
 	ret = sttd_engine_setting_set_punctuation_override(value);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to set punctuation override : result(%d)", ret); 
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}	
 
 	return STTD_ERROR_NONE;
 }
 
-int sttd_server_setting_get_silence_detection(int uid, bool* value)
+int sttd_server_setting_get_silence_detection(int pid, bool* value)
 {
-	/* check if uid is valid */
-	app_state_e state;
-	if (0 != sttd_client_get_state(uid, &state)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] uid is NOT valid "); 
+	/* check whether pid is valid */
+	if (true != sttd_setting_client_is(pid)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Setting pid is NOT valid "); 
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
@@ -910,18 +1018,17 @@ int sttd_server_setting_get_silence_detection(int uid, bool* value)
 	ret = sttd_engine_setting_get_silence_detection(value);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to get silence detection : result(%d)", ret); 
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}	
 
 	return STTD_ERROR_NONE;
 }
 
-int sttd_server_setting_set_silence_detection(int uid, bool value)
+int sttd_server_setting_set_silence_detection(int pid, bool value)
 {
-	/* check if uid is valid */
-	app_state_e state;
-	if (0 != sttd_client_get_state(uid, &state)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] uid is NOT valid "); 
+	/* check whether pid is valid */
+	if (true != sttd_setting_client_is(pid)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Setting pid is NOT valid "); 
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
@@ -929,18 +1036,17 @@ int sttd_server_setting_set_silence_detection(int uid, bool value)
 	ret = sttd_engine_setting_set_silence_detection(value);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to Result(%d)", ret); 
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}	
 
 	return STTD_ERROR_NONE;
 }
 
-int sttd_server_setting_get_engine_setting(int uid, char** engine_id, GList** lang_list)
+int sttd_server_setting_get_engine_setting(int pid, char** engine_id, GList** lang_list)
 {	
-	/* check if uid is valid */
-	app_state_e state;
-	if (0 != sttd_client_get_state(uid, &state)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] uid is NOT valid "); 
+	/* check whether pid is valid */
+	if (true != sttd_setting_client_is(pid)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Setting pid is NOT valid "); 
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
@@ -952,12 +1058,11 @@ int sttd_server_setting_get_engine_setting(int uid, char** engine_id, GList** la
 	return STTD_ERROR_NONE;
 }
 
-int sttd_server_setting_set_engine_setting(int uid, const char* key, const char* value)
+int sttd_server_setting_set_engine_setting(int pid, const char* key, const char* value)
 {	
-	/* check if uid is valid */
-	app_state_e state;
-	if (0 != sttd_client_get_state(uid, &state)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] uid is NOT valid "); 
+	/* check whether pid is valid */
+	if (true != sttd_setting_client_is(pid)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Setting pid is NOT valid "); 
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
@@ -968,5 +1073,3 @@ int sttd_server_setting_set_engine_setting(int uid, const char* key, const char*
 
 	return STTD_ERROR_NONE;
 }
-
-

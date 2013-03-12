@@ -37,9 +37,10 @@ extern "C" {
 
 
 /******************************************************************************************
-* Message Definition for APIs
+* Message Definition for Client
 *******************************************************************************************/
 
+#define STT_METHOD_HELLO		"stt_method_hello"
 #define STT_METHOD_INITIALIZE		"stt_method_initialize"
 #define STT_METHOD_FINALIZE		"stt_method_finalilze"
 #define STT_METHOD_GET_SUPPORT_LANGS	"stt_method_get_support_langs"
@@ -51,18 +52,20 @@ extern "C" {
 #define STT_METHOD_STOP			"stt_method_stop"
 #define STT_METHOD_CANCEL		"stt_method_cancel"
 
-#define STT_SIGNAL_RESULT		"stt_signal_result"
-#define STT_SIGNAL_PARTIAL_RESULT	"stt_signal_partial_result"
-#define STT_SIGNAL_STOP			"stt_signal_stop"
-#define STT_SIGNAL_ERROR		"stt_signal_error"
+#define STTD_METHOD_RESULT		"sttd_method_result"
+#define STTD_METHOD_PARTIAL_RESULT	"sttd_method_partial_result"
+#define STTD_METHOD_ERROR		"sttd_method_error"
+#define STTD_METHOD_HELLO		"sttd_method_hello"
+#define STTD_METHOD_SET_STATE		"sttd_method_set_state"
+#define STTD_METHOD_GET_STATE		"sttd_method_get_state"
 
-#define STT_SIGNAL_STOP_BY_DAEMON	"STT_SIGNAL_STOP_BY_DAEMON"
-
+#define STTD_METHOD_STOP_BY_DAEMON	"sttd_method_stop_by_daemon"
 
 /******************************************************************************************
 * Message Definition for Setting
 *******************************************************************************************/
 
+#define STT_SETTING_METHOD_HELLO		"stt_setting_method_hello"
 #define STT_SETTING_METHOD_INITIALIZE		"stt_setting_method_initialize"
 #define STT_SETTING_METHOD_FINALIZE		"stt_setting_method_finalilze"
 #define STT_SETTING_METHOD_GET_ENGINE_LIST	"stt_setting_method_get_engine_list"
