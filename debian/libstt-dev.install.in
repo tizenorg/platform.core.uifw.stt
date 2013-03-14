@@ -1,5 +1,0 @@
-@PREFIX@/lib/pkgconfig/stt.pc
-@PREFIX@/lib/pkgconfig/stt-setting.pc
-@PREFIX@/include/stt.h
-@PREFIX@/include/stt_setting.h
-@PREFIX@/include/sttp.h
