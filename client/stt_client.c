@@ -203,6 +203,10 @@ int stt_client_not_use_callback(stt_client_s* client)
 	return 0;
 }
 
+int stt_client_get_use_callback(stt_client_s* client)
+{
+	return client->cb_ref_count;
+}
 
 int stt_client_set_option_supported(stt_h stt, bool silence, bool profanity, bool punctuation)
 {

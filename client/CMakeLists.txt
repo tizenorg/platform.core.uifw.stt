@@ -24,10 +24,10 @@ INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/include)
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/../common)
 
 ## Dependent packages ##
-INCLUDE(FindPkgConfig)
-pkg_check_modules(pkgs REQUIRED 
-	glib-2.0 dbus-1 dlog ecore
-)
+#INCLUDE(FindPkgConfig)
+#pkg_check_modules(pkgs REQUIRED 
+#	glib-2.0 dbus-1 dlog ecore
+#)
 
 FIND_PROGRAM(UNAME NAMES uname)
 EXEC_PROGRAM("${UNAME}" ARGS "-m" OUTPUT_VARIABLE "ARCH")

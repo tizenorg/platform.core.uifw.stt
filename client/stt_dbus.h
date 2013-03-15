@@ -37,8 +37,6 @@ int stt_dbus_request_get_support_langs(int uid, stt_h stt, stt_supported_languag
 
 int stt_dbus_request_get_default_lang(int uid, char** language);
 
-int stt_dbus_request_get_audio_volume(int uid, float* volume); 
-
 int stt_dbus_request_is_partial_result_supported(int uid, bool* partial_result);
 
 int stt_dbus_request_start(int uid, const char* lang, const char* type, int profanity, int punctuation, int silence);

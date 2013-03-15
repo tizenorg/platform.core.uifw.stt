@@ -352,61 +352,6 @@ int sttd_dbus_server_is_partial_result_supported(DBusConnection* conn, DBusMessa
 	return 0;
 }
 
-int sttd_dbus_server_get_audio_volume(DBusConnection* conn, DBusMessage* msg)
-{
-	DBusError err;
-	dbus_error_init(&err);
-
-	int uid;
-	float current_volume = 0.0;
-	int ret = STTD_ERROR_OPERATION_FAILED;
-
-	dbus_message_get_args(msg, &err, DBUS_TYPE_INT32, &uid, DBUS_TYPE_INVALID);
-
-	SLOG(LOG_DEBUG, TAG_STTD, ">>>>> STT Get audio volume");
-
-	if (dbus_error_is_set(&err)) { 
-		SLOG(LOG_ERROR, TAG_STTD, "[IN ERROR] stt get audio volume : get arguments error (%s)", err.message);
-		dbus_error_free(&err); 
-		ret = STTD_ERROR_OPERATION_FAILED;
-	} else {
-		SLOG(LOG_DEBUG, TAG_STTD, "[IN] stt get audio volume : uid(%d)", uid); 
-		ret =  sttd_server_get_audio_volume(uid, &current_volume);
-	}
-
-	DBusMessage* reply;
-	reply = dbus_message_new_method_return(msg);
-
-	if (NULL != reply) {
-		double temp = (double)current_volume;
-
-		dbus_message_append_args(reply, 
-			DBUS_TYPE_INT32, &ret, 
-			DBUS_TYPE_DOUBLE, &temp, 
-			DBUS_TYPE_INVALID);
-
-		if (0 == ret) {
-			SLOG(LOG_DEBUG, TAG_STTD, "[OUT SUCCESS] Result(%d), volume - double(%f), float(%f)", ret, temp, current_volume); 
-		} else {
-			SLOG(LOG_ERROR, TAG_STTD, "[OUT ERROR] Result(%d)", ret); 
-		}
-
-		if (!dbus_connection_send(conn, reply, NULL)) {
-			SLOG(LOG_ERROR, TAG_STTD, "[OUT ERROR] Out Of Memory!");
-		}
-
-		dbus_connection_flush(conn);
-		dbus_message_unref(reply);
-	} else {
-		SLOG(LOG_ERROR, TAG_STTD, "[OUT ERROR] Fail to create reply message!!"); 
-	}
-
-	SLOG(LOG_DEBUG, TAG_STTD, "<<<<<");
-	SLOG(LOG_DEBUG, TAG_STTD, "  ");
-
-	return 0;
-}
-
 int sttd_dbus_server_start(DBusConnection* conn, DBusMessage* msg)
 {
 	DBusError err;

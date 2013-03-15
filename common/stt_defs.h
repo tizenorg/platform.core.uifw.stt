@@ -46,7 +46,6 @@ extern "C" {
 #define STT_METHOD_GET_SUPPORT_LANGS	"stt_method_get_support_langs"
 #define STT_METHOD_GET_CURRENT_LANG	"stt_method_get_current_lang"
 #define STT_METHOD_IS_PARTIAL_SUPPORTED	"stt_method_is_partial_result_supported"
-#define STT_METHOD_GET_AUDIO_VOLUME	"stt_method_audio_volume"
 
 #define STT_METHOD_START		"stt_method_start"
 #define STT_METHOD_STOP			"stt_method_stop"
@@ -58,8 +57,6 @@ extern "C" {
 #define STTD_METHOD_HELLO		"sttd_method_hello"
 #define STTD_METHOD_SET_STATE		"sttd_method_set_state"
 #define STTD_METHOD_GET_STATE		"sttd_method_get_state"
-
-#define STTD_METHOD_STOP_BY_DAEMON	"sttd_method_stop_by_daemon"
 
 /******************************************************************************************
 * Message Definition for Setting
@@ -82,6 +79,12 @@ extern "C" {
 #define STT_SETTING_METHOD_SET_SILENCE		"stt_setting_method_set_silence_detection"
 #define STT_SETTING_METHOD_GET_ENGINE_SETTING	"stt_setting_method_get_engine_setting"
 #define STT_SETTING_METHOD_SET_ENGINE_SETTING	"stt_setting_method_set_engine_setting"
+
+/******************************************************************************************
+* Temp file for audio volume
+*******************************************************************************************/
+
+#define STT_AUDIO_VOLUME_PATH			"/tmp/stt_vol"
 
 #ifdef __cplusplus
 }

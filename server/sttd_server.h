@@ -28,6 +28,8 @@ extern "C" {
 */
 int sttd_initialize();
 
+int sttd_finalize();
+
 Eina_Bool sttd_cleanup_client(void *data);
 
 /*

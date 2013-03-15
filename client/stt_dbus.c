@@ -445,9 +445,7 @@ int stt_dbus_request_hello()
 	if (NULL == msg) { 
 		SLOG(LOG_ERROR, TAG_STTC, ">>>> Request stt hello : Fail to make message \n"); 
 		return STT_ERROR_OPERATION_FAILED;
-	} else {
-		SLOG(LOG_DEBUG, TAG_STTC, ">>>> Request stt hello");
-	}
+	} 
 
 	DBusError err;
 	dbus_error_init(&err);
@@ -465,7 +463,6 @@ int stt_dbus_request_hello()
 		SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt hello");
 		result = 0;
 	} else {
-		SLOG(LOG_ERROR, TAG_STTC, "<<<< stt hello : no response");
 		result = STT_ERROR_OPERATION_FAILED;
 	}
 
@@ -973,69 +970,3 @@ int stt_dbus_request_cancel(int uid)
 
 	return result;
 }
-
-
-int stt_dbus_request_get_audio_volume(int uid, float* volume)
-{
-	if (NULL == volume) {
-		SLOG(LOG_ERROR, TAG_STTC, "Input parameter is NULL");
-		return STT_ERROR_INVALID_PARAMETER;
-	}
-
-	DBusMessage* msg;
-
-	msg = dbus_message_new_method_call(
-		STT_SERVER_SERVICE_NAME, 
-		STT_SERVER_SERVICE_OBJECT_PATH, 
-		STT_SERVER_SERVICE_INTERFACE, 
-		STT_METHOD_GET_AUDIO_VOLUME);
-
-	if (NULL == msg) { 
-		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt get volume : Fail to make message \n"); 
-		return STT_ERROR_OPERATION_FAILED;
-	} else {
-		SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt get volume : uid(%d)", uid);
-	}
-
-	dbus_message_append_args( msg, 
-		DBUS_TYPE_INT32, &uid,
-		DBUS_TYPE_INVALID);
-
-	DBusError err;
-	dbus_error_init(&err);
-
-	DBusMessage* result_msg;
-	int result = STT_ERROR_OPERATION_FAILED;
-	double vol = 0;
-
-	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, g_waiting_time, &err);
-
-	if (NULL != result_msg) {
-		dbus_message_get_args(result_msg, &err,
-			DBUS_TYPE_INT32, &result,
-			DBUS_TYPE_DOUBLE, &vol,
-			DBUS_TYPE_INVALID);
-
-		if (dbus_error_is_set(&err)) { 
-			printf("<<<<< Get arguments error (%s)\n", err.message);
-			dbus_error_free(&err); 
-			result = STT_ERROR_OPERATION_FAILED;
-		}
-		dbus_message_unref(result_msg);
-	} else {
-		SLOG(LOG_DEBUG, TAG_STTC, "<<<< Result Message is NULL");
-	}
-
-	if (0 == result) {
-		*volume = (float)vol;
-		SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt get audio volume : result = %d, volume = %f \n", result, *volume);
-	} else {
-		SLOG(LOG_ERROR, TAG_STTC, "<<<< stt get audio volume : result = %d\n", result);
-	}
-
-	dbus_message_unref(msg);
-
-	return result;
-}
-
-

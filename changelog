@@ -1,16 +1,55 @@
+stt (0.1.1-37)
+
+  * capi-audio-io is used
+  * sound volume code is added
+  * code refactoring
+
+ -- Kwangyoun Kim <ky85.kim@samsung.com>  Wed, 20 Feb 2013
+
+stt (0.1.1-36)
+
+  * Update smack rule
+
+ -- Kwangyoun Kim <ky85.kim@samsung.com>  Fri, 08 Feb 2013
+
+stt (0.1.1-35)
+
+  * Update smack rule
+
+ -- Kwangyoun Kim <ky85.kim@samsung.com>  Wed, 06 Feb 2013
+
+stt (0.1.1-34)
+
+  * Fix bug on daemon connection
+
+ -- Kwangyoun Kim <ky85.kim@samsung.com>  Mon, 04 Feb 2013
+
+stt (0.1.1-33slp2+1) unstable; urgency=low
+
+  * Fix for GCC 4.7
+
+ -- Kwangyoun Kim <ky85.kim@samsung.com>  Tue, 29 Jan 2013 17:04:53 +0900
+
+stt (0.1.1-32slp2+1) unstable; urgency=low
+
+  * Fix PLM issue(P130121-3243)
+  * Add Daemon termination 
+
+ -- Kwangyoun Kim <ky85.kim@samsung.com>  Fri, 25 Jan 2013 10:59:06 +0900
+
 stt (0.1.1-31slp2+1) unstable; urgency=low
 
-  * Change License and notice file
+  * Change License and notice file 
 
- -- Kwangyoun Kim <ky85.kim@samsung.com>  Wed, 23 Jan 2013 15:24:59 +0900
+ -- Kwangyoun Kim <ky85.kim@samsung.com>  Wed, 23 Jan 2013 15:02:21 +0900
 
 stt (0.1.1-30slp2+1) unstable; urgency=low
 
-  * Change License file
+  * Change License File
   * Git: /framework/uifw/voice/stt
-  * Tag: stt_0.1.1-30slp2+1
+  * Tag: stt_0.1.1-30slp2+1 
 
- -- Kwangyoun Kim <ky85.kim@samsung.com>  Wed, 16 Jan 2013 18:39:32 +0900
+ -- Kwangyoun Kim <ky85.kim@samsung.com>  Wed, 16 Jan 2013 18:21:40 +0900
 
 stt (0.1.1-29slp2+1) unstable; urgency=low
 
@@ -18,7 +57,7 @@ stt (0.1.1-29slp2+1) unstable; urgency=low
   * Git: /framework/uifw/voice/stt
   * Tag: stt_0.1.1-29slp2+1
 
- -- Kwangyoun Kim <ky85.kim@samsung.com>  Thu, 03 Jan 2013 16:55:13 +0900
+ -- Kwangyoun Kim <ky85.kim@samsung.com>  Thu, 03 Jan 2013 16:19:00 +0900
 
 stt (0.1.1-28slp2+1) unstable; urgency=low
 

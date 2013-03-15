@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012, 2013 Samsung Electronics Co., Ltd All Rights Reserved 
+*  Copyright (c) 2012, 2013 Samsung Electronics Co., Ltd All Rights Reserved 
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -52,11 +52,19 @@ int main(int argc, char** argv)
 
 	ecore_main_loop_begin();
 
-	ecore_shutdown();
+	SLOG(LOG_DEBUG, TAG_STTD, "===== STT Daemon Finalize");
 
 	sttd_dbus_close_connection();
 
 	sttd_network_finalize();
+
+	sttd_finalize();
+
+	ecore_shutdown();
+
+	SLOG(LOG_DEBUG, TAG_STTD, "=====");
+	SLOG(LOG_DEBUG, TAG_STTD, "  ");
+	SLOG(LOG_DEBUG, TAG_STTD, "  ");
 
 	return 0;
 }

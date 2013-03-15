@@ -77,12 +77,6 @@ int audio_recorder_callback(const void* data, const unsigned int length)
 		}
 
 		ecore_timer_add(0, __stop_by_silence, NULL);
-
-		/*if (0 != sttd_send_stop_recognition_by_daemon(uid)) {
-			SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail "); 
-		} else {
-			SLOG(LOG_DEBUG, TAG_STTD, "[Server SUCCESS] <<<< stop message : uid(%d)", uid); 
-		}*/
 		
 		return -1;
 	}
@@ -235,13 +229,6 @@ int sttd_initialize()
 		SLOG(LOG_ERROR, TAG_STTD, "[Server WARNING] Fail to initialize config.");
 	}
 
-	/* recoder init */
-	ret = sttd_recorder_init();
-	if (0 != ret) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to initialize recorder : result(%d)", ret); 
-		return ret;
-	}
-
 	/* Engine Agent initialize */
 	ret = sttd_engine_agent_init(sttd_server_recognition_result_callback, sttd_server_partial_result_callback, 
 				sttd_server_silence_dectection_callback);
@@ -260,6 +247,15 @@ int sttd_initialize()
 	SLOG(LOG_DEBUG, TAG_STTD, "[Server SUCCESS] initialize"); 
 
 	return 0;
+}
+
+int sttd_finalize()
+{
+	sttd_config_finalize();
+
+	sttd_engine_agent_release();
+
+	return STTD_ERROR_NONE;
 }
 
 Eina_Bool sttd_cleanup_client(void *data)
@@ -326,45 +322,24 @@ int sttd_server_initialize(int pid, int uid, bool* silence, bool* profanity, boo
 			SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to load current engine"); 
 			return STTD_ERROR_OPERATION_FAILED;
 		}
+
+		/* set type, channel, sample rate */
+		sttp_audio_type_e atype;
+		int rate;
+		int channels;
+
+		if (0 != sttd_engine_get_audio_format(&atype, &rate, &channels)) {
+			SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to get audio format of engine."); 
+			return STTD_ERROR_OPERATION_FAILED;
+		}
+
+		if (0 != sttd_recorder_create(audio_recorder_callback, atype, channels, rate)) {
+			SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to set recorder"); 
+			return STTD_ERROR_OPERATION_FAILED;
+		}
+
+		SLOG(LOG_DEBUG, TAG_STTD, "[Server] audio type(%d), channel(%d)", (int)atype, (int)channels);
 	}
-
-	/* initialize recorder using audio format from engine */
-	sttp_audio_type_e atype;
-	int rate;
-	int channels;
-
-	if (0 != sttd_engine_get_audio_format(&atype, &rate, &channels)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to get audio format of engine."); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	sttd_recorder_channel		sttchannel = STTD_RECORDER_CHANNEL_MONO;
-	sttd_recorder_audio_type	sttatype = STTD_RECORDER_PCM_S16;
-
-	switch (atype) {
-	case STTP_AUDIO_TYPE_PCM_S16_LE:	sttatype = STTD_RECORDER_PCM_S16;	break;
-	case STTP_AUDIO_TYPE_PCM_U8:		sttatype = STTD_RECORDER_PCM_U8;	break;
-	case STTP_AUDIO_TYPE_AMR:		sttatype = STTD_RECORDER_AMR;		break;
-	default:	
-		/* engine error */
-		sttd_engine_agent_unload_current_engine();
-		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Invalid Audio Type"); 
-		return STTD_ERROR_OPERATION_FAILED;
-		break;
-	}
-
-	switch (channels) {
-	case 1:		sttchannel = STTD_RECORDER_CHANNEL_MONO;	break;
-	case 2:		sttchannel = STTD_RECORDER_CHANNEL_STEREO;	break;
-	default:	sttchannel = STTD_RECORDER_CHANNEL_MONO;	break;
-	}
-
-	if (0 != sttd_recorder_set(sttatype, sttchannel, rate, 60, audio_recorder_callback)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to set recorder"); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-	
-	SLOG(LOG_DEBUG, TAG_STTD, "[Server] audio type(%d), channel(%d)", (int)atype, (int)sttchannel); 
 
 	/* Add client information to client manager */
 	if (0 != sttd_client_add(pid, uid)) {
@@ -382,6 +357,13 @@ int sttd_server_initialize(int pid, int uid, bool* silence, bool* profanity, boo
 	return STTD_ERROR_NONE;
 }
 
+static Eina_Bool __quit_ecore_loop(void *data)
+{
+	ecore_main_loop_quit();
+	SLOG(LOG_DEBUG, TAG_STTD, "[Server] quit ecore main loop");
+	return EINA_FALSE;
+}
+
 int sttd_server_finalize(const int uid)
 {
 	/* check if uid is valid */
@@ -393,7 +375,7 @@ int sttd_server_finalize(const int uid)
 
 	/* release recorder */
 	if (APP_STATE_RECORDING == state || APP_STATE_PROCESSING == state) {
-		sttd_recorder_cancel();
+		sttd_recorder_stop();
 		sttd_engine_recognize_cancel();
 	}
 	
@@ -404,11 +386,9 @@ int sttd_server_finalize(const int uid)
 
 	/* unload engine, if ref count of client is 0 */
 	if (0 == sttd_client_get_ref_count()) {
-		if (0 != sttd_engine_agent_unload_current_engine()) {
-			SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to unload current engine"); 
-		} else {
-			SLOG(LOG_DEBUG, TAG_STTD, "[Server SUCCESS] unload current engine"); 
-		}
+		sttd_recorder_destroy();
+
+		ecore_timer_add(0, __quit_ecore_loop, NULL);
 	}
 	
 	return STTD_ERROR_NONE;
@@ -483,36 +463,6 @@ int sttd_server_is_partial_result_supported(int uid, int* partial_result)
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTD, "[Server SUCCESS] Partial result supporting is %s", temp ? "true" : "false"); 
-
-	return STTD_ERROR_NONE;
-}
-
-int sttd_server_get_audio_volume( const int uid, float* current_volume)
-{
-	/* check if uid is valid */
-	app_state_e state;
-	if (0 != sttd_client_get_state(uid, &state)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] uid is NOT valid "); 
-		return STTD_ERROR_INVALID_PARAMETER;
-	}
-
-	/* check uid state */
-	if (APP_STATE_RECORDING != state) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Current state is not recording"); 
-		return STTD_ERROR_INVALID_STATE;
-	}
-
-	if (NULL == current_volume) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Input parameter is NULL"); 
-		return STTD_ERROR_INVALID_PARAMETER;
-	}
-
-	/* get audio volume from recorder */
-	int ret = sttd_recorder_get_volume(current_volume);
-	if (0 != ret) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to get volume : result(%d)", ret); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
 
 	return STTD_ERROR_NONE;
 }
@@ -707,7 +657,7 @@ int sttd_server_cancel(const int uid)
 
 	/* stop recorder */
 	if (APP_STATE_RECORDING == state) 
-		sttd_recorder_cancel();
+		sttd_recorder_stop();
 
 	/* cancel engine recognition */
 	int ret = sttd_engine_recognize_cancel();
@@ -755,6 +705,23 @@ int sttd_server_setting_initialize(int pid)
 			SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to load current engine"); 
 			return STTD_ERROR_OPERATION_FAILED;
 		}
+
+		/* set type, channel, sample rate */
+		sttp_audio_type_e atype;
+		int rate;
+		int channels;
+
+		if (0 != sttd_engine_get_audio_format(&atype, &rate, &channels)) {
+			SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to get audio format of engine."); 
+			return STTD_ERROR_OPERATION_FAILED;
+		}
+
+		if (0 != sttd_recorder_create(audio_recorder_callback, atype, channels, rate)) {
+			SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to set recorder"); 
+			return STTD_ERROR_OPERATION_FAILED;
+		}
+
+		SLOG(LOG_DEBUG, TAG_STTD, "[Server] audio type(%d), channel(%d)", (int)atype, (int)channels);
 	}
 
 	/* Add setting client information to client manager (For internal use) */
@@ -775,11 +742,9 @@ int sttd_server_setting_finalize(int pid)
 
 	/* unload engine, if ref count of client is 0 */
 	if (0 == sttd_client_get_ref_count()) {
-		if (0 != sttd_engine_agent_unload_current_engine()) {
-			SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to unload current engine"); 
-		} else {
-			SLOG(LOG_DEBUG, TAG_STTD, "[Server SUCCESS] unload current engine"); 
-		}
+		sttd_recorder_destroy();
+
+		ecore_timer_add(0, __quit_ecore_loop, NULL);
 	}
 
 	return STTD_ERROR_NONE;

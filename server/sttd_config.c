@@ -47,7 +47,7 @@ int __sttd_config_save()
 	config_fp = fopen(CONFIG_FILE_PATH, "w+");
 
 	if (NULL == config_fp) {
-		// make file and file default
+		/* make file and file default */
 		SLOG(LOG_ERROR, TAG_STTD, "[Config ERROR] Fail to load config (engine id)");
 		return -1;
 	}

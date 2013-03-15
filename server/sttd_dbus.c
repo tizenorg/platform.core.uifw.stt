@@ -448,13 +448,8 @@ static Eina_Bool listener_event_callback(void* data, Ecore_Fd_Handler *fd_handle
 		return ECORE_CALLBACK_RENEW;
 	}
 
-
-	/* daemon internal event */
-	if (dbus_message_is_method_call(msg, STT_SERVER_SERVICE_INTERFACE, STTD_METHOD_STOP_BY_DAEMON))
-		sttd_dbus_server_stop_by_daemon(msg);
-
 	/* client event */
-	else if (dbus_message_is_method_call(msg, STT_SERVER_SERVICE_INTERFACE, STT_METHOD_HELLO))
+	if (dbus_message_is_method_call(msg, STT_SERVER_SERVICE_INTERFACE, STT_METHOD_HELLO))
 		sttd_dbus_server_hello(conn, msg);
 
 	else if (dbus_message_is_method_call(msg, STT_SERVER_SERVICE_INTERFACE, STT_METHOD_INITIALIZE))
@@ -471,9 +466,6 @@ static Eina_Bool listener_event_callback(void* data, Ecore_Fd_Handler *fd_handle
 
 	else if (dbus_message_is_method_call(msg, STT_SERVER_SERVICE_INTERFACE, STT_METHOD_IS_PARTIAL_SUPPORTED))
 		sttd_dbus_server_is_partial_result_supported(conn, msg);
-
-	else if (dbus_message_is_method_call(msg, STT_SERVER_SERVICE_INTERFACE, STT_METHOD_GET_AUDIO_VOLUME))
-		sttd_dbus_server_get_audio_volume(conn, msg);
 
 	else if (dbus_message_is_method_call(msg, STT_SERVER_SERVICE_INTERFACE, STT_METHOD_START)) 
 		sttd_dbus_server_start(conn, msg);
@@ -625,33 +617,6 @@ int sttd_dbus_close_connection()
 		dbus_error_free(&err); 
 		return -1;
 	}
-
-	return 0;
-}
-
-int sttd_send_stop_recognition_by_daemon(int uid)
-{
-	DBusMessage* msg;
-
-	msg = dbus_message_new_method_call(
-		STT_SERVER_SERVICE_NAME, 
-		STT_SERVER_SERVICE_OBJECT_PATH, 
-		STT_SERVER_SERVICE_INTERFACE, 
-		STTD_METHOD_STOP_BY_DAEMON);
-
-	if (NULL == msg) { 
-		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] >>>> Fail to make message for 'stop by daemon'"); 
-		return -1;
-	} 
-
-	dbus_message_append_args(msg, DBUS_TYPE_INT32, &uid, DBUS_TYPE_INVALID);	
-
-	if (!dbus_connection_send(g_conn, msg, NULL)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] Fail to send message for 'stop by daemon'"); 
-	}
-
-	dbus_connection_flush(g_conn);
-	dbus_message_unref(msg);
 
 	return 0;
 }

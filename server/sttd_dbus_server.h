@@ -40,8 +40,6 @@ int sttd_dbus_server_get_default_lang(DBusConnection* conn, DBusMessage* msg);
 
 int sttd_dbus_server_is_partial_result_supported(DBusConnection* conn, DBusMessage* msg);
 
-int sttd_dbus_server_get_audio_volume(DBusConnection* conn, DBusMessage* msg);
-
 int sttd_dbus_server_start(DBusConnection* conn, DBusMessage* msg);
 
 int sttd_dbus_server_stop(DBusConnection* conn, DBusMessage* msg);

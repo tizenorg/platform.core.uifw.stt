@@ -204,7 +204,6 @@ int sttd_engine_agent_release()
 		while (NULL != iter) {
 			/* Get handle data from list */
 			data = iter->data;
-			dlclose(data->handle); 
 
 			iter = g_list_remove(iter, data);
 		}

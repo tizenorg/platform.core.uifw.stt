@@ -11,12 +11,9 @@ BuildRequires:  pkgconfig(glib-2.0)
 BuildRequires:  pkgconfig(dbus-1)
 BuildRequires:  pkgconfig(ecore)
 BuildRequires:  pkgconfig(ecore-file)
-BuildRequires:  pkgconfig(mm-player)
-BuildRequires:  pkgconfig(mm-common)
-BuildRequires:  pkgconfig(mm-sound)
-BuildRequires:  pkgconfig(mm-camcorder)
 BuildRequires:  pkgconfig(dlog)
 BuildRequires:  pkgconfig(vconf)
+BuildRequires:  pkgconfig(capi-media-audio-io)
 
 BuildRequires:  cmake
 
@@ -52,6 +49,7 @@ mkdir -p %{buildroot}/usr/share/license
 
 %files
 %manifest stt-server.manifest
+/etc/smack/accesses2.d/stt-server.rule
 %defattr(-,root,root,-)
 %{_libdir}/libstt.so
 %{_libdir}/libstt_setting.so

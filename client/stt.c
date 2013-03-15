@@ -28,6 +28,8 @@
 
 static bool g_is_daemon_started = false;
 
+static Ecore_Timer* g_connect_timer = NULL;
+
 static int __check_stt_daemon();
 static Eina_Bool __stt_notify_state_changed(void *data);
 static Eina_Bool __stt_notify_error(void *data);
@@ -80,6 +82,12 @@ int stt_destroy(stt_h stt)
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
+	/* check used callback */
+	if (0 != stt_client_get_use_callback(client)) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Cannot destroy in Callback function");
+		return STT_ERROR_OPERATION_FAILED;
+	}
+
 	int ret = -1;
 
 	/* check state */
@@ -91,7 +99,12 @@ int stt_destroy(stt_h stt)
 		if (0 != ret) {
 			SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to request finalize");
 		}
+		g_is_daemon_started = false;
 	case STT_STATE_CREATED:
+		if (NULL != g_connect_timer) {
+			SLOG(LOG_DEBUG, TAG_STTC, "Connect Timer is deleted");
+			ecore_timer_del(g_connect_timer);
+		}
 		/* Free resources */
 		stt_client_destroy(stt);
 		break;
@@ -113,16 +126,12 @@ int stt_destroy(stt_h stt)
 
 static Eina_Bool __stt_connect_daemon(void *data)
 {
-	SLOG(LOG_DEBUG, TAG_STTC, "===== Connect daemon");
-
 	stt_h stt = (stt_h)data;
 
 	stt_client_s* client = stt_client_get(stt);
 
 	if (NULL == client) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not available");
-		SLOG(LOG_DEBUG, TAG_STTC, "=====");
-		SLOG(LOG_DEBUG, TAG_STTC, " ");
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
@@ -134,6 +143,8 @@ static Eina_Bool __stt_connect_daemon(void *data)
 		}
 		return EINA_TRUE;
 	}
+
+	SLOG(LOG_DEBUG, TAG_STTC, "===== Connect daemon");
 
 	/* request initialization */
 	int ret = -1;
@@ -180,6 +191,8 @@ static Eina_Bool __stt_connect_daemon(void *data)
 
 	ecore_timer_add(0, __stt_notify_state_changed, (void*)stt);
 
+	g_connect_timer = NULL;
+
 	SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] uid(%d)", client->uid);
 
 	SLOG(LOG_DEBUG, TAG_STTC, "=====");
@@ -211,7 +224,7 @@ int stt_prepare(stt_h stt)
 		return STT_ERROR_INVALID_STATE;
 	}
 
-	ecore_timer_add(0, __stt_connect_daemon, (void*)stt);
+	g_connect_timer = ecore_timer_add(0, __stt_connect_daemon, (void*)stt);
 
 	SLOG(LOG_DEBUG, TAG_STTC, "=====");
 	SLOG(LOG_DEBUG, TAG_STTC, " ");
@@ -243,6 +256,7 @@ int stt_unprepare(stt_h stt)
 	if (0 != ret) {
 		SLOG(LOG_WARN, TAG_STTC, "[ERROR] Fail to request finalize");
 	}
+	g_is_daemon_started = false;
 
 	client->before_state = client->current_state;
 	client->current_state = STT_STATE_CREATED;
@@ -657,6 +671,20 @@ int stt_cancel(stt_h stt)
 	return ret;
 }
 
+static int __stt_get_audio_volume(float* volume)
+{
+	FILE* fp = fopen(STT_AUDIO_VOLUME_PATH, "rb");
+	if (!fp) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to open Volume File");
+		return -1;
+	}
+
+	fread((void*)volume, sizeof(*volume), 1, fp);
+	fclose(fp);
+
+	return 0;
+}
+
 int stt_get_recording_volume(stt_h stt, float* volume)
 {
 	if (NULL == stt || NULL == volume) {
@@ -677,12 +705,12 @@ int stt_get_recording_volume(stt_h stt, float* volume)
 		return STT_ERROR_INVALID_STATE;
 	}    
 	
-	int ret = 0; 
-	ret = stt_dbus_request_get_audio_volume(client->uid, volume);
-	if (ret) {
+	int ret = 0;
+	ret = __stt_get_audio_volume(volume);
+	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to get audio volume");
-		return ret;
-	}    
+		return STT_ERROR_OPERATION_FAILED;
+	}
 
 	return STT_ERROR_NONE;
 }
@@ -1125,7 +1153,6 @@ int stt_unset_error_cb(stt_h stt)
 int __get_cmd_line(char *file, char *buf) 
 {
 	FILE *fp = NULL;
-	int i;
 
 	fp = fopen(file, "r");
 	if (fp == NULL) {
@@ -1134,7 +1161,11 @@ int __get_cmd_line(char *file, char *buf)
 	}
 
 	memset(buf, 0, 256);
-	fgets(buf, 256, fp);
+	if (NULL == fgets(buf, 256, fp)) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to fget command line");
+		fclose(fp);
+		return -1;
+	}
 	fclose(fp);
 
 	return 0;
@@ -1185,24 +1216,6 @@ static bool __stt_is_alive()
 
 }
 
-
-static void __my_sig_child(int signo, siginfo_t *info, void *data)
-{
-	int status;
-	pid_t child_pid, child_pgid;
-
-	child_pgid = getpgid(info->si_pid);
-	SLOG(LOG_DEBUG, TAG_STTC, "Signal handler: dead pid = %d, pgid = %d\n", info->si_pid, child_pgid);
-
-	while((child_pid = waitpid(-1, &status, WNOHANG)) > 0) {
-		if(child_pid == child_pgid)
-			killpg(child_pgid, SIGKILL);
-	}
-
-	return;
-}
-
-
 static int __check_stt_daemon()
 {
 	if( TRUE == __stt_is_alive() )
@@ -1210,17 +1223,6 @@ static int __check_stt_daemon()
 	
 	/* fork-exec stt-daemon */
 	int pid, i;
-	struct sigaction act, dummy;
-
-	act.sa_handler = NULL;
-	act.sa_sigaction = __my_sig_child;
-	sigemptyset(&act.sa_mask);
-	act.sa_flags = SA_NOCLDSTOP | SA_SIGINFO;
-		
-	if(sigaction(SIGCHLD, &act, &dummy) < 0) {
-		SLOG(LOG_DEBUG, TAG_STTC, "%s\n", "Cannot make a signal handler\n");
-		return -1;
-	}
 
 	pid = fork();
 

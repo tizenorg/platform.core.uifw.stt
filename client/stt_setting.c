@@ -27,6 +27,8 @@ static int __check_setting_stt_daemon();
 
 static bool g_is_daemon_started = false;
 
+static Ecore_Timer* g_setting_connect_timer = NULL;
+
 static stt_setting_state_e g_state = STT_SETTING_STATE_NONE;
 
 static stt_setting_initialized_cb g_initialized_cb;
@@ -73,6 +75,8 @@ static Eina_Bool __stt_setting_connect_daemon(void *data)
 	g_reason = ret;
 
 	ecore_timer_add(0, __stt_setting_initialized, NULL);
+
+	g_setting_connect_timer = NULL;
 
 	SLOG(LOG_DEBUG, TAG_STTC, "=====");
 	SLOG(LOG_DEBUG, TAG_STTC, " ");
@@ -158,7 +162,7 @@ int stt_setting_initialize_async(stt_setting_initialized_cb callback, void* user
 	g_initialized_cb = callback;
 	g_user_data = user_data;
 
-	ecore_timer_add(0, __stt_setting_connect_daemon, NULL);
+	g_setting_connect_timer = ecore_timer_add(0, __stt_setting_connect_daemon, NULL);
 
 	SLOG(LOG_DEBUG, TAG_STTC, "=====");
 	SLOG(LOG_DEBUG, TAG_STTC, " ");
@@ -172,21 +176,20 @@ int stt_setting_finalize ()
 	
 	int ret = 0;
 
-	if (STT_SETTING_STATE_NONE == g_state) {
-		SLOG(LOG_WARN, TAG_STTC, "[WARNING] Not initialized");
-		SLOG(LOG_DEBUG, TAG_STTC, "=====");
-		SLOG(LOG_DEBUG, TAG_STTC, " ");
-		return STT_SETTING_ERROR_INVALID_STATE;
+	if (STT_SETTING_STATE_READY == g_state) {
+		ret = stt_setting_dbus_request_finalilze();
+		if (0 != ret) {
+			SLOG(LOG_ERROR, TAG_STTC, "Fail : finialize(%d)", ret);
+		}
 	}
 
-	ret = stt_setting_dbus_request_finalilze();
-	if (0 != ret) {
-		SLOG(LOG_ERROR, TAG_STTC, "Fail : finialize(%d)", ret);
-		SLOG(LOG_DEBUG, TAG_STTC, "=====");
-		SLOG(LOG_DEBUG, TAG_STTC, " ");
-		return ret;
+	if (NULL != g_setting_connect_timer) {
+		SLOG(LOG_DEBUG, TAG_STTC, "Setting Connect Timer is deleted");
+		ecore_timer_del(g_setting_connect_timer);
 	}
-    
+
+	g_is_daemon_started = false;
+
 	if (0 != stt_setting_dbus_close_connection()) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to close connection");
 	} else {
@@ -691,22 +694,6 @@ static bool __stt_setting_is_alive()
 
 }
 
-static void __setting_my_sig_child(int signo, siginfo_t *info, void *data)
-{
-	int status = 0;
-	pid_t child_pid, child_pgid;
-
-	child_pgid = getpgid(info->si_pid);
-	SLOG(LOG_DEBUG, TAG_STTC, "Signal handler: dead pid = %d, pgid = %d\n", info->si_pid, child_pgid);
-
-	while ((child_pid = waitpid(-1, &status, WNOHANG)) > 0) {
-		if(child_pid == child_pgid)
-			killpg(child_pgid, SIGKILL);
-	}
-
-	return;
-}
-
 int __check_setting_stt_daemon()
 {
 	if (TRUE == __stt_setting_is_alive()) 
@@ -714,16 +701,6 @@ int __check_setting_stt_daemon()
 	
 	/* fork-exec stt-daemom */
 	int pid = 0, i = 0;
-	struct sigaction act, dummy;
-	act.sa_handler = NULL;
-	act.sa_sigaction = __setting_my_sig_child;
-	sigemptyset(&act.sa_mask);
-	act.sa_flags = SA_NOCLDSTOP | SA_SIGINFO;
-	
-	if (sigaction(SIGCHLD, &act, &dummy) < 0) {
-		SLOG(LOG_ERROR, TAG_STTC, "%s\n", "Cannot make a signal handler\n");
-		return -1;
-	}
 
 	pid = fork();
 

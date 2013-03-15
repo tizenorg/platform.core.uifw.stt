@@ -46,8 +46,7 @@ typedef enum {
 */
 typedef enum {
 	STTP_AUDIO_TYPE_PCM_S16_LE = 0,	/**< Signed 16bit audio type, Little endian */
-	STTP_AUDIO_TYPE_PCM_U8,		/**< Unsigned 8bit audio type */
-	STTP_AUDIO_TYPE_AMR		/**< AMR audio type */
+	STTP_AUDIO_TYPE_PCM_U8		/**< Unsigned 8bit audio type */
 }sttp_audio_type_e;
 
 /**
@@ -68,86 +67,6 @@ typedef enum {
 * @brief Recognition type : web search. 
 */
 #define STTP_RECOGNITION_TYPE_WEB_SEARCH		"stt.recognition.type.WEB_SEARCH"
-
-/** 
-* @brief Recognition type : all voice commands. 
-*/
-#define STTP_RECOGNITION_TYPE_COMMAND			"stt.recognition.type.COMMAND"
-
-/** 
-* @brief Recognition type : call of voice commands. 
-*/
-#define STTP_RECOGNITION_TYPE_COMMAND_CALL		"stt.recognition.type.COMMAND.CALL"
-
-/** 
-* @brief Recognition type : music of voice commands. 
-*/
-#define STTP_RECOGNITION_TYPE_COMMAND_MUSIC		"stt.recognition.type.COMMAND.MUSIC"
-
-/** 
-* @brief Recognition type : web search of voice commands. 
-*/
-#define STTP_RECOGNITION_TYPE_COMMAND_WEB_SEARCH	"stt.recognition.type.COMMAND.WEB_SEARCH"
-
-/** 
-* @brief Recognition type : schedule of voice commands. 
-*/
-#define STTP_RECOGNITION_TYPE_COMMAND_SCHEDULE		"stt.recognition.type.COMMAND.SCHEDULE"
-
-/** 
-* @brief Recognition type : search of voice commands. 
-*/
-#define STTP_RECOGNITION_TYPE_COMMAND_SEARCH		"stt.recognition.type.COMMAND.SEARCH"
-
-/** 
-* @brief Recognition type : contact of voice commands. 
-*/
-#define STTP_RECOGNITION_TYPE_COMMAND_CONTACT		"stt.recognition.type.COMMAND.CONTACT"
-
-/** 
-* @brief Recognition type : social of voice commands. 
-*/
-#define STTP_RECOGNITION_TYPE_COMMAND_SOCIAL		"stt.recognition.type.COMMAND.SOCIAL"
-
-/** 
-* @brief Recognition type : message of voice commands. 
-*/
-#define STTP_RECOGNITION_TYPE_COMMAND_MESSAGE		"stt.recognition.type.COMMAND.MESSAGE"
-
-/** 
-* @brief Recognition type : email of voice commands. 
-*/
-#define STTP_RECOGNITION_TYPE_COMMAND_EMAIL		"stt.recognition.type.COMMAND.EMAIL"
-
-/** 
-* @brief Recognition type : memo of voice commands. 
-*/
-#define STTP_RECOGNITION_TYPE_COMMAND_MEMO		"stt.recognition.type.COMMAND.MEMO"
-
-/** 
-* @brief Recognition type : alarm of voice commands. 
-*/
-#define STTP_RECOGNITION_TYPE_COMMAND_ALARM		"stt.recognition.type.COMMAND.ALARM"
-
-/** 
-* @brief Recognition type : application of voice commands. 
-*/
-#define STTP_RECOGNITION_TYPE_COMMAND_APPLICATION	"stt.recognition.type.COMMAND.APPLICATION"
-
-/** 
-* @brief Recognition type : driving mode of voice commands. 
-*/
-#define STTP_RECOGNITION_TYPE_COMMAND_DRIVING_MODE	"stt.recognition.type.COMMAND.DRIVING_MODE"
-
-/** 
-* @brief Recognition type : navigation of voice commands. 
-*/
-#define STTP_RECOGNITION_TYPE_COMMAND_NAVIGATION	"stt.recognition.type.COMMAND.NAVIGATION"
-
-/** 
-* @brief Recognition type : text-to-speech of voice commands.
-*/
-#define STTP_RECOGNITION_TYPE_COMMAND_TTS		"stt.recognition.type.COMMAND.TTS"
 
 /** 
 * @brief Result message : None message

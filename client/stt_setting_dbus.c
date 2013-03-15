@@ -103,9 +103,7 @@ int stt_setting_dbus_request_hello()
 	if (NULL == msg) { 
 		SLOG(LOG_ERROR, TAG_STTC, ">>>> Request setting hello : Fail to make message \n"); 
 		return STT_SETTING_ERROR_OPERATION_FAILED;
-	} else {
-		SLOG(LOG_DEBUG, TAG_STTC, ">>>> Request setting hello");
-	}
+	} 
 
 	DBusError err;
 	dbus_error_init(&err);
@@ -123,7 +121,6 @@ int stt_setting_dbus_request_hello()
 		SLOG(LOG_DEBUG, TAG_STTC, "<<<< setting hello");
 		result = 0;
 	} else {
-		SLOG(LOG_ERROR, TAG_STTC, "<<<< setting hello : no response");
 		result = -1;
 	}
 
