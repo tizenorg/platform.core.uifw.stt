@@ -35,7 +35,7 @@ Speech To Text header files for STT development.
 
 
 %build
-cmake . -DCMAKE_INSTALL_PREFIX=/usr
+%cmake .
 make %{?jobs:-j%jobs}
 
 %install
