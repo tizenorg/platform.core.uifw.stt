@@ -122,8 +122,7 @@ typedef void(*stt_setting_initialized_cb)(stt_setting_state_e state, stt_setting
 *
 * @see stt_setting_finalize()
 */
-int stt_setting_initialize(void);
-int stt_setting_initialize_async(stt_setting_initialized_cb callback, void* user_data);
+int stt_setting_initialize(stt_setting_initialized_cb callback, void* user_data);
 
 /**
 * @brief finalize stt setting and disconnect to stt-daemon. 

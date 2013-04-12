@@ -676,11 +676,14 @@ static int __stt_get_audio_volume(float* volume)
 	FILE* fp = fopen(STT_AUDIO_VOLUME_PATH, "rb");
 	if (!fp) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to open Volume File");
-		return -1;
+		return STT_ERROR_OPERATION_FAILED;
 	}
 
-	fread((void*)volume, sizeof(*volume), 1, fp);
+	int readlen = fread((void*)volume, sizeof(*volume), 1, fp);
 	fclose(fp);
+
+	if (0 == readlen)
+		*volume = 0.0f;
 
 	return 0;
 }
@@ -711,6 +714,52 @@ int stt_get_recording_volume(stt_h stt, float* volume)
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to get audio volume");
 		return STT_ERROR_OPERATION_FAILED;
 	}
+
+	return STT_ERROR_NONE;
+}
+
+int stt_start_file_recognition(stt_h stt, const char* filepath, const char* language, const char* type)
+{
+	if (NULL == stt || NULL == type || NULL == filepath) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL");
+		return STT_ERROR_INVALID_PARAMETER;
+	}
+
+	stt_client_s* client = stt_client_get(stt);
+
+	/* check handle */
+	if (NULL == client) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not available");
+		return STT_ERROR_INVALID_PARAMETER;
+	} 
+
+	if (STT_STATE_READY != client->current_state) {
+		SLOG(LOG_DEBUG, TAG_STTC, "[ERROR] Invalid state : NO 'Ready' state");
+		return STT_ERROR_INVALID_STATE;
+	}
+
+	char* temp;
+	if (NULL == language) {
+		temp = strdup("default");
+	} else {
+		temp = strdup(language);
+	}
+
+	int ret; 
+	ret = stt_dbus_request_start_file_recognition(client->uid, filepath, temp, type, client->profanity, client->punctuation);
+
+	if (ret) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to start");
+	} else {
+		SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS]");
+
+		client->before_state = client->current_state;
+		client->current_state = STT_STATE_PROCESSING;
+
+		ecore_timer_add(0, __stt_notify_state_changed, (void*)stt);
+	}
+
+	free(temp);
 
 	return STT_ERROR_NONE;
 }

@@ -7,7 +7,7 @@ INCLUDE_DIRECTORIES("${CMAKE_SOURCE_DIR}/common")
 ## Dependent packages ##
 INCLUDE(FindPkgConfig)
 pkg_check_modules(pkgs REQUIRED 
-	glib-2.0 dbus-1 vconf dlog ecore ecore-file capi-media-audio-io
+	glib-2.0 dbus-1 vconf dlog ecore ecore-file capi-media-audio-io capi-media-sound-manager
 )
 
 ## Client library ##
@@ -18,3 +18,4 @@ ADD_SUBDIRECTORY(server)
 
 INSTALL(FILES ${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.APLv2 RENAME stt DESTINATION /usr/share/license)
 INSTALL(FILES ${CMAKE_SOURCE_DIR}/stt-server.rule DESTINATION  /etc/smack/accesses2.d)
+INSTALL(FILES ${CMAKE_SOURCE_DIR}/sysinfo-stt.xml DESTINATION /etc/config)

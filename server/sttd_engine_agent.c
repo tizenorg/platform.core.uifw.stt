@@ -991,7 +991,7 @@ int sttd_engine_recognize_start(const char* lang, const char* recognition_type,
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
-	if (0 != __set_option(profanity, punctuation, silence)) {
+	if (0 != __set_option(profanity, punctuation, g_default_silence_detected)) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to set options"); 
 		return STTD_ERROR_OPERATION_FAILED;
 	}
@@ -1130,6 +1130,53 @@ int sttd_engine_get_audio_format(sttp_audio_type_e* types, int* rate, int* chann
 	return 0;
 }
 
+int sttd_engine_recognize_start_file(const char* filepath, const char* lang, const char* recognition_type, 
+				     int profanity, int punctuation, void* user_param)
+{
+	if (false == g_agent_init) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized"); 
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+	if (false == g_cur_engine.is_loaded) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not loaded engine"); 
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+	if (NULL == filepath || NULL == lang || NULL == recognition_type) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Invalid Parameter"); 
+		return STTD_ERROR_INVALID_PARAMETER;
+	}
+
+	if (0 != __set_option(profanity, punctuation, g_default_silence_detected)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to set options"); 
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+	if (NULL == g_cur_engine.pefuncs->start_file_recognition) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] start() of engine is NULL!!");
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+	char* temp;
+	if (0 == strncmp(lang, "default", strlen("default"))) {
+		temp = strdup(g_cur_engine.default_lang);
+	} else {
+		temp = strdup(lang);
+	}
+
+	int ret = g_cur_engine.pefuncs->start_file_recognition(filepath, temp, recognition_type, user_param);
+	free(temp);
+
+	if (0 != ret) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to start file recognition(%d)", ret); 
+		return ret;
+	}
+
+	SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent SUCCESS] File recognition");
+
+	return 0;
+}
 
 /*
 * STT Engine Interfaces for client and setting

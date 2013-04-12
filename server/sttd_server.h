@@ -38,25 +38,27 @@ Eina_Bool sttd_cleanup_client(void *data);
 
 int sttd_server_initialize(int pid, int uid, bool* silence, bool* profanity, bool* punctuation);
 
-int sttd_server_finalize(const int uid);
+int sttd_server_finalize(int uid);
 
-int sttd_server_get_supported_languages(const int uid, GList** lang_list);
+int sttd_server_get_supported_languages(int uid, GList** lang_list);
 
-int sttd_server_get_current_langauage(const int uid, char** current_lang);
+int sttd_server_get_current_langauage(int uid, char** current_lang);
 
 int sttd_server_set_engine_data(int uid, const char* key, const char* value);
 
 int sttd_server_is_partial_result_supported(int uid, int* partial_result);
 
-int sttd_server_get_audio_volume(const int uid, float* current_volume);
+int sttd_server_get_audio_volume(int uid, float* current_volume);
 
-int sttd_server_start(const int uid, const char* lang, const char* recognition_type, 
+int sttd_server_start(int uid, const char* lang, const char* recognition_type, 
 			int profanity, int punctuation, int silence);
 
-int sttd_server_stop(const int uid);
+int sttd_server_stop(int uid);
 
-int sttd_server_cancel(const int uid);
+int sttd_server_cancel(int uid);
 
+int sttd_server_start_file_recognition(int uid, const char* filepath, const char* lang, const char* type, 
+				       int profanity, int punctuation);
 /*
 * API for setting
 */

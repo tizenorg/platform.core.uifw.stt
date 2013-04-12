@@ -86,6 +86,8 @@ int sttd_engine_recognize_cancel();
 
 int sttd_engine_get_audio_format(sttp_audio_type_e* types, int* rate, int* channels);
 
+int sttd_engine_recognize_start_file(const char* filepath, const char* lang, const char* recognition_type, 
+				     int profanity, int punctuation, void* user_param);
 
 /*
 * STT Engine Interfaces for setting

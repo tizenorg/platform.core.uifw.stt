@@ -45,6 +45,7 @@ int stt_dbus_request_stop(int uid);
 
 int stt_dbus_request_cancel(int uid);
 
+int stt_dbus_request_start_file_recognition(int uid, const char* filepath, const char* lang, const char* type, int profanity, int punctuation);
 
 #ifdef __cplusplus
 }

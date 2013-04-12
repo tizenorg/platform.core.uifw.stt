@@ -83,12 +83,6 @@ int sttd_recorder_create(stt_recorder_audio_cb callback, sttp_audio_type_e type,
 		return STTD_ERROR_OPERATION_FAILED;
 	}
 
-	//ret = audio_in_ignore_session(g_audio_in_h);
-	//if (AUDIO_IO_ERROR_NONE != ret) {
-	//	SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to ignore session : %d", ret);
-	//	return STTD_ERROR_OPERATION_FAILED;
-	//}
-
 	g_audio_cb = callback;
 	g_recorder_state = STTD_RECORDER_STATE_READY;
 	g_audio_type = type;
@@ -98,16 +92,27 @@ int sttd_recorder_create(stt_recorder_audio_cb callback, sttp_audio_type_e type,
 
 int sttd_recorder_destroy()
 {
-	if (STTD_RECORDER_STATE_RECORDING == g_recorder_state)
-		audio_in_unprepare(g_audio_in_h);
+	int ret;
+	if (STTD_RECORDER_STATE_RECORDING == g_recorder_state) {
+		ret = audio_in_unprepare(g_audio_in_h);
+		if (AUDIO_IO_ERROR_NONE != ret) {
+			SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to unprepare audio_in");
+		}
+	}
 
-	audio_in_destroy(g_audio_in_h);
+	ret = audio_in_destroy(g_audio_in_h);
+	if (AUDIO_IO_ERROR_NONE != ret) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to destroy audio_in");
+	}
 
 	g_audio_cb = NULL;
 	g_recorder_state = -1;
 
-	if (0 == access(STT_AUDIO_VOLUME_PATH, R_OK)) 
-		remove(STT_AUDIO_VOLUME_PATH);
+	if (0 == access(STT_AUDIO_VOLUME_PATH, R_OK)) {
+		if (0 == remove(STT_AUDIO_VOLUME_PATH)) {
+			SLOG(LOG_WARN, TAG_STTD, "[Recorder WARN] Fail to remove volume file"); 
+		}
+	}
 
 	return 0;
 }
@@ -155,22 +160,23 @@ static float get_volume_decibel(char* data, int size, sttp_audio_type_e type)
 
 Eina_Bool __read_audio_func(void *data)
 {
-	int ret = -1;
+	int read_byte = -1;
 
 	if (STTD_RECORDER_STATE_READY == g_recorder_state) {
 		SLOG(LOG_DEBUG, TAG_STTD, "[Recorder] Exit audio reading func");
 		return EINA_FALSE;
 	}
 
-	ret = audio_in_read(g_audio_in_h, g_buffer, BUFFER_LENGTH);
-	if (0 > ret) {
-		SLOG(LOG_WARN, TAG_STTD, "[Recorder WARNING] Fail to read audio : %d", ret);
+	read_byte = audio_in_read(g_audio_in_h, g_buffer, BUFFER_LENGTH);
+	if (0 > read_byte) {
+		SLOG(LOG_WARN, TAG_STTD, "[Recorder WARNING] Fail to read audio : %d", read_byte);
 		g_recorder_state = STTD_RECORDER_STATE_READY;
 		return EINA_FALSE;
 	}
 
-	if (0 != g_audio_cb(g_buffer, BUFFER_LENGTH)) {
-		g_recorder_state = STTD_RECORDER_STATE_READY;
+	if (0 != g_audio_cb(g_buffer, read_byte)) {
+		SLOG(LOG_WARN, TAG_STTD, "[Recorder WARNING] Fail audio callback");
+		sttd_recorder_stop();
 		return EINA_FALSE;
 	}
 
@@ -195,7 +201,7 @@ int sttd_recorder_start()
 	int ret = -1; 
 	ret = audio_in_prepare(g_audio_in_h);
 	if (AUDIO_IO_ERROR_NONE != ret) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to start audio : %d", ret);
+		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to prepare audio in : %d", ret);
 		return STTD_ERROR_OPERATION_FAILED;
 	}
 
@@ -238,8 +244,7 @@ int sttd_recorder_stop()
 	int ret = STTD_ERROR_OPERATION_FAILED; 
 	ret = audio_in_unprepare(g_audio_in_h);
 	if (AUDIO_IO_ERROR_NONE != ret) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to stop audio : %d", ret);
-		return STTD_ERROR_OPERATION_FAILED;
+		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to unprepare audio_in : %d", ret);
 	}
 
 	fclose(g_pFile_vol);
@@ -248,5 +253,6 @@ int sttd_recorder_stop()
 	fclose(g_pFile);
 #endif	
 
+	SLOG(LOG_ERROR, TAG_STTD, "[Recorder] Recorder stop success");
 	return 0;
 }

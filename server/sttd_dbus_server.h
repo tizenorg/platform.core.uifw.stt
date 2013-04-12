@@ -46,6 +46,7 @@ int sttd_dbus_server_stop(DBusConnection* conn, DBusMessage* msg);
 
 int sttd_dbus_server_cancel(DBusConnection* conn, DBusMessage* msg);
 
+int sttd_dbus_server_start_file_recognition(DBusConnection* conn, DBusMessage* msg);
 
 /*
 * Dbus Server functions for Setting

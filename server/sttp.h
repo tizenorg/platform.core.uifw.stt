@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012, 2013 Samsung Electronics Co., Ltd All Rights Reserved 
+*  Copyright (c) 2012, 2013 Samsung Electronics Co., Ltd All Rights Reserved 
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -411,6 +411,28 @@ typedef int (* sttpe_stop)(void);
 typedef int (* sttpe_cancel)(void);
 
 /**
+* @brief Convert file to text.
+*
+* @param[in] filepath Sound file. 
+* @param[in] language A language. 
+* @param[in] type A recognition type. (e.g. #STTP_RECOGNITION_TYPE_FREE, #STTP_RECOGNITION_TYPE_WEB_SEARCH)
+* @param[in] user_data The user data to be passed to the callback function. 
+*
+* @return 0 on success, otherwise a negative error value
+* @retval #STTP_ERROR_NONE Successful
+* @retval #STTP_ERROR_INVALID_PARAMETER Invalid parameter
+* @retval #STTP_ERROR_INVALID_STATE Invalid state
+* @retval #STTP_ERROR_INVALID_LANGUAGE Invalid language
+* @retval #STTP_ERROR_OPERATION_FAILED Operation failed
+* @retval #STTP_ERROR_OUT_OF_NETWORK Out of network
+*
+* @pre The engine is not in recognition processing.
+*
+* @see sttpe_result_cb()
+*/
+typedef int (* sttpe_start_file_recognition)(const char* filepath, const char* language, const char* type, void *user_data);
+
+/**
 * @brief Gets setting information of the engine.
 *
 * @param[in] callback A callback function.
@@ -472,7 +494,8 @@ typedef struct {
 	sttpe_set_recording_data	set_recording;		/**< Set recording data */
 	sttpe_stop			stop;			/**< Shutdown function */
 	sttpe_cancel			cancel;			/**< Cancel recognition or cancel thinking */
-		
+	sttpe_start_file_recognition	start_file_recognition;	/**< Start file recognition */
+	
 	/* Engine setting */
 	sttpe_foreach_engine_settings	foreach_engine_settings;/**< Foreach engine specific info */
 	sttpe_set_engine_setting	set_engine_setting;	/**< Set engine specific info */

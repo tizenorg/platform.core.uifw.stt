@@ -970,3 +970,70 @@ int stt_dbus_request_cancel(int uid)
 
 	return result;
 }
+
+int stt_dbus_request_start_file_recognition(int uid, const char* filepath, const char* lang, const char* type, int profanity, int punctuation)
+{
+	if (NULL == filepath || NULL == lang || NULL == type) {
+		SLOG(LOG_ERROR, TAG_STTC, "Input parameter is NULL");
+		return STT_ERROR_INVALID_PARAMETER;
+	}
+
+	DBusMessage* msg;
+
+	/* create a signal & check for errors */
+	msg = dbus_message_new_method_call(
+		STT_SERVER_SERVICE_NAME,
+		STT_SERVER_SERVICE_OBJECT_PATH,	
+		STT_SERVER_SERVICE_INTERFACE,	
+		STT_METHOD_START_FILE_RECONITION);		
+
+	if (NULL == msg) { 
+		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt start file recognition : Fail to make message"); 
+		return STT_ERROR_OPERATION_FAILED;
+	} else {
+		SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt start file recogntion : uid(%d), filepath(%s) language(%s), type(%s)", 
+			uid, filepath, lang, type);
+	}
+
+	dbus_message_append_args( msg, 
+		DBUS_TYPE_INT32, &uid, 
+		DBUS_TYPE_STRING, &filepath,
+		DBUS_TYPE_STRING, &lang,
+		DBUS_TYPE_STRING, &type,
+		DBUS_TYPE_INT32, &profanity,
+		DBUS_TYPE_INT32, &punctuation,
+		DBUS_TYPE_INVALID);
+
+	DBusError err;
+	dbus_error_init(&err);
+
+	DBusMessage* result_msg;
+	int result = STT_ERROR_OPERATION_FAILED;
+
+	result_msg = dbus_connection_send_with_reply_and_block(g_conn, msg, g_waiting_start_time, &err);
+
+	if (NULL != result_msg) {
+		dbus_message_get_args(result_msg, &err,
+			DBUS_TYPE_INT32, &result,
+			DBUS_TYPE_INVALID);
+
+		if (dbus_error_is_set(&err)) { 
+			printf("<<<< Get arguments error (%s)", err.message);
+			dbus_error_free(&err); 
+			result = STT_ERROR_OPERATION_FAILED;
+		}
+		dbus_message_unref(result_msg);
+	} else {
+		SLOG(LOG_DEBUG, TAG_STTC, "<<<< Result Message is NULL");
+	}
+
+	if (0 == result) {
+		SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt start file recognition : result = %d ", result);
+	} else {
+		SLOG(LOG_ERROR, TAG_STTC, "<<<< stt start file recognition : result = %d ", result);
+	}
+
+	dbus_message_unref(msg);
+
+	return result;
+}

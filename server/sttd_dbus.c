@@ -476,6 +476,8 @@ static Eina_Bool listener_event_callback(void* data, Ecore_Fd_Handler *fd_handle
 	else if (dbus_message_is_method_call(msg, STT_SERVER_SERVICE_INTERFACE, STT_METHOD_CANCEL)) 
 		sttd_dbus_server_cancel(conn, msg);
 
+	else if (dbus_message_is_method_call(msg, STT_SERVER_SERVICE_INTERFACE, STT_METHOD_START_FILE_RECONITION)) 
+		sttd_dbus_server_start_file_recognition(conn, msg);
 
 	/* setting event */
 	else if (dbus_message_is_method_call(msg, STT_SERVER_SERVICE_INTERFACE, STT_SETTING_METHOD_HELLO))

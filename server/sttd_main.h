@@ -34,9 +34,9 @@ extern "C" {
 
 #define TAG_STTD "sttd"
 
-#define BASE_DIRECTORY_DEFAULT		LIBDIR_PREFIX "/voice/stt/1.0/"
-#define ENGINE_DIRECTORY_DEFAULT	LIBDIR_PREFIX "/voice/stt/1.0/engine"
-#define ENGINE_DIRECTORY_DEFAULT_SETTING LIBDIR_PREFIX "/voice/stt/1.0/setting"
+#define BASE_DIRECTORY_DEFAULT			"/usr/lib/voice/stt/1.0/"
+#define ENGINE_DIRECTORY_DEFAULT		"/usr/lib/voice/stt/1.0/engine"
+#define ENGINE_DIRECTORY_DEFAULT_SETTING	"/usr/lib/voice/stt/1.0/setting"
 
 #define CONFIG_DIRECTORY			"/opt/home/app/.voice"
 

@@ -11,7 +11,7 @@
 *  limitations under the License.
 */
 
-
+#include <sound_manager.h>
 #include "sttd_main.h"
 #include "sttd_server.h"
 
@@ -244,6 +244,13 @@ int sttd_initialize()
 		g_is_engine = true;
 	}
 
+	/* Set audio session */
+	ret = sound_manager_set_session_type(SOUND_SESSION_TYPE_EXCLUSIVE);
+	if (SOUND_MANAGER_ERROR_NONE != ret) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to set sound session : result(%d)", ret);
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
 	SLOG(LOG_DEBUG, TAG_STTD, "[Server SUCCESS] initialize"); 
 
 	return 0;
@@ -364,7 +371,7 @@ static Eina_Bool __quit_ecore_loop(void *data)
 	return EINA_FALSE;
 }
 
-int sttd_server_finalize(const int uid)
+int sttd_server_finalize(int uid)
 {
 	/* check if uid is valid */
 	app_state_e state;
@@ -394,7 +401,7 @@ int sttd_server_finalize(const int uid)
 	return STTD_ERROR_NONE;
 }
 
-int sttd_server_get_supported_languages(const int uid, GList** lang_list)
+int sttd_server_get_supported_languages(int uid, GList** lang_list)
 {
 	/* check if uid is valid */
 	app_state_e state;
@@ -415,7 +422,7 @@ int sttd_server_get_supported_languages(const int uid, GList** lang_list)
 	return STTD_ERROR_NONE;
 }
 
-int sttd_server_get_current_langauage(const int uid, char** current_lang)
+int sttd_server_get_current_langauage(int uid, char** current_lang)
 {
 	/* check if uid is valid */
 	app_state_e state;
@@ -500,7 +507,7 @@ Eina_Bool __check_recording_state(void *data)
 	return EINA_FALSE;
 }
 
-int sttd_server_start(const int uid, const char* lang, const char* recognition_type, 
+int sttd_server_start(int uid, const char* lang, const char* recognition_type, 
 		      int profanity, int punctuation, int silence)
 {
 	/* check if uid is valid */
@@ -598,7 +605,7 @@ Eina_Bool __time_out_for_processing(void *data)
 }
 
 
-int sttd_server_stop(const int uid)
+int sttd_server_stop(int uid)
 {
 	/* check if uid is valid */
 	app_state_e state;
@@ -640,7 +647,7 @@ int sttd_server_stop(const int uid)
 	return STTD_ERROR_NONE;
 }
 
-int sttd_server_cancel(const int uid)
+int sttd_server_cancel(int uid)
 {
 	/* check if uid is valid */
 	app_state_e state;
@@ -676,6 +683,72 @@ int sttd_server_cancel(const int uid)
 	return STTD_ERROR_NONE;
 }
 
+int sttd_server_start_file_recognition(int uid, const char* filepath, const char* lang, const char* type, 
+				       int profanity, int punctuation)
+{
+	/* check if uid is valid */
+	app_state_e state;
+	if (0 != sttd_client_get_state(uid, &state)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] uid is NOT valid "); 
+		return STTD_ERROR_INVALID_PARAMETER;
+	}
+
+	/* check uid state */
+	if (APP_STATE_READY != state) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Current state is not ready"); 
+		return STTD_ERROR_INVALID_STATE;
+	}
+
+	if (0 < sttd_client_get_current_recording()) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Current STT Engine is busy because of recording");
+		return STTD_ERROR_RECORDER_BUSY;
+	}
+
+	if (0 < sttd_client_get_current_thinking()) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Current STT Engine is busy because of thinking");
+		return STTD_ERROR_RECORDER_BUSY;
+	}
+
+	/* check if engine use network */
+	if (true == sttd_engine_agent_need_network()) {
+		if (false == sttd_network_is_connected()) {
+			SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Disconnect network. Current engine needs to network connection.");
+			return STTD_ERROR_OUT_OF_NETWORK;
+		}
+	}
+
+	/* engine start recognition */
+	int* user_data;
+	user_data = (int*)malloc( sizeof(int) * 1);
+
+	/* free on result callback */
+	*user_data = uid;
+
+	SLOG(LOG_DEBUG, TAG_STTD, "[Server] start file recognition : uid(%d), filepath(%s), lang(%s), recog_type(%s)", 
+		*user_data, filepath, lang, type ); 
+
+	int ret = sttd_engine_recognize_start_file(filepath, (char*)lang, type, profanity, punctuation, (void*)user_data);
+	if (0 != ret) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to start recognition : result(%d)", ret); 
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+	SLOG(LOG_DEBUG, TAG_STTD, "[Server] start file recognition"); 
+
+	Ecore_Timer* timer;
+	sttd_cliet_get_timer(uid, &timer);
+
+	if (NULL != timer)
+		ecore_timer_del(timer);
+
+	/* change uid state */
+	sttd_client_set_state(uid, APP_STATE_PROCESSING);
+
+	timer = ecore_timer_add(g_state_check_time, __time_out_for_processing, NULL);
+	sttd_cliet_set_timer(uid, timer);
+
+	return STTD_ERROR_NONE;
+}
 
 /******************************************************************************************
 * STT Server Functions for setting

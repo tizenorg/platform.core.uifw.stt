@@ -1,5 +1,5 @@
 stt-server system::homedir rwx
-stt-server system::app_logging wx
+stt-server device::app_logging wx
 stt-server dbus rw
 stt-server system::vconf rwx
 stt-server system::share rwx

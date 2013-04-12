@@ -84,64 +84,7 @@ static Eina_Bool __stt_setting_connect_daemon(void *data)
 	return EINA_FALSE;
 }
 
-int stt_setting_initialize ()
-{
-	SLOG(LOG_DEBUG, TAG_STTC, "===== Initialize STT Setting");
-
-	int ret = 0;
-	if (STT_SETTING_STATE_READY == g_state) {
-		SLOG(LOG_WARN, TAG_STTC, "[WARNING] STT Setting has already been initialized. \n");
-		SLOG(LOG_DEBUG, TAG_STTC, "=====");
-		SLOG(LOG_DEBUG, TAG_STTC, " ");
-		return STT_SETTING_ERROR_NONE;
-	}
-
-	if (0 != stt_setting_dbus_open_connection()) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to open connection\n");
-		SLOG(LOG_DEBUG, TAG_STTC, "=====");
-		SLOG(LOG_DEBUG, TAG_STTC, " ");
-		return STT_SETTING_ERROR_OPERATION_FAILED;
-	}
-
-	/* Send hello */
-	if (0 != stt_setting_dbus_request_hello()) {
-		__check_setting_stt_daemon();
-	}
-
-	/* do request */
-	int i = 1;
-	while(1) {
-		ret = stt_setting_dbus_request_initialize();
-
-		if (STT_SETTING_ERROR_ENGINE_NOT_FOUND == ret) {
-			SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Engine not found");
-			break;
-		} else if(ret) {
-			sleep(1);
-			if (i == 3) {
-				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Connection Time out");
-				ret = STT_SETTING_ERROR_TIMED_OUT;			    
-				break;
-			}
-			i++;
-		} else {
-			/* success to connect stt-daemon */
-			break;
-		}
-	}
-
-	if (STT_SETTING_ERROR_NONE == ret) {
-		g_state = STT_SETTING_STATE_READY;
-		SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] Initialize");
-	}
-
-	SLOG(LOG_DEBUG, TAG_STTC, "=====");
-	SLOG(LOG_DEBUG, TAG_STTC, " ");
-
-	return ret;
-}
-
-int stt_setting_initialize_async(stt_setting_initialized_cb callback, void* user_data)
+int stt_setting_initialize(stt_setting_initialized_cb callback, void* user_data)
 {
 	SLOG(LOG_DEBUG, TAG_STTC, "===== Initialize STT Setting");
 

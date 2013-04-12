@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2011 Samsung Electronics Co., Ltd All Rights Reserved 
+*  Copyright (c) 2012, 2013 Samsung Electronics Co., Ltd All Rights Reserved 
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -50,6 +50,7 @@ extern "C" {
 #define STT_METHOD_START		"stt_method_start"
 #define STT_METHOD_STOP			"stt_method_stop"
 #define STT_METHOD_CANCEL		"stt_method_cancel"
+#define STT_METHOD_START_FILE_RECONITION "stt_method_start_recognition"
 
 #define STTD_METHOD_RESULT		"sttd_method_result"
 #define STTD_METHOD_PARTIAL_RESULT	"sttd_method_partial_result"

@@ -1,10 +1,10 @@
 Name:       stt
 Summary:    Speech To Text client library and daemon
-Version:    0.1.1
+Version:    0.1.40
 Release:    1
 Group:      libs
 License:    Samsung
-Source0:    stt-0.1.1.tar.gz
+Source0:    %{name}-%{version}.tar.gz
 Requires(post): /sbin/ldconfig
 Requires(postun): /sbin/ldconfig
 BuildRequires:  pkgconfig(glib-2.0)
@@ -14,6 +14,7 @@ BuildRequires:  pkgconfig(ecore-file)
 BuildRequires:  pkgconfig(dlog)
 BuildRequires:  pkgconfig(vconf)
 BuildRequires:  pkgconfig(capi-media-audio-io)
+BuildRequires:  pkgconfig(capi-media-sound-manager)
 
 BuildRequires:  cmake
 
@@ -35,7 +36,7 @@ Speech To Text header files for STT development.
 
 
 %build
-%cmake .
+cmake . -DCMAKE_INSTALL_PREFIX=/usr
 make %{?jobs:-j%jobs}
 
 %install
@@ -50,6 +51,7 @@ mkdir -p %{buildroot}/usr/share/license
 %files
 %manifest stt-server.manifest
 /etc/smack/accesses2.d/stt-server.rule
+/etc/config/sysinfo-stt.xml
 %defattr(-,root,root,-)
 %{_libdir}/libstt.so
 %{_libdir}/libstt_setting.so
