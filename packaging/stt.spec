@@ -1,6 +1,6 @@
 Name:       stt
 Summary:    Speech To Text client library and daemon
-Version:    0.1.40
+Version:    0.1.41
 Release:    1
 Group:      libs
 License:    Samsung
