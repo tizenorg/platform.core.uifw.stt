@@ -50,7 +50,7 @@ mkdir -p %{buildroot}/usr/share/license
 
 %files
 %manifest stt-server.manifest
-/etc/smack/accesses2.d/stt-server.rule
+/opt/etc/smack/accesses.d/stt-server.rule
 /etc/config/sysinfo-stt.xml
 %defattr(-,root,root,-)
 %{_libdir}/libstt.so
