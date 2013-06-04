@@ -2,11 +2,9 @@ Name:       stt
 Summary:    Speech To Text client library and daemon
 Version:    0.1.41
 Release:    1
-Group:      libs
-License:    Samsung
+Group:      UI Framework/Libraries
+License:    Apache-2.0
 Source0:    %{name}-%{version}.tar.gz
-Requires(post): /sbin/ldconfig
-Requires(postun): /sbin/ldconfig
 BuildRequires:  pkgconfig(glib-2.0)
 BuildRequires:  pkgconfig(dbus-1)
 BuildRequires:  pkgconfig(ecore)
@@ -24,7 +22,7 @@ Speech To Text client library and daemon.
 
 %package devel
 Summary:    Speech To Text header files for STT development
-Group:      libdevel
+Group:      Development/UI Framework
 Requires:   %{name} = %{version}-%{release}
 
 %description devel
@@ -32,16 +30,15 @@ Speech To Text header files for STT development.
 
 
 %prep
-%setup -q -n %{name}-%{version}
+%setup -q 
 
 
 %build
-cmake . -DCMAKE_INSTALL_PREFIX=/usr
+%cmake . 
 make %{?jobs:-j%jobs}
 
 %install
 rm -rf %{buildroot}
-mkdir -p %{buildroot}/usr/share/license
 %make_install
 
 %post -p /sbin/ldconfig
@@ -50,14 +47,14 @@ mkdir -p %{buildroot}/usr/share/license
 
 %files
 %manifest stt-server.manifest
+%license LICENSE.APLv2
 /opt/etc/smack/accesses.d/stt-server.rule
 /etc/config/sysinfo-stt.xml
 %defattr(-,root,root,-)
 %{_libdir}/libstt.so
 %{_libdir}/libstt_setting.so
-%{_libdir}/voice/stt/1.0/sttd.conf
+%{_prefix}/lib/voice/stt/1.0/sttd.conf
 %{_bindir}/stt-daemon
-/usr/share/license/*
 
 %files devel
 %defattr(-,root,root,-)

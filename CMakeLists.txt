@@ -16,6 +16,5 @@ ADD_SUBDIRECTORY(client)
 ## Server daemon ##
 ADD_SUBDIRECTORY(server)
 
-INSTALL(FILES ${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.APLv2 RENAME stt DESTINATION /usr/share/license)
 INSTALL(FILES ${CMAKE_SOURCE_DIR}/stt-server.rule DESTINATION  /opt/etc/smack/accesses.d)
 INSTALL(FILES ${CMAKE_SOURCE_DIR}/sysinfo-stt.xml DESTINATION /etc/config)
