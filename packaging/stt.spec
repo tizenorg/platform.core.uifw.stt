@@ -5,6 +5,7 @@ Release:    1
 Group:      UI Framework/Libraries
 License:    Apache-2.0
 Source0:    %{name}-%{version}.tar.gz
+Source1001: 	stt.manifest
 BuildRequires:  pkgconfig(glib-2.0)
 BuildRequires:  pkgconfig(dbus-1)
 BuildRequires:  pkgconfig(ecore)
@@ -31,6 +32,7 @@ Speech To Text header files for STT development.
 
 %prep
 %setup -q 
+cp %{SOURCE1001} .
 
 
 %build
@@ -46,7 +48,7 @@ rm -rf %{buildroot}
 %postun -p /sbin/ldconfig
 
 %files
-%manifest stt-server.manifest
+%manifest %{name}.manifest
 %license LICENSE.APLv2
 /opt/etc/smack/accesses.d/stt-server.rule
 /etc/config/sysinfo-stt.xml
@@ -57,6 +59,7 @@ rm -rf %{buildroot}
 %{_bindir}/stt-daemon
 
 %files devel
+%manifest %{name}.manifest
 %defattr(-,root,root,-)
 %{_libdir}/pkgconfig/stt.pc
 %{_libdir}/pkgconfig/stt-setting.pc
