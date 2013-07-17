@@ -16,5 +16,4 @@ ADD_SUBDIRECTORY(client)
 ## Server daemon ##
 ADD_SUBDIRECTORY(server)
 
-INSTALL(FILES ${CMAKE_SOURCE_DIR}/stt-server.rule DESTINATION  /opt/etc/smack/accesses.d)
 INSTALL(FILES ${CMAKE_SOURCE_DIR}/sysinfo-stt.xml DESTINATION /etc/config)
