@@ -1,12 +1,12 @@
 Name:       stt
 Summary:    Speech To Text client library and daemon
 Version:    0.1.41
-Release:    1
-Group:      UI Framework/Libraries
+Release:    0
+Group:      Graphics & UI Framework/Libraries
 License:    Apache-2.0
 Source0:    %{name}-%{version}.tar.gz
-Source1001:	%{name}.manifest
-Source1002:	%{name}-devel.manifest
+Source1001: %{name}.manifest
+Source1002: %{name}-devel.manifest
 BuildRequires:  pkgconfig(glib-2.0)
 BuildRequires:  pkgconfig(dbus-1)
 BuildRequires:  pkgconfig(ecore)
@@ -15,7 +15,7 @@ BuildRequires:  pkgconfig(dlog)
 BuildRequires:  pkgconfig(vconf)
 BuildRequires:  pkgconfig(capi-media-audio-io)
 BuildRequires:  pkgconfig(capi-media-sound-manager)
-
+BuildRequires:  pkgconfig(libtzplatform-config)
 BuildRequires:  cmake
 
 %description
@@ -24,7 +24,7 @@ Speech To Text client library and daemon.
 
 %package devel
 Summary:    Speech To Text header files for STT development
-Group:      Development/UI Framework
+Group:      Graphics & UI Framework/Development
 Requires:   %{name} = %{version}-%{release}
 
 %description devel
@@ -51,7 +51,7 @@ rm -rf %{buildroot}
 %files
 %manifest %{name}.manifest
 %license LICENSE.APLv2
-/etc/config/sysinfo-stt.xml
+%config %{_sysconfdir}/config/sysinfo-stt.xml
 %defattr(-,root,root,-)
 %{_libdir}/libstt.so
 %{_libdir}/libstt_setting.so

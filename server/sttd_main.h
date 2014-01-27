@@ -24,6 +24,9 @@
 #include <dlog.h>
 #include <errno.h>
 
+/* For multi-user support */
+#include <tzplatform_config.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -38,10 +41,10 @@ extern "C" {
 #define ENGINE_DIRECTORY_DEFAULT		"/usr/lib/voice/stt/1.0/engine"
 #define ENGINE_DIRECTORY_DEFAULT_SETTING	"/usr/lib/voice/stt/1.0/setting"
 
-#define CONFIG_DIRECTORY			"/opt/home/app/.voice"
+#define CONFIG_DIRECTORY			tzplatform_mkpath(TZ_USER_HOME, ".voice")
 
-#define ENGINE_DIRECTORY_DOWNLOAD		"/opt/usr/voice/stt/1.0/engine"
-#define ENGINE_DIRECTORY_DOWNLOAD_SETTING	"/opt/usr/voice/stt/1.0/setting"
+#define ENGINE_DIRECTORY_DOWNLOAD		tzplatform_mkpath(TZ_USER_HOME, ".voice/stt/1.0/engine")
+#define ENGINE_DIRECTORY_DOWNLOAD_SETTING	tzplatform_mkpath(TZ_USER_HOME, ".voice/stt/1.0/setting")
 
 /* for debug message */
 #define RECORDER_DEBUG

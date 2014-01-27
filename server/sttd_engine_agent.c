@@ -513,7 +513,7 @@ int __internal_update_engine_list()
 				strncat(filepath, dirp->d_name, strlen(dirp->d_name) );
 			} else {
 				SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Memory not enough!!" );
-				continue;	
+				continue;
 			}
 
 			/* get its info and update engine list */

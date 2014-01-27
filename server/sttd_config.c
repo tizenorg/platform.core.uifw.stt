@@ -12,11 +12,15 @@
 */
 
 #include <Ecore_File.h>
+
+/* For multi-user support */
+#include <tzplatform_config.h>
+
 #include "sttd_main.h"
 #include "sttd_config.h"
 
 
-#define CONFIG_FILE_PATH	CONFIG_DIRECTORY"/sttd.conf"
+#define CONFIG_FILE_PATH	tzplatform_mkpath(TZ_USER_HOME, ".voice/sttd.conf")
 #define CONFIG_DEFAULT		BASE_DIRECTORY_DEFAULT"/sttd.conf"
 
 #define ENGINE_ID	"ENGINE_ID"

@@ -7,7 +7,7 @@ INCLUDE_DIRECTORIES("${CMAKE_SOURCE_DIR}/common")
 ## Dependent packages ##
 INCLUDE(FindPkgConfig)
 pkg_check_modules(pkgs REQUIRED 
-	glib-2.0 dbus-1 vconf dlog ecore ecore-file capi-media-audio-io capi-media-sound-manager
+	glib-2.0 dbus-1 vconf dlog ecore ecore-file capi-media-audio-io capi-media-sound-manager libtzplatform-config
 )
 
 ## Client library ##
