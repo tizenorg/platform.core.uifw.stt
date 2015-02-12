@@ -1,5 +1,5 @@
 /*
-*  Copyright (c) 2012, 2013 Samsung Electronics Co., Ltd All Rights Reserved 
+*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved 
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -51,30 +51,29 @@ int stt_client_new(stt_h* stt)
 	client->pid = getpid(); 
 	client->uid = temp->handle;
 	
-	client->result_cb = NULL;
-	client->result_user_data = NULL;
-	client->partial_result_cb = NULL;
-	client->partial_result_user_data = NULL;
+	client->recognition_result_cb = NULL;
+	client->recognition_result_user_data = NULL;
 	client->state_changed_cb = NULL;
 	client->state_changed_user_data = NULL;
 	client->error_cb = NULL;
 	client->error_user_data = NULL;
+	client->default_lang_changed_cb = NULL;
+	client->default_lang_changed_user_data = NULL;
+
+	client->current_engine_id = NULL;
 
 	client->silence_supported = false;
-	client->profanity_supported = false;
-	client->punctuation_supported = false;
-
-	client->profanity = STT_OPTION_PROFANITY_AUTO;	
-	client->punctuation = STT_OPTION_PUNCTUATION_AUTO;
 	client->silence = STT_OPTION_SILENCE_DETECTION_AUTO;
 
-	client->type = NULL;
+	client->event = 0;
 	client->data_list = NULL;
 	client->data_count = 0;
 	client->msg = NULL;
 
 	client->before_state = STT_STATE_CREATED;
-	client->current_state = STT_STATE_CREATED; 
+	client->current_state = STT_STATE_CREATED;
+
+	client->internal_state = STT_INTERNAL_STATE_NONE;
 
 	client->cb_ref_count = 0;
 
@@ -90,7 +89,7 @@ int stt_client_destroy(stt_h stt)
 	if (stt == NULL) {
 		SLOG(LOG_ERROR, TAG_STTC, "Input parameter is NULL");
 		return 0;
-	}	
+	}
 
 	GList *iter = NULL;
 	stt_client_s *data = NULL;
@@ -109,6 +108,11 @@ int stt_client_destroy(stt_h stt)
 				{
 					/* wait for release callback function */
 				}
+				
+				if (NULL != data->current_engine_id) {
+					free(data->current_engine_id);
+				}
+
 				free(data);
 				free(stt);
 
@@ -128,7 +132,7 @@ int stt_client_destroy(stt_h stt)
 
 stt_client_s* stt_client_get(stt_h stt)
 {
-	if (stt == NULL) {
+	if (NULL == stt) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL");
 		return NULL;
 	}
@@ -142,10 +146,10 @@ stt_client_s* stt_client_get(stt_h stt)
 
 		while (NULL != iter) {
 			data = iter->data;
-
-			if (stt->handle == data->stt->handle) 
-				return data;
-
+			if (NULL != data) {
+				if (stt->handle == data->stt->handle) 
+					return data;
+			}
 			/* Next item */
 			iter = g_list_next(iter);
 		}
@@ -208,19 +212,7 @@ int stt_client_get_use_callback(stt_client_s* client)
 	return client->cb_ref_count;
 }
 
-int stt_client_set_option_supported(stt_h stt, bool silence, bool profanity, bool punctuation)
+GList* stt_client_get_client_list()
 {
-	stt_client_s* client = stt_client_get(stt);
-	
-	/* check handle */
-	if (NULL == client) 
-		return STT_ERROR_INVALID_PARAMETER;
-	
-	client->silence_supported = silence;
-	client->profanity_supported = profanity;
-	client->punctuation_supported = punctuation;
-
-	return 0;
+	return g_client_list;
 }
-
-

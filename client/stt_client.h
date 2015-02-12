@@ -1,5 +1,5 @@
 /*
-*  Copyright (c) 2012, 2013 Samsung Electronics Co., Ltd All Rights Reserved 
+*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved 
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -23,6 +23,11 @@
 extern "C" {
 #endif
 
+typedef enum {
+	STT_INTERNAL_STATE_NONE		= 0,
+	STT_INTERNAL_STATE_STARTING	= 1,
+	STT_INTERNAL_STATE_STOPING	= 2
+}stt_internal_state_e;
 
 typedef struct {
 	/* base info */
@@ -30,41 +35,50 @@ typedef struct {
 	int	pid; 
 	int	uid;	/*<< unique id = pid + handle */
 
-	stt_result_cb		result_cb;
-	void*			result_user_data;
-	stt_partial_result_cb	partial_result_cb;
-	void*			partial_result_user_data;
-	stt_state_changed_cb	state_changed_cb;
-	void*			state_changed_user_data;
-	stt_error_cb		error_cb;
-	void*			error_user_data;
+	stt_recognition_result_cb	recognition_result_cb;
+	void*				recognition_result_user_data;
+	stt_result_time_cb		result_time_cb;
+	void*				result_time_user_data;
+
+	stt_state_changed_cb		state_changed_cb;
+	void*				state_changed_user_data;
+	stt_error_cb			error_cb;
+	void*				error_user_data;
+	stt_default_language_changed_cb	default_lang_changed_cb;
+	void*				default_lang_changed_user_data;
+
+	stt_supported_engine_cb		supported_engine_cb;
+	void*				supported_engine_user_data;
+	stt_supported_language_cb	supported_lang_cb;
+	void*				supported_lang_user_data;
+
+	char*		current_engine_id;
 
 	/* option */
-	bool	silence_supported;
-	bool	profanity_supported;
-	bool	punctuation_supported;
-
-	stt_option_profanity_e		profanity;	
-	stt_option_punctuation_e	punctuation;
+	bool		silence_supported;
 	stt_option_silence_detection_e	silence;
 
 	/* state */
 	stt_state_e	before_state;
 	stt_state_e	current_state;
 
+	stt_internal_state_e	internal_state;
+
 	/* mutex */
 	int		cb_ref_count;
 
 	/* result data */
-	char*	partial_result;
-	char*	type;
+	int	event;
 	char**	data_list;
 	int	data_count;
 	char*	msg;
-
+	
 	/* error data */
 	int	reason;
 }stt_client_s;
+
+
+typedef bool (*stt_time_cb)(int index, int event, const char* text, long start_time, long end_time, void *user_data);
 
 int stt_client_new(stt_h* stt);
 
@@ -82,7 +96,7 @@ int stt_client_not_use_callback(stt_client_s* client);
 
 int stt_client_get_use_callback(stt_client_s* client);
 
-int stt_client_set_option_supported(stt_h stt, bool silence, bool profanity, bool punctuation);
+GList* stt_client_get_client_list();
 
 #ifdef __cplusplus
 }

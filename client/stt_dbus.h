@@ -1,5 +1,5 @@
 /*
-*  Copyright (c) 2012, 2013 Samsung Electronics Co., Ltd All Rights Reserved 
+*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved 
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -29,23 +29,35 @@ int stt_dbus_close_connection();
 
 int stt_dbus_request_hello();
 
-int stt_dbus_request_initialize(int uid, bool* silence_supported, bool* profanity_supported, bool* punctuation_supported);
+int stt_dbus_request_initialize(int uid, bool* silence_supported);
 
 int stt_dbus_request_finalize(int uid);
+
+int stt_dbus_request_set_current_engine(int uid, const char* engine_id, bool* silence_supported);
+
+int stt_dbus_request_check_app_agreed(int uid, const char* appid, bool* value);
 
 int stt_dbus_request_get_support_langs(int uid, stt_h stt, stt_supported_language_cb callback, void* user_data);
 
 int stt_dbus_request_get_default_lang(int uid, char** language);
 
-int stt_dbus_request_is_partial_result_supported(int uid, bool* partial_result);
+int stt_dbus_request_is_recognition_type_supported(int uid, const char* type, bool* support);
 
-int stt_dbus_request_start(int uid, const char* lang, const char* type, int profanity, int punctuation, int silence);
+int stt_dbus_request_set_start_sound(int uid, const char* file);
+
+int stt_dbus_request_unset_start_sound(int uid);
+
+int stt_dbus_request_set_stop_sound(int uid, const char* file);
+
+int stt_dbus_request_unset_stop_sound(int uid);
+
+
+int stt_dbus_request_start(int uid, const char* lang, const char* type, int silence, const char* appid);
 
 int stt_dbus_request_stop(int uid);
 
 int stt_dbus_request_cancel(int uid);
 
-int stt_dbus_request_start_file_recognition(int uid, const char* filepath, const char* lang, const char* type, int profanity, int punctuation);
 
 #ifdef __cplusplus
 }

@@ -1,5 +1,5 @@
 /*
-*  Copyright (c) 2012, 2013 Samsung Electronics Co., Ltd All Rights Reserved 
+*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved 
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -11,16 +11,43 @@
 *  limitations under the License.
 */
 
+#include <Ecore.h>
 
+#include "stt_defs.h"
+#include "stt_network.h"
+#include "sttd_dbus.h"
 #include "sttd_main.h"
 #include "sttd_server.h"
-#include "sttd_network.h"
-#include "sttd_dbus.h"
 
-#include <Ecore.h>
-#include "sttd_server.h"
 
 #define CLIENT_CLEAN_UP_TIME 500
+
+static Ecore_Timer* g_check_client_timer = NULL;
+
+static int __save_stt_daemon_info()
+{
+	FILE* fp;
+	int pid = getpid();
+	fp = fopen(STT_PID_FILE_PATH, "w");
+	if (NULL == fp) {
+		SLOG(LOG_ERROR, TAG_STTD, "[ERROR] Fail to make pid file");
+		return -1;
+	}
+	fprintf(fp, "%d", pid);
+	fclose(fp);
+	return 0;
+}
+
+static int __delete_stt_daemon_info()
+{
+	if (0 == access(STT_PID_FILE_PATH, R_OK)) {
+		if (0 != remove(STT_PID_FILE_PATH)) {
+			SLOG(LOG_WARN, TAG_STTD, "[WARN] Fail to remove pid file");
+			return -1;
+		}
+	}
+	return 0;
+}
 
 int main(int argc, char** argv)
 {
@@ -28,8 +55,8 @@ int main(int argc, char** argv)
 	SLOG(LOG_DEBUG, TAG_STTD, "  ");
 	SLOG(LOG_DEBUG, TAG_STTD, "===== STT Daemon Initialize");
 
-	if (0 != sttd_initialize()) {
-		SLOG(LOG_ERROR, TAG_STTD, "[ERROR] Fail to initialize stt-daemon"); 
+	if (!ecore_init()) {
+		SLOG(LOG_ERROR, TAG_STTD, "[ERROR] Fail to initialize Ecore"); 
 		return EXIT_FAILURE;
 	}
 
@@ -38,11 +65,19 @@ int main(int argc, char** argv)
 		return EXIT_FAILURE;
 	}
 
-	sttd_network_initialize();
+	if (0 != sttd_initialize()) {
+		SLOG(LOG_ERROR, TAG_STTD, "[ERROR] Fail to initialize stt-daemon");
+		return EXIT_FAILURE;
+	}
 
-	ecore_timer_add(CLIENT_CLEAN_UP_TIME, sttd_cleanup_client, NULL);
+	__save_stt_daemon_info();
 
-	printf("stt-daemon start...\n");
+	stt_network_initialize();
+
+	g_check_client_timer = ecore_timer_add(CLIENT_CLEAN_UP_TIME, sttd_cleanup_client, NULL);
+	if (NULL == g_check_client_timer) {
+		SLOG(LOG_WARN, TAG_STTD, "[Main Warning] Fail to create timer of client check");
+	}
 
 	SLOG(LOG_DEBUG, TAG_STTD, "[Main] stt-daemon start..."); 
 
@@ -54,9 +89,15 @@ int main(int argc, char** argv)
 
 	SLOG(LOG_DEBUG, TAG_STTD, "===== STT Daemon Finalize");
 
+	if (NULL != g_check_client_timer) {
+		ecore_timer_del(g_check_client_timer);
+	}
+
 	sttd_dbus_close_connection();
 
-	sttd_network_finalize();
+	__delete_stt_daemon_info();
+
+	stt_network_finalize();
 
 	sttd_finalize();
 

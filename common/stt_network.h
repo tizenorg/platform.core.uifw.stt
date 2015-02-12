@@ -1,5 +1,5 @@
 /*
-*  Copyright (c) 2012, 2013 Samsung Electronics Co., Ltd All Rights Reserved 
+*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved 
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -12,18 +12,20 @@
 */
 
 
-#ifndef __STTD_NETWORK_H_
-#define __STTD_NETWORK_H_
+#ifndef __STT_NETWORK_H_
+#define __STT_NETWORK_H_
+
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-int sttd_network_initialize();
+int stt_network_initialize();
 
-int sttd_network_finalize();
+int stt_network_finalize();
 
-bool sttd_network_is_connected();
+bool stt_network_is_connected();
 
 
 #ifdef __cplusplus
@@ -31,4 +33,4 @@ bool sttd_network_is_connected();
 #endif
 
 
-#endif	/* __STTD_NETWORK_H_ */
+#endif	/* __STT_NETWORK_H_ */

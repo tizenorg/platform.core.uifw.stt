@@ -12,31 +12,35 @@
 */
 
 
-#ifndef __STTD_DBUS_h__
-#define __STTD_DBUS_h__
+#include <dlog.h>
+#include <vconf.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include "stt_network.h"
 
-int sttd_dbus_open_connection();
+extern const char* stt_tag();
 
-int sttd_dbus_close_connection();
-
-
-int sttdc_send_hello(int uid);
-
-int sttdc_send_get_state(int uid, int* state);
-
-int sttdc_send_result(int uid, int event, const char** data, int data_count, const char* result_msg);
-
-int sttdc_send_error_signal(int uid, int reason, const char *err_msg);
-
-int sttdc_send_set_state(int uid, int state);
-
-
-#ifdef __cplusplus
+int stt_network_initialize()
+{
+	return 0;
 }
-#endif
 
-#endif	/* __STTD_DBUS_h__ */
+int stt_network_finalize()
+{
+	return 0;
+}
+
+bool stt_network_is_connected()
+{
+	/* Check network */
+	int network_status = 0;
+	vconf_get_int(VCONFKEY_NETWORK_STATUS, &network_status);
+
+	if(network_status == VCONFKEY_NETWORK_OFF){
+		SLOG(LOG_WARN, stt_tag(), "[Network] Current network connection is OFF.");
+		return false;
+	}
+	
+	SLOG(LOG_DEBUG, stt_tag(), "[Network] Network status is %d", network_status);
+
+	return true;
+}

@@ -1,43 +1,29 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
-PROJECT(stt C)
-
-SET(PREFIX ${CMAKE_INSTALL_PREFIX})
-SET(EXEC_PREFIX "${PREFIX}")
-SET(LIBDIR "${PREFIX}/lib")
-SET(INCLUDEDIR "${PREFIX}/include")
-SET(VERSION 0.0.1)
-
 SET(SRCS 
 	stt.c
 	stt_client.c
 	stt_dbus.c
+	../common/stt_config_mgr.c
+	../common/stt_config_parser.c
+)
+
+SET(FILE_SRCS
+	stt_file.c
+	stt_file_client.c
+	../common/stt_config_mgr.c
+	../common/stt_config_parser.c
+	../common/stt_engine.c
+	../common/stt_network.c
 )
 
 set(SETTING_SRCS
 	stt_setting.c
-	stt_setting_dbus.c	
+	../common/stt_config_mgr.c
+	../common/stt_config_parser.c
 )
 
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR})
-INCLUDE_DIRECTORIES(${INCLUDEDIR})
-INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/include)
-INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/../common)
-
-## Dependent packages ##
-#INCLUDE(FindPkgConfig)
-#pkg_check_modules(pkgs REQUIRED 
-#	glib-2.0 dbus-1 dlog ecore
-#)
-
-FIND_PROGRAM(UNAME NAMES uname)
-EXEC_PROGRAM("${UNAME}" ARGS "-m" OUTPUT_VARIABLE "ARCH")
-IF ("${ARCH}" STREQUAL "arm")
-	ADD_DEFINITIONS("-DTARGET_ARM")
-	MESSAGE("[TARGET] Compile")
-ELSE  ("${ARCH}" STREQUAL "arm")
-	ADD_DEFINITIONS("-DTARGET_I386")
-	MESSAGE("[i386] Compile")
-ENDIF ("${ARCH}" STREQUAL "arm")
+INCLUDE_DIRECTORIES(${CMAKE_BINARY_DIR}/include)
+INCLUDE_DIRECTORIES(${CMAKE_BINARY_DIR}/server)
 
 FOREACH(flag ${pkgs_CFLAGS})
 	SET(EXTRA_CFLAGS "${EXTRA_CFLAGS} ${flag}")
@@ -46,23 +32,20 @@ SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${EXTRA_CFLAGS}")
 
 ## Add definitions ##
 ADD_DEFINITIONS("-DPREFIX=\"${PREFIX}\"")
-#ADD_DEFINITIONS(-DSLP_DEBUG)
 
 ## stt library ##
-ADD_LIBRARY("${PROJECT_NAME}_static" STATIC ${SRCS})
 ADD_LIBRARY(${PROJECT_NAME} SHARED ${SRCS})
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${pkgs_LDFLAGS})
+
+## stt file library ##
+ADD_LIBRARY("${PROJECT_NAME}_file" SHARED ${FILE_SRCS})
+TARGET_LINK_LIBRARIES("${PROJECT_NAME}_file" ${pkgs_LDFLAGS})
 
 ## stt-setting library ##
 ADD_LIBRARY("${PROJECT_NAME}_setting" SHARED ${SETTING_SRCS})
 TARGET_LINK_LIBRARIES("${PROJECT_NAME}_setting" ${pkgs_LDFLAGS})
 
-## configure pkgconfig files ##
-CONFIGURE_FILE(stt.pc.in "${CMAKE_CURRENT_SOURCE_DIR}/${PROJECT_NAME}.pc" @ONLY)
-CONFIGURE_FILE(stt-setting.pc.in "${CMAKE_CURRENT_SOURCE_DIR}/${PROJECT_NAME}-setting.pc" @ONLY)
-
 ## Install library files ##
-INSTALL(TARGETS ${PROJECT_NAME} DESTINATION ${LIB_INSTALL_DIR} COMPONENT RuntimeLibraries)
-INSTALL(TARGETS "${PROJECT_NAME}_setting" DESTINATION ${LIB_INSTALL_DIR} COMPONENT RuntimeLibraries)
-INSTALL(FILES "${CMAKE_CURRENT_SOURCE_DIR}/${PROJECT_NAME}.pc" "${CMAKE_CURRENT_SOURCE_DIR}/${PROJECT_NAME}-setting.pc" DESTINATION ${LIB_INSTALL_DIR}/pkgconfig)
-INSTALL(FILES ${CMAKE_CURRENT_SOURCE_DIR}/stt.h ${CMAKE_CURRENT_SOURCE_DIR}/stt_setting.h DESTINATION include)
+INSTALL(TARGETS ${PROJECT_NAME} DESTINATION ${LIBDIR} COMPONENT RuntimeLibraries)
+INSTALL(TARGETS "${PROJECT_NAME}_file" DESTINATION ${LIBDIR} COMPONENT RuntimeLibraries)
+INSTALL(TARGETS "${PROJECT_NAME}_setting" DESTINATION ${LIBDIR} COMPONENT RuntimeLibraries)

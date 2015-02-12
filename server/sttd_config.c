@@ -1,5 +1,5 @@
 /*
-*  Copyright (c) 2012, 2013 Samsung Electronics Co., Ltd All Rights Reserved 
+*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved 
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -11,211 +11,104 @@
 *  limitations under the License.
 */
 
-#include <Ecore_File.h>
 
-/* For multi-user support */
-#include <tzplatform_config.h>
-
-#include "sttd_main.h"
+#include "stt_config_mgr.h"
 #include "sttd_config.h"
+#include "sttd_main.h"
 
 
-#define CONFIG_FILE_PATH	tzplatform_mkpath(TZ_USER_HOME, ".voice/sttd.conf")
-#define CONFIG_DEFAULT		BASE_DIRECTORY_DEFAULT"/sttd.conf"
+static sttd_config_engine_changed_cb g_engine_cb;
 
-#define ENGINE_ID	"ENGINE_ID"
-#define LANGUAGE	"LANGUAGE"
-#define SILENCE		"SILENCE"
-#define PROFANITY	"PROFANITY"
-#define PUNCTUATION	"PUNCTUATION"
+static sttd_config_language_changed_cb g_lang_cb;
+
+static sttd_config_silence_changed_cb g_silence_cb;
+
+static void* g_user_data;
 
 
-static char*	g_engine_id;
-static char*	g_language;
-static int	g_silence;
-static int	g_profanity;
-static int	g_punctuation;
-
-int __sttd_config_save()
+const char* stt_tag()
 {
-	if (0 != access(CONFIG_FILE_PATH, R_OK|W_OK)) {
-		if (0 == ecore_file_mkpath(CONFIG_DIRECTORY)) {
-			SLOG(LOG_ERROR, TAG_STTD, "[Config ERROR ] Fail to create directory (%s)", CONFIG_DIRECTORY);
-			return -1;
-		}
+	return "sttd";
+}
 
-		SLOG(LOG_WARN, TAG_STTD, "[Config] Create directory (%s)", CONFIG_DIRECTORY);
+
+void __sttd_config_engine_changed_cb(const char* engine_id, const char* setting, const char* language, bool support_silence, void* user_data)
+{
+	/* Need to check engine is valid */
+	if (false == stt_config_check_default_engine_is_valid(engine_id)) {
+		SECURE_SLOG(LOG_ERROR, TAG_STTD, "Engine id is NOT valid : %s", engine_id);
+		return;
 	}
 
-	FILE* config_fp;
-	config_fp = fopen(CONFIG_FILE_PATH, "w+");
+	if (NULL != g_engine_cb)
+		g_engine_cb(engine_id, language, support_silence, g_user_data);
+	else
+		SLOG(LOG_ERROR, TAG_STTD, "Engine changed callback is NULL");
+}
 
-	if (NULL == config_fp) {
-		/* make file and file default */
-		SLOG(LOG_ERROR, TAG_STTD, "[Config ERROR] Fail to load config (engine id)");
+void __sttd_config_lang_changed_cb(const char* before_language, const char* current_language, void* user_data)
+{
+	if (false == stt_config_check_default_language_is_valid(current_language)) {
+		SECURE_SLOG(LOG_ERROR, TAG_STTD, "Language is NOT valid : %s", current_language);
+		return;
+	}
+
+	if (NULL != g_lang_cb)
+		g_lang_cb(current_language, g_user_data);
+	else
+		SLOG(LOG_ERROR, TAG_STTD, "Language changed callback is NULL");
+}
+
+void __config_bool_changed_cb(stt_config_type_e type, bool bool_value, void* user_data)
+{
+	SECURE_SLOG(LOG_DEBUG, TAG_STTD, " type(%d) bool(%s)", type, bool_value ? "on" : "off");
+
+	if (STT_CONFIG_TYPE_OPTION_SILENCE_DETECTION == type) {
+		if (NULL != g_silence_cb){
+			g_silence_cb(bool_value, g_user_data);
+			SLOG(LOG_DEBUG, TAG_STTD, "Call back silence detection changed");
+		}
+	}
+
+	return;
+}
+
+int sttd_config_initialize(sttd_config_engine_changed_cb engine_cb, 
+			   sttd_config_language_changed_cb lang_cb, 
+			   sttd_config_silence_changed_cb silence_cb, 
+			   void* user_data)
+{
+	if (NULL == engine_cb || NULL == lang_cb || NULL == silence_cb) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Config] Invalid parameter");
 		return -1;
 	}
 
-	SLOG(LOG_DEBUG, TAG_STTD, "[Config] Rewrite config file");
-
-	/* Write engine id */
-	fprintf(config_fp, "%s %s\n", ENGINE_ID, g_engine_id);
-
-	/* Write language */
-	fprintf(config_fp, "%s %s\n", LANGUAGE, g_language);
-
-	/* Write silence detection */
-	fprintf(config_fp, "%s %d\n", SILENCE, g_silence);
-
-	/* Write profanity */
-	fprintf(config_fp, "%s %d\n", PROFANITY, g_profanity);
-
-	/* Write punctuation */
-	fprintf(config_fp, "%s %d\n", PUNCTUATION, g_punctuation);
-
-	fclose(config_fp);
-
-	return 0;
-}
-
-int __sttd_config_load()
-{
-	FILE* config_fp;
-	char buf_id[256] = {0};
-	char buf_param[256] = {0};
-	int int_param = 0;
-	bool is_default_open = false;
-
-	config_fp = fopen(CONFIG_FILE_PATH, "r");
-
-	if (NULL == config_fp) {
-		SLOG(LOG_WARN, TAG_STTD, "[Config WARNING] Not open file(%s)", CONFIG_FILE_PATH);
-
-		config_fp = fopen(CONFIG_DEFAULT, "r");
-		if (NULL == config_fp) {
-			SLOG(LOG_WARN, TAG_STTD, "[Config WARNING] Not open original config file(%s)", CONFIG_FILE_PATH);
-			__sttd_config_save();
-			return 0;
-		}
-		is_default_open = true;
+	int ret = -1;
+	ret = stt_config_mgr_initialize(getpid());
+	if (0 != ret) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Config] Fail to initialize config manager");
+		return -1;
 	}
 
-	/* Read engine id */
-	if (EOF == fscanf(config_fp, "%s %s", buf_id, buf_param)) {
-		fclose(config_fp);
-		SLOG(LOG_WARN, TAG_STTD, "[Config WARNING] Fail to load config (engine id)");
-		__sttd_config_save();
-		return 0;
-	} else {
-		if (0 == strncmp(ENGINE_ID, buf_id, strlen(ENGINE_ID))) {
-			g_engine_id = strdup(buf_param);
-		} else {
-			fclose(config_fp);
-			SLOG(LOG_WARN, TAG_STTD, "[Config WARNING] Fail to load config (engine id)");
-			__sttd_config_save();
-			return 0;
-		}
+	ret = stt_config_mgr_set_callback(getpid(), __sttd_config_engine_changed_cb, __sttd_config_lang_changed_cb, 
+		__config_bool_changed_cb, NULL);
+	if (0 != ret) {
+		SLOG(LOG_ERROR, TAG_STTD, "[ERROR] Fail to set config changed : %d", ret);
+		return -1;
 	}
 
-	/* Read language */
-	if (EOF == fscanf(config_fp, "%s %s", buf_id, buf_param)) {
-		fclose(config_fp);
-		SLOG(LOG_WARN, TAG_STTD, "[Config WARNING] Fail to load config (language)");
-		__sttd_config_save();
-		return 0;
-	} else {
-		if (0 == strncmp(LANGUAGE, buf_id, strlen(LANGUAGE))) {
-			g_language = strdup(buf_param);
-		} else {
-			fclose(config_fp);
-			SLOG(LOG_WARN, TAG_STTD, "[Config WARNING] Fail to load config (language)");
-			__sttd_config_save();
-			return 0;
-		}
-	}
-	
-	/* Read silence detection */
-	if (EOF == fscanf(config_fp, "%s %d", buf_id, &int_param)) {
-		fclose(config_fp);
-		SLOG(LOG_WARN, TAG_STTD, "[Config WARNING] Fail to load config (silence)");
-		__sttd_config_save();
-		return 0;
-	} else {
-		if (0 == strncmp(SILENCE, buf_id, strlen(SILENCE))) {
-			g_silence = int_param;
-		} else {
-			fclose(config_fp);
-			SLOG(LOG_WARN, TAG_STTD, "[Config WARNING] Fail to load config (silence)");
-			__sttd_config_save();
-			return 0;
-		}
-	}
-
-	/* Read profanity filter */
-	if (EOF == fscanf(config_fp, "%s %d", buf_id, &int_param)) {
-		fclose(config_fp);
-		SLOG(LOG_WARN, TAG_STTD, "[Config WARNING] Fail to load config (profanity filter)");
-		__sttd_config_save();
-		return 0;
-	} else {
-		if (0 == strncmp(PROFANITY, buf_id, strlen(PROFANITY))) {
-			g_profanity = int_param;
-		} else {
-			fclose(config_fp);
-			SLOG(LOG_WARN, TAG_STTD, "[Config WARNING] Fail to load config (profanity filter)");
-			__sttd_config_save();
-			return 0;
-		}
-	}
-	
-
-	/* Read punctuation override */
-	if (EOF == fscanf(config_fp, "%s %d", buf_id, &int_param)) {
-		fclose(config_fp);
-		SLOG(LOG_WARN, TAG_STTD, "[Config WARNING] Fail to load config (punctuation override)");
-		__sttd_config_save();
-		return 0;
-	} else {
-		if (0 == strncmp(PUNCTUATION, buf_id, strlen(PUNCTUATION))) {
-			g_punctuation = int_param;
-		} else {
-			fclose(config_fp);
-			SLOG(LOG_WARN, TAG_STTD, "[Config WARNING] Fail to load config (punctuation override)");
-			__sttd_config_save();
-			return 0;
-		}
-	}
-	
-	fclose(config_fp);
-
-	SLOG(LOG_DEBUG, TAG_STTD, "[Config] Load config : engine(%s), language(%s), silence(%d), profanity(%d), punctuation(%d)",
-		g_engine_id, g_language, g_silence, g_profanity, g_punctuation);
-
-	if (true == is_default_open) {
-		if(0 == __sttd_config_save()) {
-			SLOG(LOG_DEBUG, TAG_STTD, "[Config] Create config(%s)", CONFIG_FILE_PATH);
-		}
-	}
-
-	return 0;
-}
-
-int sttd_config_initialize()
-{
-	g_engine_id = NULL;
-	g_language = NULL;
-	g_silence = 1;
-	g_profanity = 1;
-	g_punctuation = 0;
-
-	__sttd_config_load();
+	g_engine_cb = engine_cb;
+	g_lang_cb = lang_cb;
+	g_silence_cb = silence_cb;
+	g_user_data = user_data;
 
 	return 0;
 }
 
 int sttd_config_finalize()
 {
-	__sttd_config_save();
+	stt_config_mgr_finalize(getpid());
+
 	return 0;
 }
 
@@ -224,7 +117,10 @@ int sttd_config_get_default_engine(char** engine_id)
 	if (NULL == engine_id)
 		return -1;
 
-	*engine_id = strdup(g_engine_id);
+	if (0 != stt_config_mgr_get_engine(engine_id)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Config ERROR] Fail to get engine id");
+	}
+
 	return 0;
 }
 
@@ -233,11 +129,10 @@ int sttd_config_set_default_engine(const char* engine_id)
 	if (NULL == engine_id)
 		return -1;
 
-	if (NULL != g_engine_id)
-		free(g_engine_id);
+	if (0 != stt_config_mgr_set_engine(engine_id)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Config ERROR] Fail to set engine id");
+	}
 
-	g_engine_id = strdup(engine_id);
-	__sttd_config_save();
 	return 0;
 }
 
@@ -246,22 +141,10 @@ int sttd_config_get_default_language(char** language)
 	if (NULL == language)
 		return -1;
 
-	*language = strdup(g_language);
-
-	return 0;
-}
-
-int sttd_config_set_default_language(const char* language)
-{
-	if (NULL == language)
+	if (0 != stt_config_mgr_get_default_language(language)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Config ERROR] Fail to get language");
 		return -1;
-
-	if (NULL != g_language)
-		free(g_language);
-
-	g_language = strdup(language);
-
-	__sttd_config_save();
+	}
 
 	return 0;
 }
@@ -271,48 +154,28 @@ int sttd_config_get_default_silence_detection(int* silence)
 	if (NULL == silence)
 		return -1;
 
-	*silence = g_silence;
-
-	return 0;
-}
-
-int sttd_config_set_default_silence_detection(int silence)
-{
-	g_silence = silence;
-	__sttd_config_save();
-	return 0;
-}
-
-int sttd_config_get_default_profanity_filter(int* profanity)
-{
-	if (NULL == profanity)
+	bool value;
+	if (0 != stt_config_mgr_get_silence_detection(&value)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Config ERROR] Fail to set language");
 		return -1;
+	}
 
-	*profanity = g_profanity;
-
-	return 0;
-}
-
-int sttd_config_set_default_profanity_filter(int profanity)
-{
-	g_profanity = profanity;
-	__sttd_config_save();
-	return 0;
-}
-
-int sttd_config_get_default_punctuation_override(int* punctuation)
-{
-	if (NULL == punctuation)
-		return -1;
-
-	*punctuation = g_punctuation;
+	*silence = (int)value;
 
 	return 0;
 }
 
-int sttd_config_set_default_punctuation_override(int punctuation)
+int sttd_config_time_add(int index, int event, const char* text, long start_time, long end_time)
 {
-	g_punctuation = punctuation;
-	__sttd_config_save();
-	return 0;
+	return stt_config_mgr_add_time_info(index, event, text, start_time, end_time);
+}
+
+int sttd_config_time_save()
+{
+	return stt_config_mgr_save_time_info_file();
+}
+
+int sttd_config_time_reset()
+{
+	return stt_config_mgr_reset_time_info();
 }

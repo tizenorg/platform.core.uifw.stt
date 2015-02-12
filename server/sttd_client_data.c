@@ -1,5 +1,5 @@
 /*
-*  Copyright (c) 2012, 2013 Samsung Electronics Co., Ltd All Rights Reserved 
+*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved 
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -16,73 +16,48 @@
 #include "sttd_client_data.h"
 
 /* Client list */
-static GList *g_client_list = NULL;
+static GSList *g_client_list = NULL;
 
-static GList *g_setting_client_list = NULL;
+static int g_cur_recog_uid = 0;
 
 int client_show_list()
 {
-	GList *iter = NULL;
+	GSList *iter = NULL;
 	client_info_s *data = NULL;
 
-	SLOG(LOG_DEBUG, TAG_STTD, "----- client list"); 
+	SLOG(LOG_DEBUG, TAG_STTD, "----- client list");
 
-	if (g_list_length(g_client_list) > 0) {
+	if (g_slist_length(g_client_list) > 0) {
 		/* Get a first item */
-		iter = g_list_first(g_client_list);
+		iter = g_slist_nth(g_client_list, 0);
 
 		int i = 1;	
 		while (NULL != iter) {
 			/*Get handle data from list*/
 			data = iter->data;
 
-			SLOG(LOG_DEBUG, TAG_STTD, "[%dth] uid(%d), state(%d)", i, data->uid, data->state); 
+			SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[%dth] uid(%d), state(%d)", i, data->uid, data->state);
 			
 			/*Get next item*/
-			iter = g_list_next(iter);
+			iter = g_slist_next(iter);
 			i++;
 		}
 	} else {
-		SLOG(LOG_DEBUG, TAG_STTD, "No Client"); 
+		SLOG(LOG_DEBUG, TAG_STTD, "No Client");
 	}
 
-	SLOG(LOG_DEBUG, TAG_STTD, "-----"); 
-
-	SLOG(LOG_DEBUG, TAG_STTD, "----- setting client list"); 
-
-	setting_client_info_s *setting_data = NULL;
-
-	if (g_list_length(g_setting_client_list) > 0) {
-		/* Get a first item */
-		iter = g_list_first(g_setting_client_list);
-
-		int i = 1;	
-		while (NULL != iter) {
-			/*Get handle data from list*/
-			setting_data = iter->data;
-
-			SLOG(LOG_DEBUG, TAG_STTD, "[%dth] pid(%d)", i, setting_data->pid); 
-
-			/*Get next item*/
-			iter = g_list_next(iter);
-			i++;
-		}
-	} else {
-		SLOG(LOG_DEBUG, TAG_STTD, "No setting client"); 
-	}
-
-	SLOG(LOG_DEBUG, TAG_STTD, "-----"); 
+	SLOG(LOG_DEBUG, TAG_STTD, "-----");
 
 	return 0;
 }
 
-GList* __client_get_item(const int uid)
+GSList* __client_get_item(int uid)
 {
-	GList *iter = NULL;
+	GSList *iter = NULL;
 	client_info_s *data = NULL;
 
-	if (0 < g_list_length(g_client_list)) {
-		iter = g_list_first(g_client_list);
+	if (0 < g_slist_length(g_client_list)) {
+		iter = g_slist_nth(g_client_list, 0);
 
 		while (NULL != iter) {
 			/* Get handle data from list */
@@ -91,38 +66,40 @@ GList* __client_get_item(const int uid)
 			if (uid == data->uid) 
 				return iter;
 			
-			iter = g_list_next(iter);
+			iter = g_slist_next(iter);
 		}
 	}
 
 	return NULL;
 }
 
-int sttd_client_add(const int pid, const int uid)
+int sttd_client_add(int pid, int uid)
 {
 	/*Check uid is duplicated*/
-	GList *tmp = NULL;
+	GSList *tmp = NULL;
 	tmp = __client_get_item(uid);
 	
 	if (NULL != tmp) {
-		SLOG(LOG_WARN, TAG_STTD, "[Client Data] Client uid is already registered"); 
+		SLOG(LOG_WARN, TAG_STTD, "[Client Data] Client uid is already registered");
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
-	client_info_s *info = (client_info_s*)g_malloc0(sizeof(client_info_s));
+	client_info_s *info = (client_info_s*)calloc(1, sizeof(client_info_s));
 
 	info->pid = pid;
 	info->uid = uid;
+	info->start_beep = NULL;
+	info->stop_beep = NULL;
 	info->state = APP_STATE_READY;
 
+	info->app_agreed = false;
+
 	/* Add item to global list */
-	g_client_list = g_list_append(g_client_list, info);
+	g_client_list = g_slist_append(g_client_list, info);
 	
 	if (NULL == g_client_list) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Client Data ERROR] Fail to add new client"); 
+		SLOG(LOG_ERROR, TAG_STTD, "[Client Data ERROR] Fail to add new client");
 		return -1;
-	} else {
-		SLOG(LOG_DEBUG, TAG_STTD, "[Client Data SUCCESS] Add new client"); 
 	}
 
 #ifdef CLIENT_DATA_DEBUG
@@ -131,26 +108,28 @@ int sttd_client_add(const int pid, const int uid)
 	return 0;
 }
 
-int sttd_client_delete(const int uid)
+int sttd_client_delete(int uid)
 {
-	GList *tmp = NULL;
+	GSList *tmp = NULL;
 	client_info_s* hnd = NULL;
 
 	/*Get handle*/
 	tmp = __client_get_item(uid);
 	if (NULL == tmp) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Client Data ERROR] uid(%d) is NOT valid", uid); 
+		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Client Data ERROR] uid(%d) is NOT valid", uid);
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
 	/*Free client structure*/
 	hnd = tmp->data;
 	if (NULL != hnd) {
-		g_free(hnd);
+		if (NULL != hnd->start_beep)	free(hnd->start_beep);
+		if (NULL != hnd->stop_beep)	free(hnd->stop_beep);
+		free(hnd);
 	}
 
 	/*Remove handle from list*/
-	g_client_list = g_list_remove_link(g_client_list, tmp);
+	g_client_list = g_slist_remove_link(g_client_list, tmp);
 
 #ifdef CLIENT_DATA_DEBUG
 	client_show_list();
@@ -159,9 +138,111 @@ int sttd_client_delete(const int uid)
 	return 0;
 }
 
-int sttd_client_get_state(const int uid, app_state_e* state)
+int sttd_client_get_start_sound(int uid, char** filename)
 {
-	GList *tmp = NULL;
+	if (NULL == filename) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Client Data ERROR] Filename is NULL");
+		return STTD_ERROR_INVALID_PARAMETER;
+	}
+
+	GSList *tmp = NULL;
+	client_info_s* hnd = NULL;
+
+	tmp = __client_get_item(uid);
+	if (NULL == tmp) {
+		return STTD_ERROR_INVALID_PARAMETER;
+	}
+
+	hnd = tmp->data;
+	if (NULL != hnd->start_beep) {
+		*filename = strdup(hnd->start_beep);
+	} else {
+		*filename = NULL;
+	}
+
+	return 0;
+}
+
+int sttd_client_set_start_sound(int uid, const char* filename)
+{
+	GSList *tmp = NULL;
+	client_info_s* hnd = NULL;
+
+	tmp = __client_get_item(uid);
+	if (NULL == tmp) {
+		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Client Data ERROR] uid(%d) is NOT valid", uid);
+		return STTD_ERROR_INVALID_PARAMETER;
+	}
+
+	hnd = tmp->data;
+	if (NULL != hnd->start_beep) {
+		free(hnd->start_beep);
+	}
+	
+	if (NULL != filename) {
+		hnd->start_beep = strdup(filename);
+		SLOG(LOG_DEBUG, TAG_STTD, "[Client Data] Start sound file : %s", hnd->start_beep);
+	} else {
+		hnd->start_beep = NULL;
+	}
+
+	return 0;
+}
+
+int sttd_client_get_stop_sound(int uid, char** filename)
+{
+	if (NULL == filename) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Client Data ERROR] Filename is NULL");
+		return STTD_ERROR_INVALID_PARAMETER;
+	}
+
+	GSList *tmp = NULL;
+	client_info_s* hnd = NULL;
+
+	tmp = __client_get_item(uid);
+	if (NULL == tmp) {
+		return STTD_ERROR_INVALID_PARAMETER;
+	}
+
+	hnd = tmp->data;
+	if (NULL != hnd->stop_beep) {
+		*filename = strdup(hnd->stop_beep);
+	} else {
+		*filename = NULL;
+	}
+
+	return 0;
+}
+
+int sttd_client_set_stop_sound(int uid, const char* filename)
+{
+	GSList *tmp = NULL;
+	client_info_s* hnd = NULL;
+
+	tmp = __client_get_item(uid);
+	if (NULL == tmp) {
+		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Client Data ERROR] uid(%d) is NOT valid", uid);
+		return STTD_ERROR_INVALID_PARAMETER;
+	}
+
+	hnd = tmp->data;
+	if (NULL != hnd->stop_beep) {
+		free(hnd->stop_beep);
+	}
+	
+	if (NULL != filename) {
+		hnd->stop_beep = strdup(filename);
+		SLOG(LOG_DEBUG, TAG_STTD, "[Client Data] Stop sound file : %s", hnd->stop_beep);
+	} else {
+		hnd->stop_beep = NULL;
+	}
+
+	return 0;
+}
+
+int sttd_client_get_state(int uid, app_state_e* state)
+{
+	GSList *tmp = NULL;
 	client_info_s* hnd = NULL;
 
 	tmp = __client_get_item(uid);
@@ -172,46 +253,41 @@ int sttd_client_get_state(const int uid, app_state_e* state)
 	hnd = tmp->data;
 	*state = hnd->state;
 
-	SLOG(LOG_DEBUG, TAG_STTD, "[Client Data] Get state : uid(%d), state(%d)", uid, *state);
-
 	return 0;
 }
 
-int sttd_client_set_state(const int uid, const app_state_e state)
+int sttd_client_set_state(int uid, app_state_e state)
 {
-	GList *tmp = NULL;
+	GSList *tmp = NULL;
 	client_info_s* hnd = NULL;
 
 	tmp = __client_get_item(uid);
 	if (NULL == tmp) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Client Data ERROR] uid(%d) is NOT valid", uid); 
+		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Client Data ERROR] uid(%d) is NOT valid", uid);
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
 	hnd = tmp->data;
 	hnd->state = state ;
 
-	SLOG(LOG_DEBUG, TAG_STTD, "[Client Data SUCCESS] Set state : uid(%d), state(%d)", uid, state);
-
 	return 0;
 }
 
 int sttd_client_get_ref_count()
 {
-	int count = g_list_length(g_client_list) + g_list_length(g_setting_client_list);
-	SLOG(LOG_DEBUG, TAG_STTD, "[Client Data] client count : %d", count);
+	int count = g_slist_length(g_client_list);
 
 	return count;
 }
 
-int sttd_client_get_pid(const int uid)
+int sttd_client_get_pid(int uid)
 {
-	GList *tmp = NULL;
+	GSList *tmp = NULL;
 	client_info_s* hnd = NULL;
 
 	tmp = __client_get_item(uid);
 	if (NULL == tmp) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Client Data ERROR] sttd_client_get_pid : uid(%d) is not found", uid); 
+		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Client Data ERROR] sttd_client_get_pid : uid(%d) is not found", uid);
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
@@ -220,13 +296,14 @@ int sttd_client_get_pid(const int uid)
 	return hnd->pid;
 }
 
+#if 0
 int sttd_client_get_current_recording()
 {
-	GList *iter = NULL;
+	GSList *iter = NULL;
 	client_info_s *data = NULL;
 
-	if (0 < g_list_length(g_client_list)) {
-		iter = g_list_first(g_client_list);
+	if (0 < g_slist_length(g_client_list)) {
+		iter = g_slist_nth(g_client_list, 0);
 
 		while (NULL != iter) {
 			/* Get handle data from list */
@@ -235,7 +312,7 @@ int sttd_client_get_current_recording()
 			if (APP_STATE_RECORDING == data->state) 
 				return data->uid;
 
-			iter = g_list_next(iter);
+			iter = g_slist_next(iter);
 		}
 	}
 
@@ -244,11 +321,11 @@ int sttd_client_get_current_recording()
 
 int sttd_client_get_current_thinking()
 {
-	GList *iter = NULL;
+	GSList *iter = NULL;
 	client_info_s *data = NULL;
 
-	if (0 < g_list_length(g_client_list)) {
-		iter = g_list_first(g_client_list);
+	if (0 < g_slist_length(g_client_list)) {
+		iter = g_slist_nth(g_client_list, 0);
 
 		while (NULL != iter) {
 			/* Get handle data from list */
@@ -257,7 +334,7 @@ int sttd_client_get_current_thinking()
 			if (APP_STATE_PROCESSING == data->state) 
 				return data->uid;
 
-			iter = g_list_next(iter);
+			iter = g_slist_next(iter);
 		}
 	}
 
@@ -266,65 +343,61 @@ int sttd_client_get_current_thinking()
 
 int sttd_cliet_set_timer(int uid, Ecore_Timer* timer)
 {
-	GList *tmp = NULL;
+	GSList *tmp = NULL;
 	client_info_s* hnd = NULL;
 
 	tmp = __client_get_item(uid);
 	if (NULL == tmp) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Client Data ERROR] uid(%d) is NOT valid", uid); 
+		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Client Data ERROR] uid(%d) is NOT valid", uid);
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
 	hnd = tmp->data;
 	hnd->timer = timer;
 
-	SLOG(LOG_DEBUG, TAG_STTD, "[Client Data SUCCESS] Set timer : uid(%d)", uid);
-
 	return 0;
 }
 
 int sttd_cliet_get_timer(int uid, Ecore_Timer** timer)
 {
-	GList *tmp = NULL;
+	GSList *tmp = NULL;
 	client_info_s* hnd = NULL;
 
 	tmp = __client_get_item(uid);
 	if (NULL == tmp) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Client Data ERROR] uid(%d) is NOT valid", uid); 
+		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Client Data ERROR] uid(%d) is NOT valid", uid);
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
 	hnd = tmp->data;
 	*timer = hnd->timer;
 
-	SLOG(LOG_DEBUG, TAG_STTD, "[Client Data SUCCESS] Get timer : uid(%d)", uid);
-
 	return 0;
 }
-
+#endif
 
 int sttd_client_get_list(int** uids, int* uid_count)
 {
 	if (NULL == uids || NULL == uid_count)
 		return -1;
 	
-	int count = g_list_length(g_client_list);
+	int count = g_slist_length(g_client_list);
 
 	if (0 == count)
-		return -1; 
+		return -1;
 
 	int *tmp;
-	tmp = (int*)malloc(sizeof(int) * count);
+	tmp = (int*)calloc(count, sizeof(int));
 	
-	GList *iter = NULL;
+	GSList *iter = NULL;
 	client_info_s *data = NULL;
 	int i = 0;
 
-	iter = g_list_first(g_client_list);
+	iter = g_slist_nth(g_client_list, 0);
 	for (i = 0;i < count;i++) {
 		data = iter->data;
 		tmp[i] = data->uid;
-		iter = g_list_next(iter);
+		iter = g_slist_next(iter);
 	}
 
 	*uids = tmp;
@@ -333,97 +406,56 @@ int sttd_client_get_list(int** uids, int* uid_count)
 	return 0;
 }
 
-/*
-* Functions for setting
-*/
-
-GList* __setting_client_get_item(int pid)
+int stt_client_set_current_recognition(int uid)
 {
-	GList *iter = NULL;
-	setting_client_info_s *data = NULL;
-
-	if (0 < g_list_length(g_setting_client_list)) {
-		iter = g_list_first(g_setting_client_list);
-
-		while (NULL != iter) {
-			/* Get handle data from list */
-			data = iter->data;
-
-			if (pid == data->pid) 
-				return iter;
-
-			iter = g_list_next(iter);
-		}
-	}
-
-	return NULL;
-}
-
-int sttd_setting_client_add(int pid)
-{	
-	/* Check uid is duplicated */
-	GList *tmp = NULL;
-	tmp = __setting_client_get_item(pid);
-
-	if (NULL != tmp) {
-		SLOG(LOG_WARN, TAG_STTD, "[Client Data] Setting client(%d) is already registered", pid); 
-		return STTD_ERROR_INVALID_PARAMETER;
-	}
-
-	setting_client_info_s *info = (setting_client_info_s*)g_malloc0(sizeof(setting_client_info_s));
-
-	info->pid = pid;
-
-	/* Add item to global list */
-	g_setting_client_list = g_list_append(g_setting_client_list, info);
-
-	if (NULL == g_setting_client_list) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Client Data ERROR] Fail to add new client"); 
+	if (0 != g_cur_recog_uid) {
 		return -1;
-	} else {
-		SLOG(LOG_DEBUG, TAG_STTD, "[Client Data SUCCESS] Add new client"); 
 	}
 
-#ifdef CLIENT_DATA_DEBUG
-	client_show_list();
-#endif 
+	g_cur_recog_uid = uid;
+
 	return 0;
 }
 
-int sttd_setting_client_delete(int pid)
+int stt_client_get_current_recognition()
 {
-	GList *tmp = NULL;
-	setting_client_info_s* hnd = NULL;
+	return g_cur_recog_uid;
+}
 
-	/*Get handle*/
-	tmp = __setting_client_get_item(pid);
+int stt_client_unset_current_recognition()
+{
+	g_cur_recog_uid = 0;
+	return 0;
+}
+
+int stt_client_set_app_agreed(int uid)
+{
+	GSList *tmp = NULL;
+	client_info_s* hnd = NULL;
+
+	tmp = __client_get_item(uid);
 	if (NULL == tmp) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Client Data ERROR] Setting uid(%d) is NOT valid", pid); 
+		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Client Data ERROR] uid(%d) is NOT valid", uid); 
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
-	/*Free client structure*/
 	hnd = tmp->data;
-	if (NULL != hnd) {
-		g_free(hnd);
-	}
-
-	/*Remove handle from list*/
-	g_setting_client_list = g_list_remove_link(g_setting_client_list, tmp);
-
-#ifdef CLIENT_DATA_DEBUG
-	client_show_list();
-#endif 
+	hnd->app_agreed = true;
 
 	return 0;
 }
 
-bool sttd_setting_client_is(int pid)
+bool stt_client_get_app_agreed(int uid)
 {
-	GList *tmp = __setting_client_get_item(pid);
+	GSList *tmp = NULL;
+	client_info_s* hnd = NULL;
+
+	tmp = __client_get_item(uid);
 	if (NULL == tmp) {
-		return false;
+		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Client Data ERROR] uid(%d) is NOT valid", uid); 
+		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
-	return true;
+	hnd = tmp->data;
+	return hnd->app_agreed;
 }
