@@ -1,5 +1,5 @@
 /*
-*  Copyright (c) 2012, 2013 Samsung Electronics Co., Ltd All Rights Reserved 
+*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved 
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -32,68 +32,45 @@ int sttd_finalize();
 
 Eina_Bool sttd_cleanup_client(void *data);
 
+Eina_Bool sttd_get_daemon_exist();
+
 /*
 * API for client
 */
 
-int sttd_server_initialize(int pid, int uid, bool* silence, bool* profanity, bool* punctuation);
+int sttd_server_initialize(int pid, int uid, bool* silence);
 
 int sttd_server_finalize(int uid);
 
-int sttd_server_get_supported_languages(int uid, GList** lang_list);
+int sttd_server_get_supported_engines(int uid, GSList** engine_list);
+
+int sttd_server_set_current_engine(int uid, const char* engine_id, bool* silence);
+
+int sttd_server_get_current_engine(int uid, char** engine_id);
+
+int sttd_server_check_agg_agreed(int uid, const char* appid, bool* available);
+
+int sttd_server_get_supported_languages(int uid, GSList** lang_list);
 
 int sttd_server_get_current_langauage(int uid, char** current_lang);
 
 int sttd_server_set_engine_data(int uid, const char* key, const char* value);
 
-int sttd_server_is_partial_result_supported(int uid, int* partial_result);
+int sttd_server_is_recognition_type_supported(int uid, const char* type, int* support);
+
+int sttd_server_set_start_sound(int uid, const char* file);
+
+int sttd_server_set_stop_sound(int uid, const char* file);
+
 
 int sttd_server_get_audio_volume(int uid, float* current_volume);
 
-int sttd_server_start(int uid, const char* lang, const char* recognition_type, 
-			int profanity, int punctuation, int silence);
+int sttd_server_start(int uid, const char* lang, const char* recognition_type, int silence, const char* appid);
 
 int sttd_server_stop(int uid);
 
 int sttd_server_cancel(int uid);
 
-int sttd_server_start_file_recognition(int uid, const char* filepath, const char* lang, const char* type, 
-				       int profanity, int punctuation);
-/*
-* API for setting
-*/
-
-int sttd_server_setting_initialize(int pid);
-
-int sttd_server_setting_finalize(int pid);
-
-int sttd_server_setting_get_engine_list(int pid, GList** engine_list);
-
-int sttd_server_setting_get_engine(int pid, char** engine_id);
-
-int sttd_server_setting_set_engine(int pid, const char* engine_id);
-
-int sttd_server_setting_get_lang_list(int pid, char** engine_id, GList** lang_list);
-
-int sttd_server_setting_get_default_language(int pid, char** language);
-
-int sttd_server_setting_set_default_language(int pid, const char* language);
-
-int sttd_server_setting_get_profanity_filter(int pid, bool* value);
-
-int sttd_server_setting_set_profanity_filter(int pid, bool value);
-
-int sttd_server_setting_get_punctuation_override(int pid, bool* value);
-
-int sttd_server_setting_set_punctuation_override(int pid, bool value);
-
-int sttd_server_setting_get_silence_detection(int pid, bool* value);
-
-int sttd_server_setting_set_silence_detection(int pid, bool value);
-
-int sttd_server_setting_get_engine_setting(int pid, char** engine_id, GList** lang_list);
-
-int sttd_server_setting_set_engine_setting(int pid, const char* key, const char* value);
 
 
 #ifdef __cplusplus

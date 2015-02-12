@@ -1,5 +1,5 @@
 /*
-*  Copyright (c) 2012, 2013 Samsung Electronics Co., Ltd All Rights Reserved 
+*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved 
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -32,26 +32,47 @@ typedef enum {
 typedef struct {
 	int	pid;
 	int	uid;
+	char*	start_beep;
+	char*	stop_beep;
+
 	app_state_e	state;
-	Ecore_Timer*	timer;
-} client_info_s;
+/*	Ecore_Timer*	timer;	*/
+
+	bool	app_agreed;
+}client_info_s;
 
 typedef struct {
-	int pid;
-} setting_client_info_s;
+	int	index;
+	int	event;
+	char*	text;
+	long	start_time;
+	long	end_time;
+}result_time_info_s;
 
-int sttd_client_add(const int pid, const int uid);
+typedef bool (*time_callback)(int index, int event, const char* text, long start_time, long end_time, void *user_data);
 
-int sttd_client_delete(const int uid);
 
-int sttd_client_get_state(const int uid, app_state_e* state);
+int sttd_client_add(int pid, int uid);
 
-int sttd_client_set_state(const int uid, const app_state_e state);
+int sttd_client_delete(int uid);
+
+int sttd_client_get_start_sound(int uid, char** filename);
+
+int sttd_client_set_start_sound(int uid, const char* filename);
+
+int sttd_client_get_stop_sound(int uid, char** filename);
+
+int sttd_client_set_stop_sound(int uid, const char* filename);
+
+int sttd_client_get_state(int uid, app_state_e* state);
+
+int sttd_client_set_state(int uid, app_state_e state);
 
 int sttd_client_get_ref_count();
 
-int sttd_client_get_pid(const int uid);
+int sttd_client_get_pid(int uid);
 
+#if 0
 int sttd_client_get_current_recording();
 
 int sttd_client_get_current_thinking();
@@ -59,15 +80,21 @@ int sttd_client_get_current_thinking();
 int sttd_cliet_set_timer(int uid, Ecore_Timer* timer);
 
 int sttd_cliet_get_timer(int uid, Ecore_Timer** timer);
+#endif
 
 int sttd_client_get_list(int** uids, int* uid_count);
 
+int stt_client_set_current_recognition(int uid);
 
-int sttd_setting_client_add(int pid);
+int stt_client_get_current_recognition();
 
-int sttd_setting_client_delete(int pid);
+int stt_client_unset_current_recognition();
 
-bool sttd_setting_client_is(int pid);
+
+int stt_client_set_app_agreed(int uid);
+
+bool stt_client_get_app_agreed(int uid);
+
 
 #ifdef __cplusplus
 }

@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<stt-config>
+        <engine>1D1AC768-D818-4E65-A732-3639D4759632</engine>
+        <engine-setting/>
+        <auto>on</auto>
+        <language>en_US</language>
+        <silence-detection>on</silence-detection>
+</stt-config>

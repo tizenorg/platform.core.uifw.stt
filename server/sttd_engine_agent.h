@@ -1,5 +1,5 @@
 /*
-*  Copyright (c) 2012, 2013 Samsung Electronics Co., Ltd All Rights Reserved 
+*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved 
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -32,9 +32,10 @@ extern "C" {
 typedef void (*result_callback)(sttp_result_event_e event, const char* type, 
 				const char** data, int data_count, const char* msg, void *user_data);
 
-typedef void (*partial_result_callback)(sttp_result_event_e event, const char* data, void *user_data);
+typedef bool (*result_time_callback)(int index, sttp_result_time_event_e event, const char* text, 
+				long start_time, long end_time, void *user_data);
 
-typedef void (*silence_dectection_callback)(void *user_data);
+typedef void (*silence_dectection_callback)(sttp_silence_type_e type, void *user_data);
 
 
 
@@ -42,84 +43,63 @@ typedef void (*silence_dectection_callback)(void *user_data);
 * STT Engine Agent Interfaces
 */
 
-/** Init engine agent */
-int sttd_engine_agent_init(result_callback result_cb, partial_result_callback partial_result_cb, silence_dectection_callback silence_cb);
+/** Init / Release engine agent */
+int sttd_engine_agent_init(result_callback result_cb, result_time_callback time_cb, 
+			   silence_dectection_callback silence_cb);
 
-/** Release engine agent */
 int sttd_engine_agent_release();
 
-/** Set current engine */
-int sttd_engine_agent_initialize_current_engine();
 
-/** load current engine */
-int sttd_engine_agent_load_current_engine();
+/** Manage engine */
+int sttd_engine_agent_initialize_engine_list();
 
-/** Unload current engine */
-int sttd_engine_agent_unload_current_engine();
 
-/** test for language list */
-int sttd_print_enginelist();
+/** load / unload engine */
+int sttd_engine_agent_load_current_engine(int uid, const char* engine_uuid);
 
-/** Get state of current engine to need network */
-bool sttd_engine_agent_need_network();
+int sttd_engine_agent_unload_current_engine(int uid);
 
-int sttd_engine_get_option_supported(bool* silence, bool* profanity, bool* punctuation);
+bool sttd_engine_agent_is_default_engine();
 
-/*
-* STT Engine Interfaces for client
-*/
+int sttd_engine_agent_get_engine_list(GSList** engine_list);
 
-int sttd_engine_supported_langs(GList** lang_list);
+int sttd_engine_agent_get_current_engine(int uid, char** engine_uuid);
 
-int sttd_engine_get_default_lang(char** lang);
 
-int sttd_engine_recognize_start(const char* lang, const char* recognition_type, 
-				int profanity, int punctuation, int silence, void* user_param);
+/** Get/Set app option */
+bool sttd_engine_agent_need_network(int uid);
 
-int sttd_engine_recognize_audio(const void* data, unsigned int length);
+int sttd_engine_agent_supported_langs(int uid, GSList** lang_list);
 
-int sttd_engine_is_partial_result_supported(bool* partial_result);
+int sttd_engine_agent_get_default_lang(int uid, char** lang);
 
-int sttd_engine_recognize_stop();
+int sttd_engine_agent_get_option_supported(int uid, bool* silence);
 
-int sttd_engine_recognize_cancel();
+int sttd_engine_agent_is_recognition_type_supported(int uid, const char* type, bool* support);
 
-int sttd_engine_get_audio_format(sttp_audio_type_e* types, int* rate, int* channels);
+int sttd_engine_agent_set_default_engine(const char* engine_uuid);
 
-int sttd_engine_recognize_start_file(const char* filepath, const char* lang, const char* recognition_type, 
-				     int profanity, int punctuation, void* user_param);
+int sttd_engine_agent_set_default_language(const char* language);
 
-/*
-* STT Engine Interfaces for setting
-*/
+int sttd_engine_agent_set_silence_detection(bool value);
 
-int sttd_engine_setting_get_engine_list(GList** engine_list);
+int sttd_engine_agent_check_app_agreed(int uid, const char* appid, bool* result);
 
-int sttd_engine_setting_get_engine(char** engine_id);
+/** Control engine */
+int sttd_engine_agent_recognize_start_engine(int uid, const char* lang, const char* recognition_type, 
+				int silence, void* user_param);
 
-int sttd_engine_setting_set_engine(const char* engine_id);
+int sttd_engine_agent_recognize_start_recorder(int uid);
 
-int sttd_engine_setting_get_lang_list(char** engine_id, GList** lang_list);
+int sttd_engine_agent_set_recording_data(int uid, const void* data, unsigned int length);
 
-int sttd_engine_setting_get_default_lang(char** language);
+int sttd_engine_agent_recognize_stop(int uid);
 
-int sttd_engine_setting_set_default_lang(const char* language);
+int sttd_engine_agent_recognize_stop_recorder(int uid);
 
-int sttd_engine_setting_get_profanity_filter(bool* value);
+int sttd_engine_agent_recognize_stop_engine(int uid);
 
-int sttd_engine_setting_set_profanity_filter(bool value);
-
-int sttd_engine_setting_get_punctuation_override(bool* value);
-
-int sttd_engine_setting_set_punctuation_override(bool value);
-
-int sttd_engine_setting_get_silence_detection(bool* value);
-
-int sttd_engine_setting_set_silence_detection(bool value);
-
-int sttd_engine_setting_get_engine_setting_info(char** engine_id, GList** setting_list); 
-
-int sttd_engine_setting_set_engine_setting(const char* key, const char* value);
+int sttd_engine_agent_recognize_cancel(int uid);
 
 
 #ifdef __cplusplus

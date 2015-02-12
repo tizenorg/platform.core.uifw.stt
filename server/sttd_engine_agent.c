@@ -1,5 +1,5 @@
 /*
-*  Copyright (c) 2012, 2013 Samsung Electronics Co., Ltd All Rights Reserved 
+*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved 
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -15,110 +15,85 @@
 #include <dlfcn.h>
 #include <dirent.h>
 
+#include "stt_defs.h"
+#include "stt_engine.h"
 #include "sttd_main.h"
 #include "sttd_client_data.h"
 #include "sttd_config.h"
+#include "sttd_recorder.h"
 #include "sttd_engine_agent.h"
 
+
+#define AUDIO_CREATE_ON_START
 
 /*
 * Internal data structure
 */
 
 typedef struct {
-	/* engine info */
-	char*	engine_uuid;
-	char*	engine_name; 
-	char*	engine_path;
-
-	/* engine load info */
-	bool	is_set;
-	bool	is_loaded;	
-	bool	need_network;
-	bool	support_silence_detection;
-	bool	support_profanity_filter;
-	bool	support_punctuation_override;
-	void	*handle;
-
-	/* engine base setting */
-	char*	default_lang;
-	bool	profanity_filter;
-	bool	punctuation_override;
-	bool	silence_detection;
-
-	sttpe_funcs_s*	pefuncs;
-	sttpd_funcs_s*	pdfuncs;
-
-	int (*sttp_load_engine)(sttpd_funcs_s* pdfuncs, sttpe_funcs_s* pefuncs);
-	int (*sttp_unload_engine)();
-} sttengine_s;
+	int	uid;
+	int	engine_id;
+	bool	use_default_engine;
+} sttengine_client_s;
 
 typedef struct _sttengine_info {
+	int	engine_id;
+
 	char*	engine_uuid;
 	char*	engine_path;
 	char*	engine_name;
-	char*	setting_ug_path;
+	char*	engine_setting_path;
 	bool	use_network;
+
+	bool	is_loaded;
+	
+	/* engine base setting */
+	char*	first_lang;
+	bool	silence_detection;
 	bool	support_silence_detection;
 } sttengine_info_s;
 
-
-/*
-* static data
-*/
-
 /** stt engine agent init */
-static bool g_agent_init;
+static bool	g_agent_init;
 
-/** stt engine list */
-static GList *g_engine_list;		
+/** list */
+static GSList*	g_engine_client_list;
+static GSList*	g_engine_list;
 
-/** current engine infomation */
-static sttengine_s g_cur_engine;
+/** default engine info */
+static int	g_default_engine_id;
+static char*	g_default_language;
+static bool	g_default_silence_detected;
 
-/** default option value */
-static bool g_default_profanity_filter;
-static bool g_default_punctuation_override;
-static bool g_default_silence_detected;
+static int	g_engine_id_count;
+
+/** current engine id */
+static int	g_recording_engine_id;
 
 /** callback functions */
 static result_callback g_result_cb;
-static partial_result_callback g_partial_result_cb;
+static result_time_callback g_result_time_cb;
 static silence_dectection_callback g_silence_cb;
 
 
 /** callback functions */
-void __result_cb(sttp_result_event_e event, const char* type, 
-			const char** data, int data_count, const char* msg, void *user_data);
+void __result_cb(sttp_result_event_e event, const char* type, const char** data, int data_count, 
+		 const char* msg, void* time_info, void *user_data);
 
-void __partial_result_cb(sttp_result_event_e event, const char* data, void *user_data);
+bool __result_time_cb(int index, sttp_result_time_event_e event, const char* text, 
+		      long start_time, long end_time, void* user_data);
 
-void __detect_silence_cb(void* user_data);
+void __detect_silence_cb(sttp_silence_type_e type, void* user_data);
 
 bool __supported_language_cb(const char* language, void* user_data);
 
 void __engine_info_cb(const char* engine_uuid, const char* engine_name, const char* setting_ug_name, 
 		      bool use_network, void* user_data);
 
-bool __engine_setting_cb(const char* key, const char* value, void* user_data);
-
-/** Free voice list */
-void __free_language_list(GList* lang_list);
-
-
 /*
 * Internal Interfaces 
 */
  
-/** Set current engine */
-int __internal_set_current_engine(const char* engine_uuid);
-
-/** check engine id */
-int __internal_check_engine_id(const char* engine_uuid);
-
-/** update engine list */
-int __internal_update_engine_list();
-
 /** get engine info */
 int __internal_get_engine_info(const char* filepath, sttengine_info_s** info);
 
@@ -127,33 +102,30 @@ int __log_enginelist();
 /*
 * STT Engine Agent Interfaces
 */
-int sttd_engine_agent_init(result_callback result_cb, partial_result_callback partial_result_cb, silence_dectection_callback silence_cb)
+int sttd_engine_agent_init(result_callback result_cb, result_time_callback time_cb, 
+			   silence_dectection_callback silence_cb)
 {
 	/* initialize static data */
-	if (NULL == result_cb || NULL == silence_cb) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine agent ERROR] sttd_engine_agent_init : invalid parameter"); 
+	if (NULL == result_cb || NULL == time_cb || NULL == silence_cb) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine agent ERROR] Invalid parameter"); 
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
 	g_result_cb = result_cb;
-	g_partial_result_cb = partial_result_cb;
+	g_result_time_cb = time_cb;
 	g_silence_cb = silence_cb;
 
-	g_cur_engine.engine_uuid = NULL;
-	g_cur_engine.engine_name = NULL;
-	g_cur_engine.engine_path = NULL;
+	g_default_engine_id = -1;
+	g_default_language = NULL;
+	g_engine_id_count = 1;
+	g_recording_engine_id = -1;
 
-	g_cur_engine.is_set = false;
-	g_cur_engine.handle = NULL;
-	g_cur_engine.pefuncs = (sttpe_funcs_s*)malloc( sizeof(sttpe_funcs_s) );
-	g_cur_engine.pdfuncs = (sttpd_funcs_s*)malloc( sizeof(sttpd_funcs_s) );
-
-	g_agent_init = true;
-
-	if (0 != sttd_config_get_default_language(&(g_cur_engine.default_lang))) {
-		SLOG(LOG_WARN, TAG_STTD, "[Server WARNING] There is No default voice in config"); 
+	if (0 != sttd_config_get_default_language(&(g_default_language))) {
+		SLOG(LOG_WARN, TAG_STTD, "[Engine Agent WARNING] There is No default voice in config"); 
 		/* Set default voice */
-		g_cur_engine.default_lang = strdup("en_US");
+		g_default_language = strdup("en_US");
+	} else {
+		SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] Default language is %s", g_default_language);
 	}
 
 	int temp;
@@ -164,186 +136,88 @@ int sttd_engine_agent_init(result_callback result_cb, partial_result_callback pa
 		g_default_silence_detected = (bool)temp;
 	}
 
-	if (0 != sttd_config_get_default_profanity_filter(&temp)) {
-		SLOG(LOG_WARN, TAG_STTD, "[Server WARNING] There is no profanity filter in config"); 
-		g_default_profanity_filter = false;
-	} else {
-		g_default_profanity_filter = (bool)temp;
-	}
+	g_agent_init = false;
 
-	if (0 != sttd_config_get_default_punctuation_override(&temp)) {
-		SLOG(LOG_WARN, TAG_STTD, "[Server WARNING] There is no punctuation override in config"); 
-		g_default_punctuation_override = false;
-	} else {
-		g_default_punctuation_override = (bool)temp;
-	}
+	return 0;
+}
 
-	SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent SUCCESS] Engine Agent Initialize"); 
+int __engine_agent_clear_engine(sttengine_info_s *engine)
+{
+	if (NULL != engine) {
+		if (NULL != engine->engine_uuid)	free(engine->engine_uuid);
+		if (NULL != engine->engine_path)	free(engine->engine_path);
+		if (NULL != engine->engine_name)	free(engine->engine_name);
+		if (NULL != engine->engine_setting_path)free(engine->engine_setting_path);
+		if (NULL != engine->first_lang)		free(engine->first_lang);
+
+		free(engine);
+	}
 
 	return 0;
 }
 
 int sttd_engine_agent_release()
 {
-	if (false == g_agent_init) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized"); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
+	/* Release client list */
+	GSList *iter = NULL;
+	sttengine_client_s *client = NULL;
 
-	/* unload current engine */
-	sttd_engine_agent_unload_current_engine();
-
-	/* release engine list */
-	GList *iter = NULL;
-	sttengine_s *data = NULL;
-
-	if (g_list_length(g_engine_list) > 0) {
+	if (g_slist_length(g_engine_client_list) > 0) {
 		/* Get a first item */
-		iter = g_list_first(g_engine_list);
+		iter = g_slist_nth(g_engine_client_list, 0);
 
 		while (NULL != iter) {
 			/* Get handle data from list */
-			data = iter->data;
+			client = iter->data;
+			g_engine_client_list = g_slist_remove_link(g_engine_client_list, iter);
 
-			iter = g_list_remove(iter, data);
+			if (NULL != client) 
+				free(client);
+
+			iter = g_slist_nth(g_engine_client_list, 0);
 		}
 	}
 
-	g_list_free(iter);
-	
-	/* release current engine data */
-	if( NULL != g_cur_engine.pefuncs )
-		free(g_cur_engine.pefuncs);
+	g_slist_free(g_engine_client_list);
 
-	if( NULL != g_cur_engine.pdfuncs )
-		free(g_cur_engine.pdfuncs);
+	/* Release engine list */
+	sttengine_info_s *engine = NULL;
+
+	if (0 < g_slist_length(g_engine_list)) {
+		/* Get a first item */
+		iter = g_slist_nth(g_engine_list, 0);
+
+		while (NULL != iter) {
+			/* Get handle data from list */
+			engine = iter->data;
+			g_engine_list = g_slist_remove_link(g_engine_list, iter);
+			
+			/* Check engine unload */
+			if (engine->is_loaded) {
+				SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] Unload engine id(%d)", engine->engine_id);
+
+				if (0 != stt_engine_deinitialize(engine->engine_id)) 
+					SECURE_SLOG(LOG_WARN, TAG_STTD, "[Engine Agent] Fail to deinitialize engine id(%d)", engine->engine_id);
+
+				if (0 != stt_engine_unload(engine->engine_id))
+					SECURE_SLOG(LOG_WARN, TAG_STTD, "[Engine Agent] Fail to unload engine id(%d)", engine->engine_id);
+
+				engine->is_loaded = false;
+			}
+
+			__engine_agent_clear_engine(engine);
+
+			iter = g_slist_nth(g_engine_list, 0);
+		}
+	}
 
 	g_result_cb = NULL;
 	g_silence_cb = NULL;
 
 	g_agent_init = false;
-
-	SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent SUCCESS] Engine Agent release"); 
-
-	return 0;
-}
-
-int sttd_engine_agent_initialize_current_engine()
-{
-	/* check agent init */
-	if (false == g_agent_init ) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized"); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	/* update engine list */
-	if (0 != __internal_update_engine_list()) {
-		SLOG(LOG_ERROR, TAG_STTD, "[engine agent] sttd_engine_agent_init : __internal_update_engine_list : no engine error"); 
-		return STTD_ERROR_ENGINE_NOT_FOUND;
-	}
-
-	/* get current engine from config */
-	char* cur_engine_uuid = NULL;
-	bool is_get_engineid_from_config = false;
-
-	if (0 != sttd_config_get_default_engine(&cur_engine_uuid)) {
-
-		SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] There is not current engine from config"); 
-
-		/* not set current engine */
-		/* set system default engine */
-		GList *iter = NULL;
-		if (0 < g_list_length(g_engine_list)) {
-			iter = g_list_first(g_engine_list);
-		} else {
-			SLOG(LOG_ERROR, TAG_STTD, "[engine agent ERROR] sttd_engine_agent_initialize_current_engine() : no engine error"); 
-			return -1;	
-		}
-
-		sttengine_info_s *data = NULL;
-		data = iter->data;
-
-		cur_engine_uuid = g_strdup(data->engine_uuid);
-
-		is_get_engineid_from_config = false;
-	} else {
-		SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] current engine from config : %s", cur_engine_uuid); 
-
-		is_get_engineid_from_config = true;
-	}
-
-	/* check whether cur engine uuid is valid or not. */
-	if (0 != __internal_check_engine_id(cur_engine_uuid)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] It is not valid engine id and find other engine id");
-
-		GList *iter = NULL;
-		if (0 < g_list_length(g_engine_list)) {
-			iter = g_list_first(g_engine_list);
-		} else {
-			SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] sttd_engine_agent_initialize_current_engine() : no engine error"); 
-			return -1;	
-		}
-
-		if (NULL != cur_engine_uuid)	
-			free(cur_engine_uuid);
-		
-		sttengine_info_s *data = NULL;
-		data = iter->data;
-
-		cur_engine_uuid = g_strdup(data->engine_uuid);
-		
-		is_get_engineid_from_config = false;
-	}
-
-	SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] Current Engine Id : %s", cur_engine_uuid);
-
-	/* set current engine */
-	if (0 != __internal_set_current_engine(cur_engine_uuid)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[engine agent ERROR] __internal_set_current_engine : no engine error"); 
-
-		if( cur_engine_uuid != NULL)	
-			free(cur_engine_uuid);
-
-		return STTD_ERROR_ENGINE_NOT_FOUND;
-	}
-
-	if (false == is_get_engineid_from_config) {
-		if (0 != sttd_config_set_default_engine(cur_engine_uuid))
-			SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to set default engine "); 
-	}
-
-	if( cur_engine_uuid != NULL )	
-		free(cur_engine_uuid);
+	g_default_engine_id = -1;
 
 	return 0;
-}
-
-int __internal_check_engine_id(const char* engine_uuid)
-{
-	if (NULL == engine_uuid) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Invalid Parameter"); 
-		return STTD_ERROR_INVALID_PARAMETER;
-	}
-
-	GList *iter = NULL;
-	sttengine_s *data = NULL;
-
-	if (0 < g_list_length(g_engine_list)) {
-		/*Get a first item*/
-		iter = g_list_first(g_engine_list);
-
-		while (NULL != iter) {
-			data = iter->data;
-			
-			if (0 == strncmp(engine_uuid, data->engine_uuid, strlen(data->engine_uuid))) {
-				return 0;
-			}
-
-			iter = g_list_next(iter);
-		}
-	}
-
-	return -1;
 }
 
 void __engine_info_cb(const char* engine_uuid, const char* engine_name, const char* setting_ug_name, 
@@ -353,10 +227,9 @@ void __engine_info_cb(const char* engine_uuid, const char* engine_name, const ch
 
 	temp->engine_uuid = g_strdup(engine_uuid);
 	temp->engine_name = g_strdup(engine_name);
-	temp->setting_ug_path = g_strdup(setting_ug_name);
+	temp->engine_setting_path = g_strdup(setting_ug_name);
 	temp->use_network = use_network;
 }
-
 
 int __internal_get_engine_info(const char* filepath, sttengine_info_s** info)
 {
@@ -372,7 +245,7 @@ int __internal_get_engine_info(const char* filepath, sttengine_info_s** info)
 	handle = dlopen (filepath, RTLD_LAZY);
 
 	if (!handle) {
-		SLOG(LOG_WARN, TAG_STTD, "[Engine Agent] Invalid engine : %s", filepath); 
+		SECURE_SLOG(LOG_WARN, TAG_STTD, "[Engine Agent] Invalid engine : %s", filepath); 
 		return -1;
 	}
 
@@ -401,27 +274,32 @@ int __internal_get_engine_info(const char* filepath, sttengine_info_s** info)
 	}
 
 	sttengine_info_s* temp;
-	temp = (sttengine_info_s*)g_malloc0( sizeof(sttengine_info_s) );
+	temp = (sttengine_info_s*)calloc(1, sizeof(sttengine_info_s));
 
 	/* get engine info */
 	if (0 != get_engine_info(__engine_info_cb, (void*)temp)) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to get engine info from engine"); 
 		dlclose(handle);
-		g_free(temp);
+		free(temp);
 		return -1;
 	}
 
 	/* close engine */
 	dlclose(handle);
 
+	temp->engine_id = g_engine_id_count;
+	g_engine_id_count++;
+
 	temp->engine_path = g_strdup(filepath);
+	temp->is_loaded = false;
 
 	SLOG(LOG_DEBUG, TAG_STTD, "----- Valid Engine");
-	SLOG(LOG_DEBUG, TAG_STTD, "Engine uuid : %s", temp->engine_uuid);
-	SLOG(LOG_DEBUG, TAG_STTD, "Engine name : %s", temp->engine_name);
-	SLOG(LOG_DEBUG, TAG_STTD, "Setting ug path : %s", temp->setting_ug_path);
-	SLOG(LOG_DEBUG, TAG_STTD, "Engine path : %s", temp->engine_path);
-	SLOG(LOG_DEBUG, TAG_STTD, "Use network : %s", temp->use_network ? "true":"false");
+	SECURE_SLOG(LOG_DEBUG, TAG_STTD, "Engine id : %d", temp->engine_id);
+	SECURE_SLOG(LOG_DEBUG, TAG_STTD, "Engine uuid : %s", temp->engine_uuid);
+	SECURE_SLOG(LOG_DEBUG, TAG_STTD, "Engine name : %s", temp->engine_name);
+	SECURE_SLOG(LOG_DEBUG, TAG_STTD, "Engine path : %s", temp->engine_path);
+	SECURE_SLOG(LOG_DEBUG, TAG_STTD, "Engine setting path : %s", temp->engine_setting_path);
+	SECURE_SLOG(LOG_DEBUG, TAG_STTD, "Use network : %s", temp->use_network ? "true":"false");
 	SLOG(LOG_DEBUG, TAG_STTD, "-----");
 	SLOG(LOG_DEBUG, TAG_STTD, "  ");
 
@@ -430,793 +308,598 @@ int __internal_get_engine_info(const char* filepath, sttengine_info_s** info)
 	return 0;
 }
 
-int __internal_update_engine_list()
+bool __is_engine(const char* filepath)
 {
-	/* relsease engine list */
-	GList *iter = NULL;
-	sttengine_info_s *data = NULL;
+	GSList *iter = NULL;
+	sttengine_info_s *engine = NULL;
 
-	if (0 < g_list_length(g_engine_list)) {
+	if (0 < g_slist_length(g_engine_list)) {
 		/* Get a first item */
-		iter = g_list_first(g_engine_list);
+		iter = g_slist_nth(g_engine_list, 0);
 
 		while (NULL != iter) {
 			/* Get handle data from list */
-			data = iter->data;
+			engine = iter->data;
 
-			if (NULL != data) {
-				if (NULL != data->engine_uuid)		free(data->engine_uuid);
-				if (NULL != data->engine_path)		free(data->engine_path);
-				if (NULL != data->engine_name)		free(data->engine_name);
-				if (NULL != data->setting_ug_path)	free(data->setting_ug_path);
-				
-				free(data);
+			if (0 == strcmp(engine->engine_path, filepath)) {
+				return true;
 			}
-
-			g_engine_list = g_list_remove_link(g_engine_list, iter);
-			iter = g_list_first(g_engine_list);
+		
+			iter = g_slist_next(iter);
 		}
 	}
 
+	return false;
+}
+
+int sttd_engine_agent_initialize_engine_list()
+{
 	/* Get file name from default engine directory */
-	DIR *dp;
-	struct dirent *dirp;
+	DIR *dp = NULL;
+	int ret = -1;
+	struct dirent entry;
+	struct dirent *dirp = NULL;
 
-	dp  = opendir(ENGINE_DIRECTORY_DEFAULT);
+	dp  = opendir(STT_DEFAULT_ENGINE);
 	if (NULL != dp) {
-		while (NULL != (dirp = readdir(dp))) {
-			sttengine_info_s* info;
-			char* filepath;
-			int filesize;
-
-			filesize = strlen(ENGINE_DIRECTORY_DEFAULT) + strlen(dirp->d_name) + 5;
-			filepath = (char*) g_malloc0(sizeof(char) * filesize);
-
-			if (NULL != filepath) {
-				strncpy(filepath, ENGINE_DIRECTORY_DEFAULT, strlen(ENGINE_DIRECTORY_DEFAULT) );
-				strncat(filepath, "/", strlen("/") );
-				strncat(filepath, dirp->d_name, strlen(dirp->d_name) );
-			} else {
-				SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Memory not enough!!" );
-				continue;	
+		do {
+			ret = readdir_r(dp, &entry, &dirp);
+			if (0 != ret) {
+				SLOG(LOG_ERROR, TAG_STTD, "[File ERROR] Fail to read directory");
+				break;
 			}
 
-			/* get its info and update engine list */
-			if (0 == __internal_get_engine_info(filepath, &info)) {
-				/* add engine info to g_engine_list */
-				g_engine_list = g_list_append(g_engine_list, info);
-			}
+			if (NULL != dirp) {
+				sttengine_info_s* info;
+				char* filepath;
+				int filesize;
 
-			if (NULL != filepath)
-				g_free(filepath);
-		}
+				filesize = strlen(STT_DEFAULT_ENGINE) + strlen(dirp->d_name) + 5;
+				filepath = (char*)calloc(filesize, sizeof(char));
+
+				if (NULL != filepath) {
+					snprintf(filepath, filesize, "%s/%s", STT_DEFAULT_ENGINE, dirp->d_name);
+				} else {
+					SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Memory not enough!!");
+					continue;
+				}
+
+				if (false  == __is_engine(filepath)) {
+					/* get its info and update engine list */
+					if (0 == __internal_get_engine_info(filepath, &info)) {
+						/* add engine info to g_engine_list */
+						g_engine_list = g_slist_append(g_engine_list, info);
+					}
+				}
+
+				if (NULL != filepath)
+					free(filepath);
+			}
+		} while (NULL != dirp);
 
 		closedir(dp);
 	} else {
 		SLOG(LOG_WARN, TAG_STTD, "[Engine Agent WARNING] Fail to open default directory"); 
 	}
-	
+
 	/* Get file name from downloadable engine directory */
-	dp  = opendir(ENGINE_DIRECTORY_DOWNLOAD);
+	dp  = opendir(STT_DOWNLOAD_ENGINE);
 	if (NULL != dp) {
-		while (NULL != (dirp = readdir(dp))) {
-			sttengine_info_s* info;
-			char* filepath;
-			int filesize;
-
-			filesize = strlen(ENGINE_DIRECTORY_DOWNLOAD) + strlen(dirp->d_name) + 5;
-			filepath = (char*) g_malloc0(sizeof(char) * filesize);
-
-			if (NULL != filepath) {
-				strncpy(filepath, ENGINE_DIRECTORY_DOWNLOAD, strlen(ENGINE_DIRECTORY_DOWNLOAD) );
-				strncat(filepath, "/", strlen("/") );
-				strncat(filepath, dirp->d_name, strlen(dirp->d_name) );
-			} else {
-				SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Memory not enough!!" );
-				continue;
+		do {
+			ret = readdir_r(dp, &entry, &dirp);
+			if (0 != ret) {
+				SLOG(LOG_ERROR, TAG_STTD, "[File ERROR] Fail to read directory");
+				break;
 			}
 
-			/* get its info and update engine list */
-			if (0 == __internal_get_engine_info(filepath, &info)) {
-				/* add engine info to g_engine_list */
-				g_engine_list = g_list_append(g_engine_list, info);
-			}
+			if (NULL != dirp) {
+				sttengine_info_s* info;
+				char* filepath;
+				int filesize;
 
-			if (NULL != filepath)
-				g_free(filepath);
-		}
+				filesize = strlen(STT_DOWNLOAD_ENGINE) + strlen(dirp->d_name) + 5;
+				filepath = (char*)calloc(filesize, sizeof(char));
+
+				if (NULL != filepath) {
+					snprintf(filepath, filesize, "%s/%s", STT_DOWNLOAD_ENGINE, dirp->d_name);
+				} else {
+					SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Memory not enouth!!");
+					continue;
+				}
+
+				/* get its info and update engine list */
+				if (0 == __internal_get_engine_info(filepath, &info)) {
+					/* add engine info to g_engine_list */
+					g_engine_list = g_slist_append(g_engine_list, info);
+				}
+
+				if (NULL != filepath)
+					free(filepath);
+			}
+		} while (NULL != dirp);
 
 		closedir(dp);
 	} else {
 		SLOG(LOG_WARN, TAG_STTD, "[Engine Agent WARNING] Fail to open downloadable directory"); 
 	}
 
-	if (0 >= g_list_length(g_engine_list)) {
+	if (0 >= g_slist_length(g_engine_list)) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] No Engine"); 
 		return STTD_ERROR_ENGINE_NOT_FOUND;	
 	}
 
 	__log_enginelist();
-	
-	return 0;
-}
 
-int __internal_set_current_engine(const char* engine_uuid)
-{
-	if (NULL == engine_uuid) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Invalid Parameter"); 
-		return STTD_ERROR_INVALID_PARAMETER;
-	}
+	/* Set default engine */
+	GSList *iter = NULL;
+	sttengine_info_s *engine = NULL;
+	char* cur_engine_uuid = NULL;
+	bool is_default_engine = false;
 
-	/* check whether engine id is valid or not.*/
-	GList *iter = NULL;
-	sttengine_info_s *data = NULL;
+	/* get current engine from config */
+	if (0 == sttd_config_get_default_engine(&cur_engine_uuid)) {
+		SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] current engine from config : %s", cur_engine_uuid);
 
-	bool flag = false;
-	if (g_list_length(g_engine_list) > 0) {
-		/*Get a first item*/
-		iter = g_list_first(g_engine_list);
+		if (0 < g_slist_length(g_engine_list)) {
+			/* Get a first item */
+			iter = g_slist_nth(g_engine_list, 0);
 
-		while (NULL != iter) {
-			/*Get handle data from list*/
-			data = iter->data;
+			while (NULL != iter) {
+				/* Get handle data from list */
+				engine = iter->data;
 
-			SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] engine_uuid(%s) engine list->uuid(%s)", engine_uuid, data->engine_uuid);
-
-			if (0 == strncmp(data->engine_uuid, engine_uuid, strlen(engine_uuid))) {
-				flag = true;
-				break;
-			}
-
-			/*Get next item*/
-			iter = g_list_next(iter);
-		}
-	}
-
-	/* If current engine does not exist, return error */
-	if (false == flag) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] __internal_set_current_engine : Cannot find engine id"); 
-		return STTD_ERROR_INVALID_PARAMETER;
-	} else {
-		if (NULL != g_cur_engine.engine_uuid) {
-			/*compare current engine uuid */
-			if (0 == strncmp(g_cur_engine.engine_uuid, data->engine_uuid, strlen(engine_uuid))) {
-				SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent Check] stt engine has already been set");
-				return 0;
-			}
-		}
-	}
-
-	/* set data from g_engine_list */
-	if (g_cur_engine.engine_uuid != NULL)	free(g_cur_engine.engine_uuid);
-	if (g_cur_engine.engine_name != NULL)	free(g_cur_engine.engine_name);
-	if (g_cur_engine.engine_path != NULL)	free(g_cur_engine.engine_path);
-
-	g_cur_engine.engine_uuid = g_strdup(data->engine_uuid);
-	g_cur_engine.engine_name = g_strdup(data->engine_name);
-	g_cur_engine.engine_path = g_strdup(data->engine_path);
-
-	g_cur_engine.handle = NULL;
-	g_cur_engine.is_loaded = false;
-	g_cur_engine.is_set = true;
-	g_cur_engine.need_network = data->use_network;
-
-	g_cur_engine.profanity_filter = g_default_profanity_filter;
-	g_cur_engine.punctuation_override = g_default_punctuation_override;
-	g_cur_engine.silence_detection = g_default_silence_detected;
-
-	SLOG(LOG_DEBUG, TAG_STTD, "-----");
-	SLOG(LOG_DEBUG, TAG_STTD, " Current engine uuid : %s", g_cur_engine.engine_uuid);
-	SLOG(LOG_DEBUG, TAG_STTD, " Current engine name : %s", g_cur_engine.engine_name);
-	SLOG(LOG_DEBUG, TAG_STTD, " Current engine path : %s", g_cur_engine.engine_path);
-	SLOG(LOG_DEBUG, TAG_STTD, "-----");
-
-	return 0;
-}
-
-int sttd_engine_agent_load_current_engine()
-{
-	if (false == g_agent_init) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized"); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	if (false == g_cur_engine.is_set) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] sttd_engine_agent_load_current_engine : No Current Engine "); 
-		return -1;
-	}
-
-	/* check whether current engine is loaded or not */
-	if (true == g_cur_engine.is_loaded) {
-		SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] sttd_engine_agent_load_current_engine : Engine has already been loaded ");
-		return 0;
-	}
-	
-	SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] Current engine path : %s", g_cur_engine.engine_path);
-
-	/* open engine */
-	char *error;
-	g_cur_engine.handle = dlopen(g_cur_engine.engine_path, RTLD_LAZY);
-
-	if (NULL != (error = dlerror()) || !g_cur_engine.handle) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to get engine handle"); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-	
-	g_cur_engine.sttp_unload_engine = (int (*)())dlsym(g_cur_engine.handle, "sttp_unload_engine");
-	if (NULL != (error = dlerror()) || NULL == g_cur_engine.sttp_unload_engine) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to link daemon to sttp_unload_engine() : %s", error); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	g_cur_engine.sttp_load_engine = (int (*)(sttpd_funcs_s*, sttpe_funcs_s*) )dlsym(g_cur_engine.handle, "sttp_load_engine");
-	if (NULL != (error = dlerror()) || NULL == g_cur_engine.sttp_load_engine) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to link daemon to sttp_load_engine() : %s", error); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	/* load engine */
-	g_cur_engine.pdfuncs->version = 1;
-	g_cur_engine.pdfuncs->size = sizeof(sttpd_funcs_s);
-
-	if (0 != g_cur_engine.sttp_load_engine(g_cur_engine.pdfuncs, g_cur_engine.pefuncs)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail sttp_load_engine()"); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] engine info : version(%d), size(%d)",g_cur_engine.pefuncs->version, g_cur_engine.pefuncs->size); 
-
-	/* engine error check */
-	if (g_cur_engine.pefuncs->size != sizeof(sttpe_funcs_s)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] sttd_engine_agent_load_current_engine : engine is not valid"); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	/* initalize engine */
-	if (0 != g_cur_engine.pefuncs->initialize(__result_cb, __partial_result_cb, __detect_silence_cb)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to initialize stt-engine"); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	/* set default setting */
-	int ret = 0;
-
-	if (NULL == g_cur_engine.pefuncs->set_profanity_filter) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] set_profanity_filter of engine is NULL!!");
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-	
-	/* check and set profanity filter */
-	ret = g_cur_engine.pefuncs->set_profanity_filter(g_cur_engine.profanity_filter);
-	if (0 != ret) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent] Not support profanity filter");
-		g_cur_engine.support_profanity_filter = false;
-	} else {
-		g_cur_engine.support_profanity_filter = true;
-	}
-	
-	/* check and set punctuation */
-	if (NULL == g_cur_engine.pefuncs->set_punctuation) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] set_punctuation of engine is NULL!!");
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	ret = g_cur_engine.pefuncs->set_punctuation(g_cur_engine.punctuation_override);
-	if (0 != ret) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine ERROR] Not support punctuation override");
-		g_cur_engine.support_punctuation_override = false;
-	} else {
-		g_cur_engine.support_punctuation_override = true;
-	}
-
-	/* check and set silence detection */
-	if (NULL == g_cur_engine.pefuncs->set_silence_detection) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] set_silence_detection of engine is NULL!!");
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	ret = g_cur_engine.pefuncs->set_silence_detection(g_cur_engine.silence_detection);
-	if (0 != ret) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine ERROR] Not support silence detection");
-		g_cur_engine.support_silence_detection = false;
-	} else {
-		g_cur_engine.support_silence_detection = true;
-	}
-	
-	/* select default language */
-	bool set_voice = false;
-	if (NULL != g_cur_engine.default_lang) {
-		if (NULL == g_cur_engine.pefuncs->is_valid_lang) {
-			SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] set_default_lang of engine is NULL!!");
-			return STTD_ERROR_OPERATION_FAILED;
-		}
-
-		if (true == g_cur_engine.pefuncs->is_valid_lang(g_cur_engine.default_lang)) {
-			set_voice = true;
-			SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent SUCCESS] Set origin default voice to current engine : lang(%s)", g_cur_engine.default_lang);
-		} else {
-			SLOG(LOG_WARN, TAG_STTD, "[Engine Agent WARNING] Fail set origin default language : lang(%s)", g_cur_engine.default_lang);
-		}
-	}
-
-	if (false == set_voice) {
-		if (NULL == g_cur_engine.pefuncs->foreach_langs) {
-			SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] foreach_langs of engine is NULL!!");
-			return STTD_ERROR_OPERATION_FAILED;
-		}
-
-		/* get language list */
-		int ret;
-		GList* lang_list = NULL;
-
-		ret = g_cur_engine.pefuncs->foreach_langs(__supported_language_cb, &lang_list);
-
-		if (0 == ret && 0 < g_list_length(lang_list)) {
-			GList *iter = NULL;
-			iter = g_list_first(lang_list);
-
-			if (NULL != iter) {
-				char* temp_lang = iter->data;
-
-				if (true != g_cur_engine.pefuncs->is_valid_lang(temp_lang)) {
-					SLOG(LOG_ERROR, TAG_STTD, "[Engine ERROR] Fail voice is NOT valid");
-					return STTD_ERROR_OPERATION_FAILED;
+				if (0 == strcmp(engine->engine_uuid, cur_engine_uuid)) {
+					is_default_engine = true;
+					g_default_engine_id = engine->engine_id;
+					break;
 				}
 
-				sttd_config_set_default_language(temp_lang);
-
-				g_cur_engine.default_lang = g_strdup(temp_lang);
-				
-				SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent SUCCESS] Select default voice : lang(%s)", temp_lang);
-			} else {
-				SLOG(LOG_ERROR, TAG_STTD, "[Engine ERROR] Fail to get language list : result(%d)\n", ret);
-				return STTD_ERROR_OPERATION_FAILED;
+				iter = g_slist_next(iter);
 			}
-
-			__free_language_list(lang_list);
-		} else {
-			SLOG(LOG_ERROR, TAG_STTD, "[Engine ERROR] Fail to get language list : result(%d)\n", ret);
-			return STTD_ERROR_OPERATION_FAILED;
 		}
 
-	} 
+		if (cur_engine_uuid != NULL )
+			free(cur_engine_uuid);
+	} else {
+		SLOG(LOG_WARN, TAG_STTD, "[Engine Agent WARNING] There is not current engine from config"); 
+	}
 
-	g_cur_engine.is_loaded = true;
+	if (false == is_default_engine) {
+		if (0 < g_slist_length(g_engine_list)) {
+			/* Get a first item */
+			iter = g_slist_nth(g_engine_list, 0);
 
-	SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent SUCCESS] The %s has been loaded !!!", g_cur_engine.engine_name); 
+			/* Get handle data from list */
+			engine = iter->data;
+
+			if (NULL != engine) {
+				is_default_engine = true;
+				g_default_engine_id = engine->engine_id;
+			}
+		}
+	}
+
+	if (NULL != engine) {
+		if (NULL != engine->engine_uuid) {
+			SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] Default engine Id(%d) uuid(%s)", engine->engine_id, engine->engine_uuid);
+
+			if (false == is_default_engine) {
+				if (0 != sttd_config_set_default_engine(engine->engine_uuid))
+					SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to set default engine "); 
+			}
+		}
+	} else {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Default engine is NULL");
+		return STTD_ERROR_ENGINE_NOT_FOUND;
+	}
+
+	g_agent_init = true;
 
 	return 0;
 }
 
-int sttd_engine_agent_unload_current_engine()
+sttengine_info_s* __engine_agent_get_engine_by_id(int engine_id)
+{
+	GSList *iter = NULL;
+	sttengine_info_s *data = NULL;
+
+	iter = g_slist_nth(g_engine_list, 0);
+
+	while (NULL != iter) {
+
+		data = iter->data;
+
+		if (data->engine_id == engine_id) 
+			return data;
+
+		iter = g_slist_next(iter);
+	}
+
+	return NULL;
+}
+
+sttengine_info_s* __engine_agent_get_engine_by_uuid(const char* engine_uuid)
+{
+	GSList *iter = NULL;
+	sttengine_info_s *data = NULL;
+
+	iter = g_slist_nth(g_engine_list, 0);
+
+	while (NULL != iter) {
+
+		data = iter->data;
+
+		if (0 == strcmp(data->engine_uuid, engine_uuid)) 
+			return data;
+
+		iter = g_slist_next(iter);
+	}
+
+	return NULL;
+}
+
+sttengine_client_s* __engine_agent_get_client(int uid)
+{
+	GSList *iter = NULL;
+	sttengine_client_s *data = NULL;
+
+	if (0 < g_slist_length(g_engine_client_list)) {
+		iter = g_slist_nth(g_engine_client_list, 0);
+
+		while (NULL != iter) {
+			/* Get handle data from list */
+			data = iter->data;
+
+			if (uid == data->uid) 
+				return data;
+
+			iter = g_slist_next(iter);
+		}
+	}
+
+	return NULL;
+}
+
+sttengine_info_s* __engine_agent_get_engine_by_uid(int uid)
+{
+	sttengine_client_s *data;
+
+	data = __engine_agent_get_client(uid);
+	if (NULL != data) 
+		return __engine_agent_get_engine_by_id(data->engine_id);
+
+	return NULL;
+}
+
+int __engine_agent_check_engine_unload(int engine_id)
+{
+	/* Check the count of client to use this engine */
+	GSList *iter = NULL;
+	int client_count = 0;
+	sttengine_client_s *data = NULL;
+	
+	if (0 < g_slist_length(g_engine_client_list)) {
+		iter = g_slist_nth(g_engine_client_list, 0);
+
+		while (NULL != iter) {
+			/* Get handle data from list */
+			data = iter->data;
+
+			if (data->engine_id == engine_id)
+				client_count++;
+
+			iter = g_slist_next(iter);
+		}
+	}
+
+	if (0 == client_count) {
+		sttengine_info_s* engine = NULL;
+		engine = __engine_agent_get_engine_by_id(engine_id);
+		if (NULL == engine) {
+			SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to get engine from client(%d)", engine_id);
+		} else {
+			if (engine->is_loaded) {
+				/* unload engine */
+#ifndef AUDIO_CREATE_ON_START
+				SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] Destroy recorder");
+				if (0 != sttd_recorder_destroy(engine->engine_id))
+					SECURE_SLOG(LOG_WARN, TAG_STTD, "[Engine Agent] Fail to destroy recorder(%d)", engine->engine_id);
+#endif
+				SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] Unload engine id(%d)", engine_id);
+				if (0 != stt_engine_deinitialize(engine->engine_id))
+					SECURE_SLOG(LOG_WARN, TAG_STTD, "[Engine Agent] Fail to deinitialize engine id(%d)", engine->engine_id);
+
+				if (0 != stt_engine_unload(engine->engine_id))
+					SECURE_SLOG(LOG_WARN, TAG_STTD, "[Engine Agent] Fail to unload engine id(%d)", engine->engine_id);
+
+				engine->is_loaded = false;
+			}
+		}
+	}
+
+	return 0;
+}
+
+int sttd_engine_agent_load_current_engine(int uid, const char* engine_uuid)
+{
+	if (false == g_agent_init) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized" );
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+	sttengine_client_s* client = NULL;
+	sttengine_info_s* engine = NULL;
+	int before_engine = -1;
+
+	client = __engine_agent_get_client(uid);
+	
+	if (NULL == client) {
+		client = (sttengine_client_s*)calloc(1, sizeof(sttengine_client_s));
+		
+		/* initialize */
+		client->uid = uid;
+		client->engine_id = -1;
+	
+		g_engine_client_list = g_slist_append(g_engine_client_list, client);
+
+		SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] Registered client(%d)", uid);
+	} 
+
+	if (NULL == engine_uuid) {
+		/* Set default engine */
+		engine = __engine_agent_get_engine_by_id(g_default_engine_id);
+
+		if (NULL == engine) {
+			SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to get default engine : %d", g_default_engine_id);
+			return STTD_ERROR_OPERATION_FAILED;
+		}
+		before_engine = client->engine_id;
+
+		client->engine_id = engine->engine_id;
+		client->use_default_engine = true;
+	} else {
+		/* Set engine by uid */
+		engine = __engine_agent_get_engine_by_uuid(engine_uuid);
+
+		if (NULL == engine) {
+			SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to get engine : %s", engine_uuid);
+			return STTD_ERROR_OPERATION_FAILED;
+		}
+		before_engine = client->engine_id;
+
+		client->engine_id = engine->engine_id;
+		client->use_default_engine = false;
+	}
+
+	if (-1 != before_engine) {
+		/* Unload engine if reference count is 0 */
+		__engine_agent_check_engine_unload(before_engine);
+	}
+
+	if (true == engine->is_loaded) {
+		SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[Engine] engine id(%d) is already loaded", engine->engine_id);
+		return 0;
+	}
+
+	/* Load engine */
+	int ret;
+	ret = stt_engine_load(engine->engine_id, engine->engine_path);
+	if (0 != ret) {
+		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to load engine : id(%d) path(%s)", engine->engine_id, engine->engine_path);
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+	ret = stt_engine_initialize(engine->engine_id, __result_cb, __detect_silence_cb);
+	if (0 != ret) {
+		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to initialize engine : id(%d) path(%s)", engine->engine_id, engine->engine_path);
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+	ret = stt_engine_set_silence_detection(engine->engine_id, g_default_silence_detected);
+	if (0 != ret) {
+		SLOG(LOG_WARN, TAG_STTD, "[Engine Agent WARNING] Not support silence detection");
+		engine->support_silence_detection = false;
+	} else {
+		SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] Silence detection : %s", g_default_silence_detected ? "true" : "false");
+		engine->support_silence_detection = true;
+		engine->silence_detection = g_default_silence_detected;
+	}
+
+	/* Set first language */
+	char* tmp_lang = NULL;
+	ret = stt_engine_get_first_language(engine->engine_id, &tmp_lang);
+	if (0 == ret && NULL != tmp_lang) {
+		engine->first_lang = strdup(tmp_lang);
+		free(tmp_lang);
+	} else {
+		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to get first language from engine : %d %s", engine->engine_id, engine->engine_name);
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+#ifndef AUDIO_CREATE_ON_START
+	/* Ready recorder */
+	sttp_audio_type_e atype;
+	int rate;
+	int channels;
+
+	ret = stt_engine_get_audio_type(engine->engine_id, &atype, &rate, &channels);
+	if (0 != ret) {
+		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to get audio type : %d %s", engine->engine_id, engine->engine_name);
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+	ret = sttd_recorder_create(engine->engine_id, atype, channels, rate);
+	if (0 != ret) {
+		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to create recorder : %d %s", engine->engine_id, engine->engine_name);
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+#endif
+
+	engine->is_loaded = true;
+	SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent SUCCESS] The %s(%d) has been loaded !!!", engine->engine_name, engine->engine_id); 
+
+	return 0;
+}
+
+int sttd_engine_agent_unload_current_engine(int uid)
 {
 	if (false == g_agent_init) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized "); 
 		return STTD_ERROR_OPERATION_FAILED;
 	}
 
-	if (false == g_cur_engine.is_set) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] sttd_engine_agent_unload_current_engine : No Current Engine "); 
-		return -1;
+	/* Remove client */
+	int engine_id = -1;
+
+	GSList *iter = NULL;
+	sttengine_client_s *data = NULL;
+
+	if (0 < g_slist_length(g_engine_client_list)) {
+		iter = g_slist_nth(g_engine_client_list, 0);
+
+		while (NULL != iter) {
+			/* Get handle data from list */
+			data = iter->data;
+
+			if (NULL != data) {
+				if (uid == data->uid) {
+					g_engine_client_list = g_slist_remove_link(g_engine_client_list, iter);
+					engine_id = data->engine_id;
+					free(data);
+					break;
+				}
+			}
+
+			iter = g_slist_next(iter);
+		}
 	}
 
-	if (false == g_cur_engine.is_loaded) {
-		SLOG(LOG_WARN, TAG_STTD, "[Engine Agent WARNING] Current engine has already been unloaded "); 
-		return 0;
+	if (-1 != engine_id) {
+		__engine_agent_check_engine_unload(engine_id);
 	}
-
-	/* shutdown engine */
-	if (NULL == g_cur_engine.pefuncs->deinitialize) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] shutdown of engine is NULL!!");
-	} else {
-		g_cur_engine.pefuncs->deinitialize();
-	}
-
-	/* unload engine */
-	if (0 != g_cur_engine.sttp_unload_engine()) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to unload engine"); 
-	}
-
-	dlclose(g_cur_engine.handle);
-
-	/* reset current engine data */
-	g_cur_engine.handle = NULL;
-	g_cur_engine.is_loaded = false;
 
 	return 0;
 }
 
-bool sttd_engine_agent_need_network()
+bool sttd_engine_agent_is_default_engine()
+{
+	if (g_default_engine_id > 0) 
+		return true;
+
+	return false;
+}
+
+int sttd_engine_agent_get_engine_list(GSList** engine_list)
+{
+	if (false == g_agent_init) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized"); 
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+	GSList *iter = NULL;
+	sttengine_info_s *data = NULL;
+
+	iter = g_slist_nth(g_engine_list, 0);
+
+	SLOG(LOG_DEBUG, TAG_STTD, "----- [Engine Agent] engine list -----");
+
+	while (NULL != iter) {
+		engine_s* temp_engine;
+
+		temp_engine = (engine_s*)calloc(1, sizeof(engine_s));
+
+		data = iter->data;
+
+		temp_engine->engine_id = strdup(data->engine_uuid);
+		temp_engine->engine_name = strdup(data->engine_name);
+		temp_engine->ug_name = strdup(data->engine_setting_path);
+
+		*engine_list = g_slist_append(*engine_list, temp_engine);
+
+		iter = g_slist_next(iter);
+
+		SECURE_SLOG(LOG_DEBUG, TAG_STTD, " -- Engine id(%s)", temp_engine->engine_id); 
+		SECURE_SLOG(LOG_DEBUG, TAG_STTD, "    Engine name(%s)", temp_engine->engine_name);
+		SECURE_SLOG(LOG_DEBUG, TAG_STTD, "    Engine ug name(%s)", temp_engine->ug_name);
+	}
+
+	SLOG(LOG_DEBUG, TAG_STTD, "--------------------------------------");
+
+	return 0;
+}
+
+int sttd_engine_agent_get_current_engine(int uid, char** engine_uuid)
 {
 	if (false == g_agent_init) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized" );
 		return STTD_ERROR_OPERATION_FAILED;
 	}
 
-	if (false == g_cur_engine.is_loaded) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not loaded engine");
+	if (NULL == engine_uuid) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Invalid parameter" );
+		return STTD_ERROR_INVALID_PARAMETER;
+	}
+
+	sttengine_info_s* engine;
+	engine = __engine_agent_get_engine_by_uid(uid);
+
+	if (NULL == engine) {
+		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] The engine of uid(%d) is not valid", uid);
+		return STTD_ERROR_INVALID_PARAMETER;
+	}
+
+	if (false == engine->is_loaded) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not loaded engine"); 
 		return STTD_ERROR_OPERATION_FAILED;
 	}
 
-	return g_cur_engine.need_network;
+	*engine_uuid = strdup(engine->engine_uuid);
+
+	return 0;
 }
 
-int sttd_engine_get_option_supported(bool* silence, bool* profanity, bool* punctuation)
+bool sttd_engine_agent_need_network(int uid)
 {
 	if (false == g_agent_init) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized" );
 		return STTD_ERROR_OPERATION_FAILED;
 	}
 
-	if (false == g_cur_engine.is_loaded) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not loaded engine");
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	if (NULL == silence || NULL == profanity || NULL == punctuation) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Invalid Parameter"); 
-		return STTD_ERROR_INVALID_PARAMETER;
-	}
-
-	*silence = g_cur_engine.support_silence_detection;
-	*profanity = g_cur_engine.support_profanity_filter;
-	*punctuation = g_cur_engine.support_punctuation_override;
-
-	return 0;
-}
-
-/*
-* STT Engine Interfaces for client
-*/
-
-int __set_option(int profanity, int punctuation, int silence)
-{
-	if (2 == profanity) {
-		/* Default selection */
-		if (g_default_profanity_filter != g_cur_engine.profanity_filter) {
-			if (NULL != g_cur_engine.pefuncs->set_profanity_filter) {
-				if (0 != g_cur_engine.pefuncs->set_profanity_filter(g_default_profanity_filter)) {
-					SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to set profanity filter");
-					return STTD_ERROR_OPERATION_FAILED;
-				}
-				g_cur_engine.profanity_filter = g_default_profanity_filter;
-				SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] Set profanity filter : %s", g_cur_engine.profanity_filter ? "true" : "false");
-			} else {
-				SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] profanity_filter() of engine is NULL!!");
-				return STTD_ERROR_OPERATION_FAILED;
-			}
-		}
-	} else {
-		/* Client selection */
-		if (g_cur_engine.profanity_filter != profanity) {
-			if (NULL != g_cur_engine.pefuncs->set_profanity_filter) {
-				if (0 != g_cur_engine.pefuncs->set_profanity_filter((bool)profanity)) {
-					SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to set profanity filter");
-					return STTD_ERROR_OPERATION_FAILED;
-				}
-
-				g_cur_engine.profanity_filter = (bool)profanity;
-				SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] Set profanity filter : %s", g_cur_engine.profanity_filter ? "true" : "false");
-			} else {
-				SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] profanity_filter() of engine is NULL!!");
-				return STTD_ERROR_OPERATION_FAILED;
-			}
-		}
-	}
-
-	if (2 == punctuation) {
-		/* Default selection */
-		if (g_default_punctuation_override != g_cur_engine.punctuation_override) {
-			if (NULL != g_cur_engine.pefuncs->set_punctuation) {
-				if (0 != g_cur_engine.pefuncs->set_punctuation(g_default_punctuation_override)) {
-					SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to set punctuation override");
-					return STTD_ERROR_OPERATION_FAILED;
-				}
-				g_cur_engine.punctuation_override = g_default_punctuation_override;
-				SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] Set punctuation override : %s", g_cur_engine.punctuation_override ? "true" : "false");
-			} else {
-				SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] set_punctuation() of engine is NULL!!");
-				return STTD_ERROR_OPERATION_FAILED;
-			}
-		}
-	} else {
-		/* Client selection */
-		if (g_cur_engine.punctuation_override != punctuation) {
-			if (NULL != g_cur_engine.pefuncs->set_punctuation) {
-				if (0 != g_cur_engine.pefuncs->set_punctuation((bool)punctuation)) {
-					SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to set punctuation override");
-					return STTD_ERROR_OPERATION_FAILED;
-				}
-
-				g_cur_engine.punctuation_override = (bool)punctuation;
-				SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] Set punctuation override : %s", g_cur_engine.punctuation_override ? "true" : "false");
-			} else {
-				SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] set_punctuation() of engine is NULL!!");
-				return STTD_ERROR_OPERATION_FAILED;
-			}
-		}
-	}
-
-	if (2 == silence) {
-		/* Default selection */
-		if (g_default_silence_detected != g_cur_engine.silence_detection) {
-			if (NULL != g_cur_engine.pefuncs->set_silence_detection) {
-				if (0 != g_cur_engine.pefuncs->set_silence_detection(g_default_silence_detected)) {
-					SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to set silence detection");
-					return STTD_ERROR_OPERATION_FAILED;
-				}
-				g_cur_engine.silence_detection = g_default_silence_detected;
-				SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] Set silence detection : %s", g_cur_engine.silence_detection ? "true" : "false");
-			} else {
-				SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] set_silence() of engine is NULL!!");
-				return STTD_ERROR_OPERATION_FAILED;
-			}
-		}
-	} else {
-		/* Client selection */
-		if (g_cur_engine.silence_detection != silence) {
-			if (NULL != g_cur_engine.pefuncs->set_silence_detection) {
-				if (0 != g_cur_engine.pefuncs->set_silence_detection((bool)silence)) {
-					SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to set silence detection");
-					return STTD_ERROR_OPERATION_FAILED;
-				}
-
-				g_cur_engine.silence_detection = (bool)silence;
-				SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] Set silence detection : %s", g_cur_engine.silence_detection ? "true" : "false");
-			} else {
-				SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] set_silence() of engine is NULL!!");
-				return STTD_ERROR_OPERATION_FAILED;
-			}
-		}
-	}
+	sttengine_info_s* engine;
+	engine = __engine_agent_get_engine_by_uid(uid);
 	
-	return 0;
+	if (NULL != engine)
+		return engine->use_network;
+
+	return false;
 }
 
-int sttd_engine_recognize_start(const char* lang, const char* recognition_type, 
-				int profanity, int punctuation, int silence, void* user_param)
+int sttd_engine_agent_supported_langs(int uid, GSList** lang_list)
 {
 	if (false == g_agent_init) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized"); 
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized");
 		return STTD_ERROR_OPERATION_FAILED;
 	}
 
-	if (false == g_cur_engine.is_loaded) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not loaded engine"); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	if (NULL == lang || NULL == recognition_type) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Invalid Parameter"); 
+	if (NULL == lang_list) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Input parameter is NULL");
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
-	if (0 != __set_option(profanity, punctuation, g_default_silence_detected)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to set options"); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
+	sttengine_info_s* engine = NULL;
+	engine = __engine_agent_get_engine_by_uid(uid);
 
-	if (NULL == g_cur_engine.pefuncs->start) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] start() of engine is NULL!!");
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	char* temp;
-	if (0 == strncmp(lang, "default", strlen("default"))) {
-		temp = strdup(g_cur_engine.default_lang);
-	} else {
-		temp = strdup(lang);
-	}
-
-	int ret = g_cur_engine.pefuncs->start(temp, recognition_type, user_param);
-	free(temp);
-
-	if (0 != ret) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] sttd_engine_recognize_start : recognition start error(%d)", ret); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent SUCCESS] sttd_engine_recognize_start");
-
-	return 0;
-}
-
-int sttd_engine_recognize_audio(const void* data, unsigned int length)
-{
-	if (false == g_agent_init) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized"); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	if (false == g_cur_engine.is_loaded) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not loaded engine"); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	if (NULL == data) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Invalid Parameter"); 
+	if (NULL == engine) {
+		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] The engine of uid(%d) is not valid", uid);
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
-	if (NULL == g_cur_engine.pefuncs->set_recording) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] The function of engine is NULL!!");
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	int ret = g_cur_engine.pefuncs->set_recording(data, length);
-	if (0 != ret) {
-		SLOG(LOG_WARN, TAG_STTD, "[Engine Agent WARNING] set recording error(%d)", ret); 
-		return ret;
-	}
-
-	return 0;
-}
-
-int sttd_engine_recognize_stop()
-{
-	if (false == g_agent_init) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized"); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	if (false == g_cur_engine.is_loaded) {
+	if (false == engine->is_loaded) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not loaded engine"); 
 		return STTD_ERROR_OPERATION_FAILED;
 	}
 
-	if (NULL == g_cur_engine.pefuncs->stop) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] The function of engine is NULL!!");
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	int ret = g_cur_engine.pefuncs->stop();
-	if (0 != ret) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] stop recognition error(%d)", ret); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	return 0;
-}
-
-int sttd_engine_recognize_cancel()
-{
-	if (false == g_agent_init) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized"); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	if (false == g_cur_engine.is_loaded) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not loaded engine"); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-	
-	if (NULL == g_cur_engine.pefuncs->cancel) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] The function of engine is NULL!!");
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	int ret = g_cur_engine.pefuncs->cancel();
-	if (0 != ret) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] cancel recognition error(%d)", ret); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	return 0;
-}
-
-int sttd_engine_get_audio_format(sttp_audio_type_e* types, int* rate, int* channels)
-{
-	if (false == g_agent_init) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized"); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	if (false == g_cur_engine.is_loaded) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not loaded engine"); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	if (NULL == g_cur_engine.pefuncs->get_audio_format) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] The function of engine is NULL!!");
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	int ret = g_cur_engine.pefuncs->get_audio_format(types, rate, channels);
-	if (0 != ret) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] get audio format error(%d)", ret); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	return 0;
-}
-
-int sttd_engine_recognize_start_file(const char* filepath, const char* lang, const char* recognition_type, 
-				     int profanity, int punctuation, void* user_param)
-{
-	if (false == g_agent_init) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized"); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	if (false == g_cur_engine.is_loaded) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not loaded engine"); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	if (NULL == filepath || NULL == lang || NULL == recognition_type) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Invalid Parameter"); 
-		return STTD_ERROR_INVALID_PARAMETER;
-	}
-
-	if (0 != __set_option(profanity, punctuation, g_default_silence_detected)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to set options"); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	if (NULL == g_cur_engine.pefuncs->start_file_recognition) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] start() of engine is NULL!!");
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	char* temp;
-	if (0 == strncmp(lang, "default", strlen("default"))) {
-		temp = strdup(g_cur_engine.default_lang);
-	} else {
-		temp = strdup(lang);
-	}
-
-	int ret = g_cur_engine.pefuncs->start_file_recognition(filepath, temp, recognition_type, user_param);
-	free(temp);
-
-	if (0 != ret) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to start file recognition(%d)", ret); 
-		return ret;
-	}
-
-	SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent SUCCESS] File recognition");
-
-	return 0;
-}
-
-/*
-* STT Engine Interfaces for client and setting
-*/
-bool __supported_language_cb(const char* language, void* user_data)
-{
-	GList** lang_list = (GList**)user_data;
-
-	if (NULL == language || NULL == lang_list) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Input parameter is NULL in callback!!!!");
-		return false;
-	}
-
-	SLOG(LOG_DEBUG, TAG_STTD, "-- Language(%s)", language);
-
-	char* temp_lang = g_strdup(language);
-
-	*lang_list = g_list_append(*lang_list, temp_lang);
-
-	return true;
-}
-
-int sttd_engine_supported_langs(GList** lang_list)
-{
-	if (false == g_agent_init) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized"); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	if (false == g_cur_engine.is_loaded) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not loaded engine"); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	if (NULL == g_cur_engine.pefuncs->foreach_langs) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] The function of engine is NULL!!");
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	int ret = g_cur_engine.pefuncs->foreach_langs(__supported_language_cb, (void*)lang_list);
+	int ret = stt_engine_get_supported_langs(engine->engine_id, lang_list);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] get language list error(%d)", ret); 
 		return STTD_ERROR_OPERATION_FAILED;
@@ -1225,16 +908,10 @@ int sttd_engine_supported_langs(GList** lang_list)
 	return 0;
 }
 
-
-int sttd_engine_get_default_lang(char** lang)
+int sttd_engine_agent_get_default_lang(int uid, char** lang)
 {
 	if (false == g_agent_init) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized"); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	if (false == g_cur_engine.is_loaded) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not loaded engine"); 
 		return STTD_ERROR_OPERATION_FAILED;
 	}
 
@@ -1243,217 +920,488 @@ int sttd_engine_get_default_lang(char** lang)
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
+	sttengine_info_s* engine = NULL;
+	engine = __engine_agent_get_engine_by_uid(uid);
+
+	if (NULL == engine) {
+		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] The engine of uid(%d) is not valid", uid);
+		return STTD_ERROR_INVALID_PARAMETER;
+	}
+
+	if (false == engine->is_loaded) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not loaded engine"); 
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
 	/* get default language */
-	*lang = g_strdup(g_cur_engine.default_lang);
+	bool is_valid = false;
+	if (0 != stt_engine_is_valid_language(engine->engine_id, g_default_language, &is_valid)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to check valid language");
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+	if (true == is_valid) {
+		*lang = strdup(g_default_language);
+	} else 
+		*lang = strdup(engine->first_lang);
 
 	return 0;
 }
 
-int sttd_engine_is_partial_result_supported(bool* partial_result)
+int sttd_engine_agent_get_option_supported(int uid, bool* silence)
+{
+	if (false == g_agent_init) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized");
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+	if (NULL == silence) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Invalid Parameter"); 
+		return STTD_ERROR_INVALID_PARAMETER;
+	}
+
+	sttengine_info_s* engine = NULL;
+	engine = __engine_agent_get_engine_by_uid(uid);
+
+	if (NULL == engine) {
+		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] uid(%d) is not valid", uid);
+		return STTD_ERROR_INVALID_PARAMETER;
+	}
+
+	if (false == engine->is_loaded) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not loaded engine"); 
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+	*silence = engine->support_silence_detection;
+
+	return 0;
+}
+
+int sttd_engine_agent_is_recognition_type_supported(int uid, const char* type, bool* support)
 {
 	if (false == g_agent_init) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized"); 
 		return STTD_ERROR_OPERATION_FAILED;
 	}
 
-	if (false == g_cur_engine.is_loaded) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not loaded engine"); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	if (NULL == partial_result) {
+	if (NULL == type || NULL == support) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Invalid Parameter"); 
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
-	if (NULL == g_cur_engine.pefuncs->support_partial_result) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] The function of engine is NULL!!");
+	sttengine_info_s* engine = NULL;
+	engine = __engine_agent_get_engine_by_uid(uid);
+
+	if (NULL == engine) {
+		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] The engine of uid(%d) is not valid", uid);
+		return STTD_ERROR_INVALID_PARAMETER;
+	}
+
+	if (false == engine->is_loaded) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not loaded engine"); 
 		return STTD_ERROR_OPERATION_FAILED;
 	}
 
-	*partial_result = g_cur_engine.pefuncs->support_partial_result();
+	bool temp = false;
+	int ret;
+
+	ret = stt_engine_support_recognition_type(engine->engine_id, type, &temp);
+	if (0 != ret) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to get to support recognition type : %d", ret); 
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+	*support = temp;
+
+	return 0;
+}
+
+/*
+* STT Engine Interfaces for client
+*/
+
+int __set_option(sttengine_info_s* engine, int silence)
+{
+	if (NULL == engine)
+		return -1;
+
+	/* Check silence detection */
+	if (engine->support_silence_detection) {
+		if (2 == silence) {
+			/* default option set */
+			if (g_default_silence_detected != engine->silence_detection) {
+				if (0 != stt_engine_set_silence_detection(engine->engine_id, g_default_silence_detected)) {
+					SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to set silence detection : %s", g_default_silence_detected ? "true" : "false");
+				} else {
+					engine->silence_detection = g_default_silence_detected;
+					SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] Set silence detection : %s", g_default_silence_detected ? "true" : "false");
+				}
+			}
+		} else {
+			if (silence != engine->silence_detection) {
+				if (0 != stt_engine_set_silence_detection(engine->engine_id, silence)) {
+					SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to set silence detection : %s", silence ? "true" : "false");
+				} else {
+					engine->silence_detection = silence;
+					SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] Set silence detection : %s", silence ? "true" : "false");
+				}
+			}
+		}
+	}
+	
+	return 0;
+}
+
+int sttd_engine_agent_recognize_start_engine(int uid, const char* lang, const char* recognition_type, 
+				      int silence, void* user_param)
+{
+	if (false == g_agent_init) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized"); 
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+	
+	if (NULL == lang || NULL == recognition_type) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Invalid Parameter"); 
+		return STTD_ERROR_INVALID_PARAMETER;
+	}
+
+	sttengine_info_s* engine = NULL;
+	engine = __engine_agent_get_engine_by_uid(uid);
+
+	if (NULL == engine) {
+		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] The engine of uid(%d) is not valid", uid);
+		return STTD_ERROR_INVALID_PARAMETER;
+	}
+
+	if (false == engine->is_loaded) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not loaded engine"); 
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+	if (0 != __set_option(engine, silence)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to set options"); 
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+	SLOG(LOG_DEBUG, TAG_STTD, "g_default_language %s", g_default_language);
+
+	int ret;
+	char* temp = NULL;
+	if (0 == strncmp(lang, "default", strlen("default"))) {
+		bool is_valid = false;
+		if (0 != stt_engine_is_valid_language(engine->engine_id, g_default_language, &is_valid)) {
+			SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to check valid language");
+			return STTD_ERROR_OPERATION_FAILED;
+		}
+
+		if (true == is_valid) {
+			temp = strdup(g_default_language);
+			SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent DEBUG] Default language is %s", temp);
+		} else {
+			temp = strdup(engine->first_lang);
+			SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent DEBUG] Default language is engine first lang : %s", temp);
+		}
+	} else {
+		temp = strdup(lang);
+	}
+
+	SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] Start engine");
+
+	ret = stt_engine_recognize_start(engine->engine_id, temp, recognition_type, user_param);
+	if (NULL != temp)	free(temp);
+	if (0 != ret) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Recognition start error(%d)", ret);
+		sttd_recorder_destroy(engine->engine_id);
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+#ifdef AUDIO_CREATE_ON_START
+	/* Ready recorder */
+	sttp_audio_type_e atype;
+	int rate;
+	int channels;
+
+	ret = stt_engine_get_audio_type(engine->engine_id, &atype, &rate, &channels);
+	if (0 != ret) {
+		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to get audio type : %d %s", engine->engine_id, engine->engine_name);
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+	SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] Create recorder");
+
+	ret = sttd_recorder_create(engine->engine_id, atype, channels, rate);
+	if (0 != ret) {
+		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to create recorder : %d %s", engine->engine_id, engine->engine_name);
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+#endif
+
+#if 0
+	SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] Start recorder");
+
+	ret = sttd_recorder_start(engine->engine_id);
+	if (0 != ret) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to start recorder : result(%d)", ret);
+		return ret;
+	}
+
+	g_recording_engine_id = engine->engine_id;
+	SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] g_recording_engine_id : %d", g_recording_engine_id); 
+#endif
+
+	return 0;
+}
+
+int sttd_engine_agent_recognize_start_recorder(int uid)
+{
+	sttengine_info_s* engine = NULL;
+	engine = __engine_agent_get_engine_by_uid(uid);
+
+	if (NULL == engine) {
+		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] The engine of uid(%d) is not valid", uid);
+		return STTD_ERROR_INVALID_PARAMETER;
+	}
+
+	if (false == engine->is_loaded) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not loaded engine"); 
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+	SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] Start recorder");
+
+	int ret;
+	ret = sttd_recorder_start(engine->engine_id);
+	if (0 != ret) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to start recorder : result(%d)", ret);
+		stt_engine_recognize_cancel(engine->engine_id);
+		sttd_recorder_stop(engine->engine_id);
+		return ret;
+	}
+
+	g_recording_engine_id = engine->engine_id;
+	SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] g_recording_engine_id : %d", g_recording_engine_id); 
+
+	return 0;
+}
+
+int sttd_engine_agent_set_recording_data(int uid, const void* data, unsigned int length)
+{
+	if (false == g_agent_init) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized"); 
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+	if (NULL == data || 0 == length) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Invalid Parameter"); 
+		return STTD_ERROR_INVALID_PARAMETER;
+	}
+
+	sttengine_info_s* engine = NULL;
+	engine = __engine_agent_get_engine_by_uid(uid);
+
+	if (NULL == engine) {
+		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] The engine of uid(%d) is not valid", uid);
+		return STTD_ERROR_INVALID_PARAMETER;
+	}
+
+	if (false == engine->is_loaded) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not loaded engine"); 
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+	int ret = stt_engine_set_recording_data(engine->engine_id, data, length);
+	if (0 != ret) {
+		SLOG(LOG_WARN, TAG_STTD, "[Engine Agent WARNING] set recording error(%d)", ret); 
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+	return 0;
+}
+
+int sttd_engine_agent_recognize_stop_recorder(int uid)
+{
+	if (false == g_agent_init) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized"); 
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+	sttengine_info_s* engine = NULL;
+	engine = __engine_agent_get_engine_by_uid(uid);
+
+	if (NULL == engine) {
+		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] The engine of uid(%d) is not valid", uid);
+		return STTD_ERROR_INVALID_PARAMETER;
+	}
+
+	if (false == engine->is_loaded) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not loaded engine"); 
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+	SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] Stop recorder");
+	int ret;
+	ret = sttd_recorder_stop(engine->engine_id);
+	if (0 != ret) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to stop recorder : result(%d)", ret); 
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+#ifdef AUDIO_CREATE_ON_START
+	SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] Destroy recorder");
+	if (0 != sttd_recorder_destroy(engine->engine_id))
+		SECURE_SLOG(LOG_WARN, TAG_STTD, "[Engine Agent] Fail to destroy recorder(%d)", engine->engine_id);
+#endif
+
+	SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent Success] Stop recorder");
+	return 0;
+}
+
+int sttd_engine_agent_recognize_stop_engine(int uid)
+{
+	if (false == g_agent_init) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized"); 
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+	sttengine_info_s* engine = NULL;
+	engine = __engine_agent_get_engine_by_uid(uid);
+
+	if (NULL == engine) {
+		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] The engine of uid(%d) is not valid", uid);
+		return STTD_ERROR_INVALID_PARAMETER;
+	}
+
+	if (false == engine->is_loaded) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not loaded engine"); 
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+	SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] Stop engine");
+
+	int ret;
+	ret = stt_engine_recognize_stop(engine->engine_id);
+	if (0 != ret) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] stop recognition error(%d)", ret); 
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+	SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent Success] Stop engine");
+
+	return 0;
+}
+
+int sttd_engine_agent_recognize_cancel(int uid)
+{
+	if (false == g_agent_init) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized"); 
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+	sttengine_info_s* engine = NULL;
+	engine = __engine_agent_get_engine_by_uid(uid);
+
+	if (NULL == engine) {
+		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] The engine of uid(%d) is not valid", uid);
+		return STTD_ERROR_INVALID_PARAMETER;
+	}
+
+	if (false == engine->is_loaded) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not loaded engine"); 
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+	SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] Cancel engine");
+
+	int ret;
+	ret = stt_engine_recognize_cancel(engine->engine_id);
+	if (0 != ret) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] cancel recognition error(%d)", ret); 
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+	SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] Stop recorder");
+
+	ret = sttd_recorder_stop(engine->engine_id);
+	if (0 != ret) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to stop recorder : result(%d)", ret); 
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+#ifdef AUDIO_CREATE_ON_START
+	SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] Destroy recorder");
+	if (0 != sttd_recorder_destroy(engine->engine_id))
+		SECURE_SLOG(LOG_WARN, TAG_STTD, "[Engine Agent] Fail to destroy recorder(%d)", engine->engine_id);
+#endif
+
+	g_recording_engine_id = -1;
+
+	SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent Success] Cancel recognition");
 
 	return 0;
 }
 
 
 /*
-* STT Engine Interfaces for setting
+* STT Engine Interfaces for configure
 */
 
-int sttd_engine_setting_get_engine_list(GList** engine_list)
+int sttd_engine_agent_set_default_engine(const char* engine_uuid)
 {
 	if (false == g_agent_init) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized"); 
 		return STTD_ERROR_OPERATION_FAILED;
 	}
 
-	if (false == g_cur_engine.is_loaded) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not loaded engine"); 
-		return STTD_ERROR_OPERATION_FAILED;
+	if (NULL == engine_uuid) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Invalid Parameter"); 
+		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
-	/* update engine list */
-	if (0 != __internal_update_engine_list()) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] sttd_engine_setting_get_engine_list : __internal_update_engine_list()"); 
-		return -1;
-	}
+	__log_enginelist();
 
-	GList *iter = NULL;
-	sttengine_info_s *data = NULL;
-
-	iter = g_list_first(g_engine_list);
-
-	SLOG(LOG_DEBUG, TAG_STTD, "----- [Engine Agent] engine list -----");
-
-	while (NULL != iter) {
-		engine_s* temp_engine;
-
-		temp_engine = (engine_s*)g_malloc0(sizeof(engine_s));
-
-		data = iter->data;
-
-		temp_engine->engine_id = strdup(data->engine_uuid);
-		temp_engine->engine_name = strdup(data->engine_name);
-		temp_engine->ug_name = strdup(data->setting_ug_path);
-
-		*engine_list = g_list_append(*engine_list, temp_engine);
-
-		iter = g_list_next(iter);
-
-		SLOG(LOG_DEBUG, TAG_STTD, " -- engine id(%s) engine name(%s) ug name(%s) \n", 
-			temp_engine->engine_id, temp_engine->engine_name, temp_engine->ug_name);
-	}
-
-	SLOG(LOG_DEBUG, TAG_STTD, "--------------------------------------");
-
-	return 0;
-}
-
-int sttd_engine_setting_get_engine(char** engine_id)
-{
-	if (false == g_agent_init) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized" );
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	if (false == g_cur_engine.is_loaded) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not loaded engine");
+	sttengine_info_s* engine;
+	engine = __engine_agent_get_engine_by_uuid(engine_uuid);
+	if (NULL == engine) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Default engine is not valid");
 		return STTD_ERROR_ENGINE_NOT_FOUND;
 	}
 
-	*engine_id = strdup(g_cur_engine.engine_uuid);
+	SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] Default engine id(%d) engine uuid(%s)", engine->engine_id, engine->engine_uuid);
 
-	return 0;
-}
+	g_default_engine_id = engine->engine_id;
 
-int sttd_engine_setting_set_engine(const char* engine_id)
-{
-	if (false == g_agent_init) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized"); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
+	/* Update default engine of client */
+	GSList *iter = NULL;
+	sttengine_client_s *data = NULL;
 
-	if (NULL == engine_id) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Invalid Parameter"); 
-		return STTD_ERROR_INVALID_PARAMETER;
-	}
+	if (0 < g_slist_length(g_engine_client_list)) {
+		iter = g_slist_nth(g_engine_client_list, 0);
 
-	/* compare current engine and new engine. */
-	if (NULL != g_cur_engine.engine_uuid) {
-		if (0 == strncmp(g_cur_engine.engine_uuid, engine_id, strlen(g_cur_engine.engine_uuid))) {
-			SLOG(LOG_WARN, TAG_STTD, "[Engine Agent] New engine is the same as current engine"); 
-			return 0;
+		while (NULL != iter) {
+			/* Get handle data from list */
+			data = iter->data;
+
+			if (true == data->use_default_engine) {
+				SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] uid(%d) change engine from id(%d) to id(%d)", 
+					data->uid, data->engine_id, engine->engine_id);
+
+				if (0 != sttd_engine_agent_load_current_engine(data->uid, NULL)) {
+					SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to load current engine : uid(%d)", data->uid);
+				}
+			}
+
+			iter = g_slist_next(iter);
 		}
 	}
 
-	char* tmp_uuid = NULL;
-	tmp_uuid = g_strdup(g_cur_engine.engine_uuid);
-	if (NULL == tmp_uuid) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not enough memory!!"); 
-		return STTD_ERROR_OUT_OF_MEMORY;
-	}
-
-	/* unload engine */
-	if (0 != sttd_engine_agent_unload_current_engine()) 
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to unload current engine"); 
-	else
-		SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent SUCCESS] unload current engine");
-
-	/* change current engine */
-	if (0 != __internal_set_current_engine(engine_id)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] __internal_set_current_engine : no engine error"); 
-		
-		/* roll back to old current engine. */
-		__internal_set_current_engine(tmp_uuid);
-		sttd_engine_agent_load_current_engine();
-
-		if (NULL != tmp_uuid)	
-			free(tmp_uuid);
-
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	if (0 != sttd_engine_agent_load_current_engine()) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to load new engine"); 
-
-		if (NULL != tmp_uuid)	
-			free(tmp_uuid);
-
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent SUCCESS] sttd_engine_setting_set_engine() : Load new engine");
-
-	if( tmp_uuid != NULL )	
-		free(tmp_uuid);
-
-	/* set engine id to config */
-	if (0 != sttd_config_set_default_engine(engine_id)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to set engine id"); 
-	}
-
 	return 0;
 }
 
-int sttd_engine_setting_get_lang_list(char** engine_id, GList** lang_list)
+int sttd_engine_agent_set_default_language(const char* language)
 {
 	if (false == g_agent_init) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized"); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	if (false == g_cur_engine.is_loaded) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not loaded engine"); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	if (NULL == lang_list || NULL == engine_id) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Invalid Parameter"); 
-		return STTD_ERROR_INVALID_PARAMETER;
-	}
-
-	/* get language list from engine */
-	int ret = sttd_engine_supported_langs(lang_list); 
-	if (0 != ret) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail get lang list (%d)", ret); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	*engine_id = strdup(g_cur_engine.engine_uuid);
-
-	return 0;
-}
-
-int sttd_engine_setting_get_default_lang(char** language)
-{
-	if (false == g_agent_init) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized"); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	if (false == g_cur_engine.is_loaded) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not loaded engine"); 
 		return STTD_ERROR_OPERATION_FAILED;
 	}
 
@@ -1462,335 +1410,55 @@ int sttd_engine_setting_get_default_lang(char** language)
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
-	if (NULL != g_cur_engine.default_lang) {
-		*language = strdup(g_cur_engine.default_lang);
+	if (NULL != g_default_language)
+		free(g_default_language);
 
-		SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent SUCCESS] Get default lanaguae : language(%s)", *language);
-	} else {
-		if (NULL == g_cur_engine.pefuncs->foreach_langs) {
-			SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] foreach_langs of engine is NULL!!");
-			return STTD_ERROR_OPERATION_FAILED;
-		}
+	g_default_language = strdup(language);
 
-		/* get language list */
-		int ret;
-		GList* lang_list = NULL;
-
-		ret = g_cur_engine.pefuncs->foreach_langs(__supported_language_cb, &lang_list);
-
-		if (0 == ret && 0 < g_list_length(lang_list)) {
-			GList *iter = NULL;
-			iter = g_list_first(lang_list);
-
-			if (NULL != iter) {
-				char* temp_lang = iter->data;
-
-				if (true != g_cur_engine.pefuncs->is_valid_lang(temp_lang)) {
-					SLOG(LOG_ERROR, TAG_STTD, "[Engine ERROR] Fail voice is NOT valid");
-					return STTD_ERROR_OPERATION_FAILED;
-				}
-
-				sttd_config_set_default_language(temp_lang);
-
-				g_cur_engine.default_lang = g_strdup(temp_lang);
-
-				*language = strdup(g_cur_engine.default_lang);
-
-				SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent SUCCESS] Select default voice : lang(%s)", temp_lang);
-			} else {
-				SLOG(LOG_ERROR, TAG_STTD, "[Engine ERROR] Fail to get language list : result(%d)\n", ret);
-				return STTD_ERROR_OPERATION_FAILED;
-			}
-
-			__free_language_list(lang_list);
-		} else {
-			SLOG(LOG_ERROR, TAG_STTD, "[Engine ERROR] Fail to get language list : result(%d)\n", ret);
-			return STTD_ERROR_OPERATION_FAILED;
-		}
-	}
-	
 	return 0;
 }
 
-int sttd_engine_setting_set_default_lang(const char* language)
+int sttd_engine_agent_set_silence_detection(bool value)
 {
 	if (false == g_agent_init) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized"); 
 		return STTD_ERROR_OPERATION_FAILED;
 	}
 
-	if (false == g_cur_engine.is_loaded) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not loaded engine"); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	if (NULL == g_cur_engine.pefuncs->is_valid_lang) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] get_voice_list() of engine is NULL!!");
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	int ret = -1;
-	if(false == g_cur_engine.pefuncs->is_valid_lang(language)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Language is NOT valid !!");
-		return STTD_ERROR_INVALID_LANGUAGE;
-	}
-
-	if (NULL != g_cur_engine.default_lang)
-		g_free(g_cur_engine.default_lang);
-
-	g_cur_engine.default_lang = strdup(language);
-
-	ret = sttd_config_set_default_language(language);
-	if (0 != ret) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to set default lang (%d)", ret); 
-	}
-
-	return 0;
-}
-
-int sttd_engine_setting_get_profanity_filter(bool* value)
-{
-	if (false == g_agent_init) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized"); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	if (false == g_cur_engine.is_loaded) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not loaded engine"); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	if (NULL == value) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Invalid Parameter"); 
-		return STTD_ERROR_INVALID_PARAMETER;
-	}
-
-	*value = g_default_profanity_filter;	
-
-	return 0;
-}
-
-int sttd_engine_setting_set_profanity_filter(bool value)
-{
-	if (false == g_agent_init) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized"); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	if (false == g_cur_engine.is_loaded) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not loaded engine"); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	if (NULL == g_cur_engine.pefuncs->set_profanity_filter) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] The function of engine is NULL!!");
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	int ret = g_cur_engine.pefuncs->set_profanity_filter(value);
-	if (0 != ret) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail set profanity filter : result(%d)", ret); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	g_default_profanity_filter = value;
-
-	ret = sttd_config_set_default_profanity_filter((int)value);
-	if (0 != ret) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to set default lang (%d)", ret); 
-	}
-
-	return 0;
-}
-
-int sttd_engine_setting_get_punctuation_override(bool* value)
-{
-	if (false == g_agent_init) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized"); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	if (false == g_cur_engine.is_loaded) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not loaded engine"); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	if (NULL == value) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Invalid Parameter"); 
-		return STTD_ERROR_INVALID_PARAMETER;
-	}
-
-	*value = g_default_punctuation_override;
-
-	return 0;
-}
-
-int sttd_engine_setting_set_punctuation_override(bool value)
-{
-	if (false == g_agent_init) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized"); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	if (false == g_cur_engine.is_loaded) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not loaded engine"); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	if (NULL == g_cur_engine.pefuncs->set_punctuation) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] The function of engine is NULL!!");
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	int ret = g_cur_engine.pefuncs->set_punctuation(value);
-	if (0 != ret) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail set punctuation override : result(%d)", ret); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-	g_default_punctuation_override = value;
-
-	ret = sttd_config_set_default_punctuation_override((int)value);
-	if (0 != ret) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to set punctuation override (%d)", ret); 
-	}
-
-	return 0;
-}
-
-int sttd_engine_setting_get_silence_detection(bool* value)
-{
-	if (false == g_agent_init) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized"); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	if (false == g_cur_engine.is_loaded) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not loaded engine"); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	if (NULL == value) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Invalid Parameter"); 
-		return STTD_ERROR_INVALID_PARAMETER;
-	}
-
-	*value = g_default_silence_detected;
-
-	return 0;
-}
-
-int sttd_engine_setting_set_silence_detection(bool value)
-{
-	if (false == g_agent_init) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized"); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	if (false == g_cur_engine.is_loaded) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not loaded engine"); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	int ret = g_cur_engine.pefuncs->set_silence_detection(value);
-	if (0 != ret) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail set silence detection : result(%d)", ret); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-	
 	g_default_silence_detected = value;
 
-	ret = sttd_config_set_default_silence_detection((int)value);
-	if (0 != ret) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to set silence detection (%d)", ret); 
-	}
-	
 	return 0;
 }
 
-bool __engine_setting_cb(const char* key, const char* value, void* user_data)
-{
-	GList** engine_setting_list = (GList**)user_data;
-
-	if (NULL == engine_setting_list || NULL == key || NULL == value) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Input parameter is NULL in engine setting callback!!!!");
-		return false;
-	}
-
-	engine_setting_s* temp = g_malloc0(sizeof(engine_setting_s));
-	temp->key = g_strdup(key);
-	temp->value = g_strdup(value);
-
-	*engine_setting_list = g_list_append(*engine_setting_list, temp);
-
-	return true;
-}
-
-int sttd_engine_setting_get_engine_setting_info(char** engine_id, GList** setting_list)
+int sttd_engine_agent_check_app_agreed(int uid, const char* appid, bool* result)
 {
 	if (false == g_agent_init) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized"); 
 		return STTD_ERROR_OPERATION_FAILED;
 	}
 
-	if (false == g_cur_engine.is_loaded) {
+	sttengine_info_s* engine = NULL;
+	engine = __engine_agent_get_engine_by_uid(uid);
+
+	if (NULL == engine) {
+		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] The engine of uid(%d) is not valid", uid);
+		return STTD_ERROR_INVALID_PARAMETER;
+	}
+
+	if (false == engine->is_loaded) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not loaded engine"); 
 		return STTD_ERROR_OPERATION_FAILED;
 	}
 
-	if (NULL == setting_list) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Input parameter is NULL");
-		return STTD_ERROR_INVALID_PARAMETER;
-	}
-
-	if (NULL == g_cur_engine.pefuncs->foreach_engine_settings) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] foreach_engine_settings() of engine is NULL!!");
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	/* get setting info and move setting info to input parameter */
-	int result = 0;
-
-	result = g_cur_engine.pefuncs->foreach_engine_settings(__engine_setting_cb, setting_list);
-
-	if (0 == result && 0 < g_list_length(*setting_list)) {
-		*engine_id = strdup(g_cur_engine.engine_uuid);
-	} else {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] fail to get setting info : result(%d)\n", result);
-		result = STTD_ERROR_OPERATION_FAILED;
-	}
-
-	return result;
-}
-
-int sttd_engine_setting_set_engine_setting(const char* key, const char* value)
-{
-	if (false == g_agent_init) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized"); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	if (false == g_cur_engine.is_loaded) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not loaded engine"); 
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	if (NULL == key || NULL == value) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Invalid Parameter"); 
-		return STTD_ERROR_INVALID_PARAMETER;
-	}
-
-	if (NULL == g_cur_engine.pefuncs->set_engine_setting) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] set_engine_setting() of engine is NULL!!");
-		return STTD_ERROR_OPERATION_FAILED;
-	}
-
-	/* get setting info and move setting info to input parameter */
-	int ret = g_cur_engine.pefuncs->set_engine_setting(key, value);
+	int ret;
+	ret = stt_engine_check_app_agreed(engine->engine_id, appid, result);
 	if (0 != ret) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail set setting info (%d) ", ret); 
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] cancel recognition error(%d)", ret); 
 		return STTD_ERROR_OPERATION_FAILED;
 	}
 
+	
+	SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] Get engine right : %s", *result ? "true" : "false");
 	return 0;
 }
 
@@ -1798,89 +1466,69 @@ int sttd_engine_setting_set_engine_setting(const char* key, const char* value)
 * STT Engine Callback Functions											`				  *
 */
 
-void __result_cb(sttp_result_event_e event, const char* type, 
-					const char** data, int data_count, const char* msg, void *user_data)
+void __result_cb(sttp_result_event_e event, const char* type, const char** data, int data_count, 
+		 const char* msg, void* time_info, void *user_data)
 {
 	if (false == g_agent_init) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Result Callback : Not Initialized"); 
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Result Callback : Not Initialized");
 		return;
 	}
 
-	if (false == g_cur_engine.is_loaded) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Result Callback : Not loaded engine"); 
-		return;
+	SLOG(LOG_DEBUG, TAG_STTD, "[Server] === Result time callback ===");
+
+	if (NULL != time_info) {
+		/* Get the time info */
+		int ret = stt_engine_foreach_result_time(g_recording_engine_id, time_info, __result_time_cb, NULL);
+		if (0 != ret) {
+			SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to get time info : %d", ret);
+		}
 	}
 
-	return g_result_cb(event, type, data, data_count, msg, user_data);
+	SLOG(LOG_DEBUG, TAG_STTD, "[Server] ============================");
+
+	g_result_cb(event, type, data, data_count, msg, user_data);
+
+#ifdef AUDIO_CREATE_ON_START
+	if (event == STTP_RESULT_EVENT_ERROR) {
+		SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] Destroy recorder");
+		if (0 != sttd_recorder_destroy(g_recording_engine_id))
+			SECURE_SLOG(LOG_WARN, TAG_STTD, "[Engine Agent] Fail to destroy recorder(%d)", g_recording_engine_id);
+	}
+#endif
+
+	if (event == STTP_RESULT_EVENT_FINAL_RESULT || event == STTP_RESULT_EVENT_ERROR) {
+		g_recording_engine_id = -1;
+	}
+
+	return;
 }
 
-void __partial_result_cb(sttp_result_event_e event, const char* data, void *user_data)
+bool __result_time_cb(int index, sttp_result_time_event_e event, const char* text, long start_time, long end_time, void* user_data)
 {
-	if (false == g_agent_init) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Partial Result Callback : Not Initialized"); 
-		return;
-	}
-
-	if (false == g_cur_engine.is_loaded) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Partial Result Callback : Not loaded engine"); 
-		return;
-	}
-
-	return g_partial_result_cb(event, data, user_data);
+	return g_result_time_cb(index, event, text, start_time, end_time, user_data);
 }
 
-void __detect_silence_cb(void* user_data)
+void __detect_silence_cb(sttp_silence_type_e type, void* user_data)
 {
 	if (false == g_agent_init) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Silence Callback : Not Initialized"); 
 		return;
 	}
 
-	if (false == g_cur_engine.is_loaded) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Silence Callback : Not loaded engine"); 
-		return;
-	}
-
-	if (true == g_cur_engine.silence_detection) {
-		g_silence_cb(user_data);
-	} else {
-		SLOG(LOG_WARN, TAG_STTD, "[Engine Agent] Silence detection callback is blocked because option value is false.");
-	}
-}
-
-void __free_language_list(GList* lang_list)
-{
-	GList *iter = NULL;
-	char* data = NULL;
-
-	/* if list have item */
-	if (g_list_length(lang_list) > 0) {
-		/* Get a first item */
-		iter = g_list_first(lang_list);
-
-		while (NULL != iter) {
-			data = iter->data;
-
-			if (NULL != data)
-				g_free(data);
-			
-			lang_list = g_list_remove_link(lang_list, iter);
-
-			iter = g_list_first(lang_list);
-		}
-	}
+	g_silence_cb(type, user_data);
+	return;
 }
 
 /* A function forging */
 int __log_enginelist()
 {
-	GList *iter = NULL;
+	GSList *iter = NULL;
 	sttengine_info_s *data = NULL;
 
-	if (0 < g_list_length(g_engine_list)) {
+	if (0 < g_slist_length(g_engine_list)) {
 
 		/* Get a first item */
-		iter = g_list_first(g_engine_list);
+		iter = g_slist_nth(g_engine_list, 0);
 
 		SLOG(LOG_DEBUG, TAG_STTD, "--------------- engine list -------------------");
 
@@ -1889,13 +1537,16 @@ int __log_enginelist()
 			/* Get handle data from list */
 			data = iter->data;
 
-			SLOG(LOG_DEBUG, TAG_STTD, "[%dth]", i);
-			SLOG(LOG_DEBUG, TAG_STTD, "  engine uuid : %s", data->engine_uuid);
-			SLOG(LOG_DEBUG, TAG_STTD, "  engine name : %s", data->engine_name);
-			SLOG(LOG_DEBUG, TAG_STTD, "  engine path : %s", data->engine_path);
-			SLOG(LOG_DEBUG, TAG_STTD, "  setting ug path : %s", data->setting_ug_path);
+			SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[%dth]", i);
+			SECURE_SLOG(LOG_DEBUG, TAG_STTD, "  engine uuid : %s", data->engine_uuid);
+			SECURE_SLOG(LOG_DEBUG, TAG_STTD, "  engine name : %s", data->engine_name);
+			SECURE_SLOG(LOG_DEBUG, TAG_STTD, "  engine path : %s", data->engine_path);
+			SECURE_SLOG(LOG_DEBUG, TAG_STTD, "  use network : %s", data->use_network ? "true" : "false");
+			SECURE_SLOG(LOG_DEBUG, TAG_STTD, "  is loaded : %s", data->is_loaded ? "true" : "false");
+			if (NULL != data->first_lang)
+				SECURE_SLOG(LOG_DEBUG, TAG_STTD, "  default lang : %s", data->first_lang);
 
-			iter = g_list_next(iter);
+			iter = g_slist_next(iter);
 			i++;
 		}
 		SLOG(LOG_DEBUG, TAG_STTD, "----------------------------------------------");
@@ -1907,6 +1558,3 @@ int __log_enginelist()
 
 	return 0;
 }
-
-
-

@@ -1,3 +1,603 @@
+stt (0.2.53) -- Thu, 21 Aug 2014
+
+  * Remove agreement api (Dongyeol Lee <dy3.lee@samsung.com>)
+  * Add privilege http://tizen.org/privilege/recorder (Dongyeol Lee <dy3.lee@samsung.com>)
+  * Update engine error print (Dongyeol Lee <dy3.lee@samsung.com>)
+  * Update network check (Dongyeol Lee <dy3.lee@samsung.com>)
+  * Check dbus connection valid (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.52) -- Mon, 14 Jul 2014
+
+  * Apply sound session manager api change (Kwangyoun Kim <ky85.kim@samsung.com>)
+  * include header files (Kwangyoun Kim <ky85.kim@samsung.com>)
+  * Fix dbus timeout and retry (Dongyeol Lee <dy3.lee@samsung.com>)
+  * Update header (Kwangyoun Kim <ky85.kim@samsung.com>)
+  * Fix memory issue (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.51) -- Fri, 16 Jun 2014
+  
+  * Add file recognition library (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.50) -- Fri, 23 May 2014
+
+  * Fix memory initialize bug (Dongyeol Lee <dy3.lee@samsung.com>)
+  * Update License info (Kwangyoun Kim <ky85.kim@samsung.com>)
+  * Fix bug on notify state changed (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.49) -- Mon, 31 Mar 2014
+
+  * Remove build dependency of vconf key (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.48) -- Mon, 24 Mar 2014
+
+  * Release version (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.47-1) -- Fri, 21 Mar 2014
+
+  * Error Handling for record fail (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.47) -- Thu, 13 Feb 2014
+
+  * Release version (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.46-1) -- Wed, 12 Feb 2014
+
+  * Add dbus error free (Kwangyoun Kim <ky85.kim@samsung.com>)
+  * Update smack rule (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.46) -- Wed, 22 Jan 2014
+
+  * Release version (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.45-1) -- Wed, 22 Jan 2014
+
+  * Update smack rule to access vconf key (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.45) -- Thu, 16 Jan 2014
+
+  * Release version (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.44-1) -- Thu, 16 Jan 2014
+
+  * Update smack rule to access vconf key (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.44) -- Fri, 27 Dec 2013
+
+  * Release version (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.43-1) -- Fri, 27 Dec 2013
+
+  * Update dbus retry (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.43) -- Wed, 18 Dec 2013
+
+  * Release version (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.42-2) -- Wed, 18 Dec 2013
+
+  * Add map type (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.42-1) -- Wed, 18 Dec 2013
+
+  * Fix session blocking (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.42) -- Mon, 16 Dec 2013
+
+  * Release version (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.41-1) -- Mon, 16 Dec 2013
+
+  * Fix minor bug (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.41) -- Fri, 13 Dec 2013
+
+  * Release version (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.40-1) -- Fri, 13 Dec 2013
+
+  * Fix bug not to notify state (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.40) -- Fri, 13 Dec 2013
+
+  * Release version (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.39-2) -- Thu, 12 Dec 2013
+
+  * Support engine disclaimer (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.39-1) -- Thu, 12 Dec 2013
+
+  * Fix bug on initialize timeout (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.39) -- Wed, 11 Dec 2013
+
+  * Release version (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.38-1) -- Wed, 11 Dec 2013
+
+  * Fix bug to notify state not to use sound (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.38) -- Wed, 11 Dec 2013
+
+  * Release version (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.37-3) -- Wed, 11 Dec 2013
+
+  * Fix session bug (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.37-2) -- Wed, 11 Dec 2013
+
+  * Fix bug to play sound (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.37-1) -- Tue, 10 Dec 2013
+
+  * Support start sound and stop sound in daemon (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.37) -- Tue, 03 Dec 2013
+
+  * Release version (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.36-1) -- Mon, 02 Dec 2013
+
+  * Fix log crash bug (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.36) -- Fri, 29 Nov 2013
+
+  * Release version (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.35-2) -- Fri, 29 Nov 2013
+
+  * Fix spec file (Kwangyoun Kim <ky85.kim@samsung.com>)
+  * Change sequence at start (Kwangyoun KIm <ky85.kim@samsung.com>)
+
+stt (0.2.35-1) -- Fri, 29 Nov 2013
+
+  * Update recognition start (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.35) -- Thu, 28 Nov 2013
+
+  * Release version (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.34-1) -- Thu, 28 Nov 2013
+
+  * Update recorder to improve loading time (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.34) -- Thu, 28 Nov 2013
+
+  * Release version (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.33-1) -- Wed, 27 Nov 2013
+
+  * Add silence detection type for no speech (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.33) -- Wed, 27 Nov 2013
+
+  * Release version (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.32-3) -- Wed, 27 Nov 2013
+
+  * Add ignored case for interrupt callback (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.32-2) -- Wed, 27 Nov 2013
+
+  * Update interrupt callback of sound manager (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.32-1) -- Mon, 25 Nov 2013
+
+  * Remove not used engine api (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.32) -- Wed, 20 Nov 2013
+
+  * Release version (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.31-2) -- Wed, 20 Nov 2013
+
+  * Update dbus time out (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.31-1) -- Wed, 20 Nov 2013
+
+  * Add new api to notify default language change (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.31) -- Tue, 19 Nov 2013
+
+  * Release version (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.30-1) -- Tue, 19 Nov 2013
+
+  * Update audio session (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.30) -- Sat, 16 Nov 2013
+
+  * Release version (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.29-1) -- Fri, 15 Nov 2013
+
+  * Fix daemon language change bug (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.29) -- Wed, 13 Nov 2013
+
+  * Release version (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.28-2) -- Wed, 13 Nov 2013
+
+  * Update session manager and recorder type (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.28-1) -- Thu, 7 Nov 2013
+
+  * Update error log and clean up code (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.28) -- Wed, 6 Nov 2013
+
+  * Release version (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.27-2) -- Tue, 5 Nov 2013
+
+  * Fix time info file management (Dongyeol Lee <dy3.lee@samsung.com>)
+  * Remove setting api of hide offensive word (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.27-1) -- Tue, 5 Nov 2013
+
+  * Add return value check (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.27) -- Tue, 5 Nov 2013
+
+  * Release version (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.26-2) -- Mon, 4 Nov 2013
+
+  * Remove pause state and clean up code (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.26-1) -- Mon, 4 Nov 2013
+
+  * Update time stamp using XML file (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.26) -- Fri, 1 Nov 2013
+
+  * Release version (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.25-2) -- Thu, 31 Oct 2013
+
+  * Fix timing bug when daemon intialize and finalize (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.25-1) -- Thu, 31 Oct 2013
+
+  * Fix time stamp size (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.25) -- Thu, 31 Oct 2013
+
+  * Release version (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.24-5) -- Wed, 30 Oct 2013
+
+  * Update TC (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.24-4) -- Wed, 30 Oct 2013
+
+  * Fix bug on recognition result callback (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.24-3) -- Wed, 30 Oct 2013
+
+  * Change dbus waiting time (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.24-2) -- Tue, 29 Oct 2013
+
+  * Update time stamp api and engine api(Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.24-1) -- Mon, 28 Oct 2013
+
+  * Remove hide offensive word api (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.24) -- Mon, 28 Oct 2013
+
+  * Release version (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.23-2) -- Thu, 24 Oct 2013
+
+  * Update TC for added API (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.23-1) -- Wed, 23 Oct 2013
+
+  * Divide devel package (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.23) -- Tue, 22 Oct 2013
+
+  * Release version (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.22-3) -- Tue, 22 Oct 2013
+
+  * Add pluseaudio rule (Dongyeol Lee <dy3.lee@samsung.com>)
+  * Update recorder create in daemon engine init (Dongyeol Lee <dy3.lee@samsung.com>)
+  * Update daemon fork to use thread (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.22-2) -- Tue, 22 Oct 2013
+
+  * Remove not used setting api (Dongyeol Lee <dy3.lee@samsung.com>)
+  * Fix error handling of recorder (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.22-1) -- Thu, 17 Oct 2013
+
+  * Add to unload engine in finalize (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.22) -- Wed, 16 Oct 2013
+
+  * Release version (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.21-3) -- Tue, 15 Oct 2013
+
+  * Fix crash issue from result callback (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.21-2) -- Mon, 14 Oct 2013
+
+  * Support time stamp (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.21-1) -- Tue, 08 Oct 2013
+
+  * Remove old api (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.21) -- Tue, 08 Oct 2013
+
+  * Release version (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.20-2) -- Tue, 08 Oct 2013
+
+  * Fix bug about recording and processing timer (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.20-1) -- Fri, 04 Oct 2013
+
+  * Update engine api for time stamp (Dongyeol Lee <dy3.lee@samsung.com>)
+  * Fix small bug (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.20) -- Mon, 30 Sep 2013
+
+  * Release version (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.19-2) -- Fri, 27 Aug 2013
+
+  * Clean up code and fix bug (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.19-1) -- Thu, 26 Aug 2013
+
+  * Change api for partial result (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.19) -- Thu, 26 Sep 2013
+
+  * Release version (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.18-1) -- Wed, 25 Sep 2013
+
+  * Change engine api for partial result (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.18) -- Tue, 24 Sep 2013
+
+  * Release version (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.17-1) -- Tue, 24 Sep 2013
+
+  * Add TC (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.17) -- Mon, 23 Sep 2013
+
+  * Release version (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.16-1) -- Mon, 16 Sep 2013
+
+  * Fix engine id (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.16) -- Tue, 10 Sep 2013
+
+  * Release version (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.15-4) -- Mon, 9 Sep 2013
+
+  * Fix bug on dbus connection block (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.15-3) -- Fri, 30 Aug 2013
+
+  * Fix CMakeList (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.15-2) -- Thu, 29 Aug 2013
+
+  * Update docs and change api folder (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.15-1) -- Tue, 27 Aug 2013
+
+  * Fix bug of memory check (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.15) -- Thu, 22 Aug 2013
+
+  * Release version (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.14-1) -- Thu, 22 Aug 2013
+
+  * Update engine plugin interface (Dongyeol Lee <dy3.lee@samsung.com>)
+  * Fix the bug about memory clean up (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.14) -- Tue, 20 Aug 2013
+
+  * Release version (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.13-2) -- Fri, 16 Aug 2013
+
+  * Clean up log (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.13-1) -- Fri, 16 Aug 2013
+
+  * Remove punctuation override option (Dongyeol Lee <dy3.lee@samsung.com>)
+  * Add error handling of recording fail (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.13) -- Thu, 08 Aug 2013
+
+  * Release version (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.12-1) -- Thu, 08 Aug 2013
+
+  * Remove ignore session of recording (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.12) -- Wed, 31 Aug 2013
+
+  * Release version (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.11-1) -- Wed, 31 Jul 2013
+
+  * Remove test module (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.11) -- Wed, 31 Jul 2013
+
+  * Fix bug on NULL callback (Kwangyoun Kim <ky85.kim@samsung.com>)
+  * Release version (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.11) -- Wed, 31 Jul 2013
+
+  * Release version (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.10-3) -- Wed, 31 Jul 2013
+
+  * Add build config for dlog (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.10-2) -- Wed, 31 Jul 2013
+
+  * Add ignore session of recording (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.10-1) -- Tue, 30 Jul 2013
+
+  * Add test module (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.10) -- Thu, 18 Jul 2013
+
+  * Release version (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.9-1) -- Thu, 18 Jul 2013
+
+  * Fix client create bug (Dongyeol Lee <dy3.lee@samsung.com>)
+  * Clean up directory path (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.9) -- Thu, 13 Jul 2013
+
+  * Release version (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.8-1) -- Thu, 13 Jul 2013
+
+  * Fix memory init error of config (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.8) -- Thu, 11 Jul 2013
+
+  * Release version (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.7-1) -- Thu, 11 Jul 2013
+
+  * Fix prevent issue (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.7) -- Wed, 10 Jul 2013
+
+  * Release version (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.6-5) -- Tue, 09 Jul 2013
+
+  * Update to get info from config (Dongyeol Lee <dy3.lee@samsung.com>)
+  * Fix code to manage config callback (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.6-4) -- Fri, 05 Jul 2013
+
+  * Fix bug to set engine id (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.6-3) -- Thu, 04 Jul 2013
+
+  * Set default language en_GB (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.6-2) -- Wed, 03 Jul 2013
+
+  * Update auto language (Dongyeol Lee <dy3.lee@samsung.com>)
+  * Clean up config code (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.6-1) -- Sat, 29 Jun 2013
+
+  * Update smack label of voice directory (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.6) -- Wed, 12 Jun 2013
+
+  * Release version (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.5-2) -- Wed, 12 Jun 2013
+
+  * Add code for secure log (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.5-1) -- Wed, 12 Jun 2013
+
+  * Fix bug to get wrong default language (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.5) -- Fri, 07 May 2013
+
+  * Release version 0.2.5 (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.4-2) -- Fri, 07 May 2013
+
+  * Fix timer issue (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.4-1) -- Fri, 07 May 2013
+
+  * Fix timer double free (Dongyeol Lee <dy3.lee@samsung.com>)
+  * Fix prevent issue (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.4) -- Mon, 17 May 2013
+
+  * Release version 0.2.4 (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.3-2) -- Mon, 27 May 2013
+
+  * Delete unused log (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.3-1) -- Sat, 25 May 2013
+
+  * Update configure to XML based (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.3) -- Tue, 14 May 2013
+
+  * Release version 0.2.3 (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.2-1) -- Tue, 14 May 2013
+
+  * Fix bug about client check in callback (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.2) -- Wed, 08 May 2013
+
+  * Release version 0.2.2 (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.1-2) -- Wed, 08 May 2013
+
+  * Update to set default language from display language (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.1-1) -- Tue, 07 May 2013
+
+  * Delete code about print (Kwangyoun Kim <ky85.kim@samsung.com>)
+
+stt (0.2.1) -- Mon, 06 May 2013
+
+  * Release version 0.2.1 (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.0-4) -- Mon, 06 May 2013
+
+  * Fix BS issue (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.0-3) -- Fri, 03 May 2013
+
+  * Update to retry daemon fork (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.0-2) -- Fri, 03 May 2013
+
+  * Add recording timeout (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.0-1) -- Tue, 23 Apr 2013
+
+  * Fix prevent issues (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.2.0) -- Fri, 19 Apr 2013
+
+  * Release version 0.2.0 (Dongyeol Lee <dy3.lee@samsung.com>)
+
+stt (0.1.41-1) -- Thu, 18 Apr 2013
+
+  * Support multi-engine of application (Dongyeol Lee <dy3.lee@samsung.com>)
+
 stt (0.1.41) -- Tue, 16 Apr 2013
 
   * Release version 0.1.41 (Kwangyoun Kim <ky85.kim@samsung.com>)

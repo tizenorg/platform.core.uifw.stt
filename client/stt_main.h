@@ -1,5 +1,5 @@
 /*
-*  Copyright (c) 2012, 2013 Samsung Electronics Co., Ltd All Rights Reserved 
+*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved 
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -15,14 +15,15 @@
 #ifndef __STT_MAIN_H_
 #define __STT_MAIN_H_
 
+#include <dbus/dbus.h>
+#include <dlog.h>
+#include <Ecore.h>
+#include <glib.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
 #include <unistd.h>
-#include <glib.h>
-#include <dbus/dbus.h>
-#include <dlog.h>
 
 #include "stt_defs.h"
 
@@ -39,6 +40,15 @@ struct stt_s {
 	int handle;
 };
 
+typedef enum {
+	STT_DAEMON_NORMAL		= 0,
+	STT_DAEMON_ON_TERMINATING	= -1
+} stt_daemon_status_e;
+
+typedef enum {
+	STT_RESULT_STATE_DONE		= 0,			/**< Sync state change */
+	STT_RESULT_STATE_NOT_DONE	= 1			/**< Async state change */
+} stt_result_state_e;
 
 #ifdef __cplusplus
 }
