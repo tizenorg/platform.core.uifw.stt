@@ -25,6 +25,14 @@ Branch: refs/heads/tizen
 Code-Review+2: Dongyeol Lee <dy3.lee@samsung.com>
 Verified+1: Dongyeol Lee <dy3.lee@samsung.com>
 Submitted-by: Dongyeol Lee <dy3.lee@samsung.com>
+Submitted-at: Thu, 12 Feb 2015 19:11:18 -0700
+Reviewed-on: https://review.tizen.org/gerrit/35318
+Project: platform/core/uifw/stt
+Branch: refs/heads/tizen
+
+Code-Review+2: Dongyeol Lee <dy3.lee@samsung.com>
+Verified+1: Dongyeol Lee <dy3.lee@samsung.com>
+Submitted-by: Dongyeol Lee <dy3.lee@samsung.com>
 Submitted-at: Thu, 12 Feb 2015 18:11:18 -0800
 Reviewed-on: https://review.tizen.org/gerrit/35318
 Project: platform/core/uifw/stt
