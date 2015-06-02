@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an AS IS BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #ifndef __STT_H__
@@ -29,13 +29,13 @@
 */
 
 #ifdef __cplusplus
-extern "C" 
+extern "C"
 {
 #endif
 
 /**
  * @brief Enumerations for error codes.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
 */
 typedef enum {
 	STT_ERROR_NONE			= TIZEN_ERROR_NONE,		/**< Successful */
@@ -49,87 +49,87 @@ typedef enum {
 	STT_ERROR_NOT_SUPPORTED		= TIZEN_ERROR_NOT_SUPPORTED,	/**< STT NOT supported */
 	STT_ERROR_INVALID_STATE		= TIZEN_ERROR_STT | 0x01,	/**< Invalid state */
 	STT_ERROR_INVALID_LANGUAGE	= TIZEN_ERROR_STT | 0x02,	/**< Invalid language */
-	STT_ERROR_ENGINE_NOT_FOUND	= TIZEN_ERROR_STT | 0x03,	/**< No available engine  */	
+	STT_ERROR_ENGINE_NOT_FOUND	= TIZEN_ERROR_STT | 0x03,	/**< No available engine  */
 	STT_ERROR_OPERATION_FAILED	= TIZEN_ERROR_STT | 0x04,	/**< Operation failed  */
 	STT_ERROR_NOT_SUPPORTED_FEATURE	= TIZEN_ERROR_STT | 0x05	/**< Not supported feature of current engine */
 }stt_error_e;
 
 /**
  * @brief Definition for free form dictation and default type.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
 */
 #define STT_RECOGNITION_TYPE_FREE		"stt.recognition.type.FREE"
 
 /**
  * @brief Definition for continuous free dictation.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
 */
 #define STT_RECOGNITION_TYPE_FREE_PARTIAL	"stt.recognition.type.FREE.PARTIAL"
 
 /**
  * @brief Definition for search.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
 */
 #define STT_RECOGNITION_TYPE_SEARCH		"stt.recognition.type.SEARCH"
 
 /**
  * @brief Definition for web search.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
 */
 #define STT_RECOGNITION_TYPE_WEB_SEARCH		"stt.recognition.type.WEB_SEARCH"
 
 /**
  * @brief Definition for map.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
 */
 #define STT_RECOGNITION_TYPE_MAP		"stt.recognition.type.MAP"
 
 /**
  * @brief Definition for none message.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
 */
 #define STT_RESULT_MESSAGE_NONE			"stt.result.message.none"
 
 /**
  * @brief Definition for failed recognition because the speech started too soon.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
 */
 #define STT_RESULT_MESSAGE_ERROR_TOO_SOON	"stt.result.message.error.too.soon"
 
 /**
  * @brief Definition for failed recognition because the speech is too short.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
 */
 #define STT_RESULT_MESSAGE_ERROR_TOO_SHORT	"stt.result.message.error.too.short"
 
 /**
  * @brief Definition for failed recognition because the speech is too long.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
 */
 #define STT_RESULT_MESSAGE_ERROR_TOO_LONG	"stt.result.message.error.too.long"
 
 /**
  * @brief Definition for failed recognition because the speech is too quiet to listen.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
 */
 #define STT_RESULT_MESSAGE_ERROR_TOO_QUIET	"stt.result.message.error.too.quiet"
 
 /**
  * @brief Definition for failed recognition because the speech is too loud to listen.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
 */
 #define STT_RESULT_MESSAGE_ERROR_TOO_LOUD	"stt.result.message.error.too.loud"
 
 /**
  * @brief Definition for failed recognition because the speech is too fast to listen.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
 */
 #define STT_RESULT_MESSAGE_ERROR_TOO_FAST	"stt.result.message.error.too.fast"
 
 
 /**
  * @brief Enumeration for state.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
 */
 typedef enum {
 	STT_STATE_CREATED	= 0,		/**< 'CREATED' state */
@@ -140,7 +140,7 @@ typedef enum {
 
 /**
  * @brief Enumeration for result event.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
 */
 typedef enum {
 	STT_RESULT_EVENT_FINAL_RESULT = 0,	/**< Event when the recognition full or last result is ready  */
@@ -150,7 +150,7 @@ typedef enum {
 
 /**
  * @brief Enumeration for result time callback event.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
 */
 typedef enum {
 	STT_RESULT_TIME_EVENT_BEGINNING = 0,	/**< Event when the token is beginning type */
@@ -160,23 +160,23 @@ typedef enum {
 
 /**
  * @brief Enumeration for silence detection type.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
 */
 typedef enum {
 	STT_OPTION_SILENCE_DETECTION_FALSE = 0,	/**< Silence detection type - False */
 	STT_OPTION_SILENCE_DETECTION_TRUE = 1,	/**< Silence detection type - True */
-	STT_OPTION_SILENCE_DETECTION_AUTO = 2	/**< Silence detection type - Auto */	
+	STT_OPTION_SILENCE_DETECTION_AUTO = 2	/**< Silence detection type - Auto */
 }stt_option_silence_detection_e;
 
 /**
  * @brief A structure of STT handler.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
 */
 typedef struct stt_s *stt_h;
 
 /**
  * @brief Called to get the engine information.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  *
  * @param[in] engine_id Engine id
  * @param[in] engine_name Engine name
@@ -191,7 +191,7 @@ typedef bool(*stt_supported_engine_cb)(stt_h stt, const char* engine_id, const c
 
 /**
  * @brief Called when STT gets the recognition result from the engine.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  *
  * @remarks After stt_stop() is called, silence is detected from recording, or partial result is occured,
  *	this function is called.
@@ -210,12 +210,12 @@ typedef bool(*stt_supported_engine_cb)(stt_h stt, const char* engine_id, const c
  * @see stt_set_recognition_result_cb()
  * @see stt_unset_recognition_result_cb()
 */
-typedef void (*stt_recognition_result_cb)(stt_h stt, stt_result_event_e event, const char** data, int data_count, 
+typedef void (*stt_recognition_result_cb)(stt_h stt, stt_result_event_e event, const char** data, int data_count,
 					  const char* msg, void *user_data);
 
 /**
  * @brief Called when STT get the result time stamp in free partial type.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  *
  * @param[in] stt The STT handle
  * @param[in] index The result index
@@ -231,12 +231,12 @@ typedef void (*stt_recognition_result_cb)(stt_h stt, stt_result_event_e event, c
  *
  * @see stt_recognition_result_cb()
 */
-typedef bool (*stt_result_time_cb)(stt_h stt, int index, stt_result_time_event_e event, const char* text, 
+typedef bool (*stt_result_time_cb)(stt_h stt, int index, stt_result_time_event_e event, const char* text,
 				   long start_time, long end_time, void* user_data);
 
 /**
  * @brief Called when the state of STT is changed.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  *
  * @param[in] stt The STT handle
  * @param[in] previous A previous state
@@ -252,7 +252,7 @@ typedef void (*stt_state_changed_cb)(stt_h stt, stt_state_e previous, stt_state_
 
 /**
  * @brief Called when an error occurs.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  *
  * @param[in] stt The STT handle
  * @param[in] reason The error type (e.g. #STT_ERROR_OUT_OF_NETWORK, #STT_ERROR_IO_ERROR)
@@ -267,7 +267,7 @@ typedef void (*stt_error_cb)(stt_h stt, stt_error_e reason, void *user_data);
 
 /**
  * @brief Called to retrieve the supported languages.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @remarks The language is specified as an ISO 3166 alpha-2 two letter country-code followed by ISO 639-1 for the two-letter language code. For example, "ko_KR" for Korean, "en_US" for American English.
  *
  * @param[in] stt The STT handle
@@ -283,7 +283,7 @@ typedef bool (*stt_supported_language_cb)(stt_h stt, const char* language, void*
 
 /**
  * @brief Called when the default language is changed.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  *
  * @param[in] stt The STT handle
  * @param[in] previous_language A previous language
@@ -292,12 +292,12 @@ typedef bool (*stt_supported_language_cb)(stt_h stt, const char* language, void*
  *
  * @see stt_set_default_language_changed_cb()
 */
-typedef void (*stt_default_language_changed_cb)(stt_h stt, const char* previous_language, 
+typedef void (*stt_default_language_changed_cb)(stt_h stt, const char* previous_language,
 						const char* current_language, void* user_data);
 
 /**
  * @brief Creates a STT handle.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @privlevel public
  * @privilege %http://tizen.org/privilege/recorder
  *
@@ -320,7 +320,7 @@ int stt_create(stt_h* stt);
 
 /**
  * @brief Destroys a STT handle.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @privlevel public
  * @privilege %http://tizen.org/privilege/recorder
  *
@@ -338,7 +338,7 @@ int stt_destroy(stt_h stt);
 
 /**
  * @brief Retrieves supported engine information using a callback function.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @privlevel public
  * @privilege %http://tizen.org/privilege/recorder
  *
@@ -362,7 +362,7 @@ int stt_foreach_supported_engines(stt_h stt, stt_supported_engine_cb callback, v
 
 /**
  * @brief Gets the current engine id.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @privlevel public
  * @privilege %http://tizen.org/privilege/recorder
  *
@@ -386,7 +386,7 @@ int stt_get_engine(stt_h stt, char** engine_id);
 
 /**
  * @brief Sets the engine id.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @privlevel public
  * @privilege %http://tizen.org/privilege/recorder
  *
@@ -408,7 +408,7 @@ int stt_set_engine(stt_h stt, const char* engine_id);
 
 /**
  * @brief Connects the daemon asynchronously.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @privlevel public
  * @privilege %http://tizen.org/privilege/recorder
  *
@@ -421,7 +421,7 @@ int stt_set_engine(stt_h stt, const char* engine_id);
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
  *
  * @pre The state should be #STT_STATE_CREATED.
- * @post If this function is successful, the STT state will be #STT_STATE_READY. \n 
+ * @post If this function is successful, the STT state will be #STT_STATE_READY. \n
  *	If this function is failed, the error callback is called. (e.g. #STT_ERROR_ENGINE_NOT_FOUND)
  *
  * @see stt_unprepare()
@@ -430,7 +430,7 @@ int stt_prepare(stt_h stt);
 
 /**
  * @brief Disconnects the daemon.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @privlevel public
  * @privilege %http://tizen.org/privilege/recorder
  *
@@ -451,7 +451,7 @@ int stt_unprepare(stt_h stt);
 
 /**
  * @brief Retrieves all supported languages of current engine using callback function.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @privlevel public
  * @privilege %http://tizen.org/privilege/recorder
  *
@@ -475,7 +475,7 @@ int stt_foreach_supported_languages(stt_h stt, stt_supported_language_cb callbac
 
 /**
  * @brief Gets the default language set by the user.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @privlevel public
  * @privilege %http://tizen.org/privilege/recorder
  * @remarks The language is specified as an ISO 3166 alpha-2 two letter country-code followed by ISO 639-1 for the two-letter language code. \n
@@ -497,7 +497,7 @@ int stt_get_default_language(stt_h stt, char** language);
 
 /**
  * @brief Gets the current STT state.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @privlevel public
  * @privilege %http://tizen.org/privilege/recorder
  *
@@ -518,7 +518,7 @@ int stt_get_state(stt_h stt, stt_state_e* state);
 
 /**
  * @brief Checks whether the recognition type is supported.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @privlevel public
  * @privilege %http://tizen.org/privilege/recorder
  *
@@ -539,7 +539,7 @@ int stt_is_recognition_type_supported(stt_h stt, const char* type, bool* support
 
 /**
  * @brief Sets the silence detection.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @privlevel public
  * @privilege %http://tizen.org/privilege/recorder
  *
@@ -559,7 +559,7 @@ int stt_set_silence_detection(stt_h stt, stt_option_silence_detection_e type);
 
 /**
  * @brief Sets the sound to start recording.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @privlevel public
  * @privilege %http://tizen.org/privilege/recorder
  *
@@ -581,7 +581,7 @@ int stt_set_start_sound(stt_h stt, const char* filename);
 
 /**
  * @brief Unsets the sound to start recording.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @privlevel public
  * @privilege %http://tizen.org/privilege/recorder
  *
@@ -600,7 +600,7 @@ int stt_unset_start_sound(stt_h stt);
 
 /**
  * @brief Sets the sound to stop recording.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @privlevel public
  * @privilege %http://tizen.org/privilege/recorder
  *
@@ -622,7 +622,7 @@ int stt_set_stop_sound(stt_h stt, const char* filename);
 
 /**
  * @brief Unsets the sound to stop recording.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @privlevel public
  * @privilege %http://tizen.org/privilege/recorder
  *
@@ -641,7 +641,7 @@ int stt_unset_stop_sound(stt_h stt);
 
 /**
  * @brief Starts recording and recognition asynchronously.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @privlevel public
  * @privilege %http://tizen.org/privilege/recorder
  *
@@ -673,7 +673,7 @@ int stt_start(stt_h stt, const char* language, const char* type);
 
 /**
  * @brief Finishes the recording and starts recognition processing in engine asynchronously.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @privlevel public
  * @privilege %http://tizen.org/privilege/recorder
  *
@@ -699,7 +699,7 @@ int stt_stop(stt_h stt);
 
 /**
  * @brief Cancels processing recognition and recording.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @privlevel public
  * @privilege %http://tizen.org/privilege/recorder
  *
@@ -727,7 +727,7 @@ int stt_cancel(stt_h stt);
 
 /**
  * @brief Gets the microphone volume during recording.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @privlevel public
  * @privilege %http://tizen.org/privilege/recorder
  *
@@ -749,11 +749,11 @@ int stt_get_recording_volume(stt_h stt, float* volume);
 
 /**
  * @brief Retrieves the time stamp of the current recognition result using the callback function.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @privlevel public
  * @privilege %http://tizen.org/privilege/recorder
  *
- * @remarks This function should be called in stt_recognition_result_cb(). 
+ * @remarks This function should be called in stt_recognition_result_cb().
  *	After stt_recognition_result_cb(), result data is NOT valid.
  *
  * @param[in] stt The STT handle
@@ -776,7 +776,7 @@ int stt_foreach_detailed_result(stt_h stt, stt_result_time_cb callback, void* us
 
 /**
  * @brief Registers a callback function to get the recognition result.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @privlevel public
  * @privilege %http://tizen.org/privilege/recorder
  *
@@ -799,7 +799,7 @@ int stt_set_recognition_result_cb(stt_h stt, stt_recognition_result_cb callback,
 
 /**
  * @brief Unregisters the callback function.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @privlevel public
  * @privilege %http://tizen.org/privilege/recorder
  *
@@ -819,7 +819,7 @@ int stt_unset_recognition_result_cb(stt_h stt);
 
 /**
  * @brief Registers a callback function to be called when STT state changes.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @privlevel public
  * @privilege %http://tizen.org/privilege/recorder
  *
@@ -842,7 +842,7 @@ int stt_set_state_changed_cb(stt_h stt, stt_state_changed_cb callback, void* use
 
 /**
  * @brief Unregisters the callback function.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @privlevel public
  * @privilege %http://tizen.org/privilege/recorder
  *
@@ -862,7 +862,7 @@ int stt_unset_state_changed_cb(stt_h stt);
 
 /**
  * @brief Registers a callback function to be called when an error occurred.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @privlevel public
  * @privilege %http://tizen.org/privilege/recorder
  *
@@ -885,7 +885,7 @@ int stt_set_error_cb(stt_h stt, stt_error_cb callback, void* user_data);
 
 /**
  * @brief Unregisters the callback function.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @privlevel public
  * @privilege %http://tizen.org/privilege/recorder
  *
@@ -905,7 +905,7 @@ int stt_unset_error_cb(stt_h stt);
 
 /**
  * @brief Registers a callback function to detect the default language change.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @privlevel public
  * @privilege %http://tizen.org/privilege/recorder
  *
@@ -928,7 +928,7 @@ int stt_set_default_language_changed_cb(stt_h stt, stt_default_language_changed_
 
 /**
  * @brief Unregisters the callback function.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @privlevel public
  * @privilege %http://tizen.org/privilege/recorder
  *
@@ -945,7 +945,6 @@ int stt_set_default_language_changed_cb(stt_h stt, stt_default_language_changed_
  * @see stt_set_default_language_changed_cb()
 */
 int stt_unset_default_language_changed_cb(stt_h stt);
-
 
 #ifdef __cplusplus
 }
