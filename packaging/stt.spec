@@ -90,18 +90,13 @@ install LICENSE.APLv2 %{buildroot}/usr/share/license/%{name}
 /sbin/ldconfig
 
 mkdir -p /usr/lib/voice
-chsmack -a '_' /usr/lib/voice
 
 mkdir -p /usr/share/voice
-chsmack -a '_' /usr/share/voice
 
 mkdir -p /opt/home/app/.voice
 chown 5000:5000 /opt/home/app/.voice
 
 mkdir -p /opt/usr/data/voice/stt/1.0
-chsmack -a '_' /opt/usr/data/voice/
-chsmack -a 'stt-server' /opt/usr/data/voice/stt/
-chsmack -a 'stt-server' /opt/usr/data/voice/stt/1.0
 chown 5000:5000 /opt/usr/data/voice
 chown 5000:5000 /opt/usr/data/voice/stt
 chown 5000:5000 /opt/usr/data/voice/stt/1.0
