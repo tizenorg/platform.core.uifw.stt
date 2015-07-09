@@ -23,11 +23,11 @@ extern "C" {
 * Definition for Dbus
 *******************************************************************************************/
 
-#define STT_CLIENT_SERVICE_NAME         "org.tizen.voice.sttclient"
-#define STT_CLIENT_SERVICE_OBJECT_PATH  "/org/tizen/voice/sttclient"
-#define STT_CLIENT_SERVICE_INTERFACE    "org.tizen.voice.sttclient"
+#define STT_CLIENT_SERVICE_NAME         "org.tizen.stt.client"
+#define STT_CLIENT_SERVICE_OBJECT_PATH  "/org/tizen/stt/client"
+#define STT_CLIENT_SERVICE_INTERFACE    "org.tizen.stt.client"
 
-#define STT_SERVER_SERVICE_NAME         "service.connect.sttserver"
+#define STT_SERVER_SERVICE_NAME         "org.tizen.voice.sttserver"
 #define STT_SERVER_SERVICE_OBJECT_PATH  "/org/tizen/voice/sttserver"
 #define STT_SERVER_SERVICE_INTERFACE    "org.tizen.voice.sttserver"
 
@@ -67,8 +67,6 @@ extern "C" {
 
 #define STT_AUDIO_VOLUME_PATH		"/tmp/stt_vol"
 
-#define STT_PID_FILE_PATH		"/opt/home/app/.voice/sttd_info"
-
 #define STT_TIME_INFO_PATH		"/opt/home/app/.voice/stt-time.xml"
 
 #define STT_USR_BASE			"/usr/lib/voice"
@@ -87,6 +85,8 @@ extern "C" {
 #define STT_DOWNLOAD_ENGINE_SETTING	STT_OPT_BASE"/stt/1.0/engine-setting"
 
 #define STT_BASE_LANGUAGE		"en_US"
+
+#define STT_RETRY_COUNT			5
 
 #define STT_FEATURE_PATH		"tizen.org/feature/speech.recognition"
 #define STT_MIC_FEATURE_PATH		"tizen.org/feature/microphone"

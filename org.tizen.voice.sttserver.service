@@ -1,0 +1,5 @@
+[D-BUS Service]
+Name=org.tizen.voice.sttserver
+Exec=/usr/bin/stt-daemon
+User=root
+Group=root

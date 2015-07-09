@@ -226,6 +226,11 @@ int sttd_recorder_create(int engine_id, sttp_audio_type_e type, int channel, uns
 
 	stt_recorder_s* recorder;
 	recorder = (stt_recorder_s*)calloc(1, sizeof(stt_recorder_s));
+	if (NULL == recorder) {
+		audio_in_destroy(temp_in_h);
+		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to allocate memory");
+		return STTD_ERROR_OUT_OF_MEMORY;
+	}
 
 	recorder->engine_id = engine_id;
 	recorder->audio_h = temp_in_h;
@@ -272,8 +277,8 @@ int sttd_recorder_destroy(int engine_id)
 
 static float get_volume_decibel(char* data, int size, sttp_audio_type_e type)
 {
-	#define MAX_AMPLITUDE_MEAN_16 23170.115738161934
-	#define MAX_AMPLITUDE_MEAN_08    89.803909382810
+	#define MAX_AMPLITUDE_MEAN_16	32768
+	#define MAX_AMPLITUDE_MEAN_08	128
 
 	int i, depthByte;
 	int count = 0;

@@ -41,10 +41,19 @@ int stt_client_new(stt_h* stt)
 {
 	stt_client_s *client = NULL;
 
-	client = (stt_client_s*)g_malloc0 (sizeof(stt_client_s));
+	client = (stt_client_s*)calloc(1, sizeof(stt_client_s));
+	if (NULL == client) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to allocate memory");
+		return STT_ERROR_OUT_OF_MEMORY;
+	}
 
-	stt_h temp = (stt_h)g_malloc0(sizeof(struct stt_s));
-	temp->handle = __client_generate_uid(getpid()); 
+	stt_h temp = (stt_h)calloc(1, sizeof(struct stt_s));
+	if (NULL == temp) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to allocate memory");
+		free(client);
+		return STT_ERROR_OUT_OF_MEMORY;
+	}
+	temp->handle = __client_generate_uid(getpid());
 
 	/* initialize client data */
 	client->stt = temp;

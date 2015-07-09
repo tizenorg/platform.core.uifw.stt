@@ -24,31 +24,6 @@
 
 static Ecore_Timer* g_check_client_timer = NULL;
 
-static int __save_stt_daemon_info()
-{
-	FILE* fp;
-	int pid = getpid();
-	fp = fopen(STT_PID_FILE_PATH, "w");
-	if (NULL == fp) {
-		SLOG(LOG_ERROR, TAG_STTD, "[ERROR] Fail to make pid file");
-		return -1;
-	}
-	fprintf(fp, "%d", pid);
-	fclose(fp);
-	return 0;
-}
-
-static int __delete_stt_daemon_info()
-{
-	if (0 == access(STT_PID_FILE_PATH, R_OK)) {
-		if (0 != remove(STT_PID_FILE_PATH)) {
-			SLOG(LOG_WARN, TAG_STTD, "[WARN] Fail to remove pid file");
-			return -1;
-		}
-	}
-	return 0;
-}
-
 int main(int argc, char** argv)
 {
 	SLOG(LOG_DEBUG, TAG_STTD, "  ");
@@ -70,8 +45,6 @@ int main(int argc, char** argv)
 		return EXIT_FAILURE;
 	}
 
-	__save_stt_daemon_info();
-
 	stt_network_initialize();
 
 	g_check_client_timer = ecore_timer_add(CLIENT_CLEAN_UP_TIME, sttd_cleanup_client, NULL);
@@ -92,10 +65,6 @@ int main(int argc, char** argv)
 	if (NULL != g_check_client_timer) {
 		ecore_timer_del(g_check_client_timer);
 	}
-
-	sttd_dbus_close_connection();
-
-	__delete_stt_daemon_info();
 
 	stt_network_finalize();
 

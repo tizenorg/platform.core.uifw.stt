@@ -66,12 +66,6 @@ typedef struct {
 	char* ug_name;
 }engine_s;
 
-typedef enum {
-	STTD_DAEMON_NORMAL		= 0,
-	STTD_DAEMON_ON_TERMINATING	= -1
-} sttd_daemon_status_e;
-
-
 #ifdef __cplusplus
 }
 #endif

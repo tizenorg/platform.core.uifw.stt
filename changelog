@@ -1,3 +1,11 @@
+stt (0.2.54) -- Tue, 2 Jun 2015
+
+  * Update IPC for getting volume not to use file (Dongyeol Lee <dy3.lee@samsung.com>)
+  * Remove unused smack label (Kwangyoun Kim <ky85.kim@samsung.com>)
+  * Update daemon start by dbus activation (Dongyeol Lee <dy3.lee@samsung.com>)
+  * Update state changed callback for thread (Dongyeol Lee <dy3.lee@samsung.com>)
+  * Apply dbus policy config (Kwangyoun Kim <ky85.kim@samsung.com>)
+
 stt (0.2.53) -- Thu, 21 Aug 2014
 
   * Remove agreement api (Dongyeol Lee <dy3.lee@samsung.com>)

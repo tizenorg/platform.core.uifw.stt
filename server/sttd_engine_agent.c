@@ -245,8 +245,8 @@ int __internal_get_engine_info(const char* filepath, sttengine_info_s** info)
 	handle = dlopen (filepath, RTLD_LAZY);
 
 	if (!handle) {
-		SECURE_SLOG(LOG_WARN, TAG_STTD, "[Engine Agent] Invalid engine : %s", filepath); 
-		return -1;
+		SECURE_SLOG(LOG_WARN, TAG_STTD, "[Engine Agent] Invalid engine : %s", filepath);
+		return STTD_ERROR_ENGINE_NOT_FOUND;
 	}
 
 	/* link engine to daemon */
@@ -254,14 +254,14 @@ int __internal_get_engine_info(const char* filepath, sttengine_info_s** info)
 	if ((error = dlerror()) != NULL) {
 		SLOG(LOG_WARN, TAG_STTD, "[Engine Agent] Invalid engine. Fail to open sttp_load_engine : %s", error); 
 		dlclose(handle);
-		return -1;
+		return STTD_ERROR_ENGINE_NOT_FOUND;
 	}
 
 	dlsym(handle, "sttp_unload_engine");
 	if ((error = dlerror()) != NULL) {
 		SLOG(LOG_WARN, TAG_STTD, "[Engine Agent] Invalid engine. Fail to open sttp_unload_engine : %s", error); 
 		dlclose(handle);
-		return -1;
+		return STTD_ERROR_ENGINE_NOT_FOUND;
 	}
 
 	int (*get_engine_info)(sttpe_engine_info_cb callback, void* user_data);
@@ -270,18 +270,23 @@ int __internal_get_engine_info(const char* filepath, sttengine_info_s** info)
 	if ((error = dlerror()) != NULL || NULL == get_engine_info) {
 		SLOG(LOG_WARN, TAG_STTD, "[Engine Agent WARNING] Invalid engine. Fail to open sttp_get_engine_info : %s", error); 
 		dlclose(handle);
-		return -1;
+		return STTD_ERROR_ENGINE_NOT_FOUND;
 	}
 
 	sttengine_info_s* temp;
 	temp = (sttengine_info_s*)calloc(1, sizeof(sttengine_info_s));
+	if (NULL == temp) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to allocate memory");
+		dlclose(handle);
+		return STTD_ERROR_OUT_OF_MEMORY;
+	}
 
 	/* get engine info */
 	if (0 != get_engine_info(__engine_info_cb, (void*)temp)) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to get engine info from engine"); 
 		dlclose(handle);
 		free(temp);
-		return -1;
+		return STTD_ERROR_ENGINE_NOT_FOUND;
 	}
 
 	/* close engine */
@@ -305,7 +310,7 @@ int __internal_get_engine_info(const char* filepath, sttengine_info_s** info)
 
 	*info = temp;
 
-	return 0;
+	return STTD_ERROR_NONE;
 }
 
 bool __is_engine(const char* filepath)
@@ -635,7 +640,11 @@ int sttd_engine_agent_load_current_engine(int uid, const char* engine_uuid)
 	
 	if (NULL == client) {
 		client = (sttengine_client_s*)calloc(1, sizeof(sttengine_client_s));
-		
+		if (NULL == client) {
+			SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to allocate memory");
+			return STTD_ERROR_OUT_OF_MEMORY;
+		}
+
 		/* initialize */
 		client->uid = uid;
 		client->engine_id = -1;
@@ -807,6 +816,10 @@ int sttd_engine_agent_get_engine_list(GSList** engine_list)
 		engine_s* temp_engine;
 
 		temp_engine = (engine_s*)calloc(1, sizeof(engine_s));
+		if (NULL == temp_engine) {
+			SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to allocate memory");
+			return STTD_ERROR_OUT_OF_MEMORY;
+		}
 
 		data = iter->data;
 

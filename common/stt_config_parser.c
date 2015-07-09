@@ -86,6 +86,11 @@ int stt_parser_get_engine_info(const char* path, stt_engine_info_s** engine_info
 	/* alloc engine info */
 	stt_engine_info_s* temp;
 	temp = (stt_engine_info_s*)calloc(1, sizeof(stt_engine_info_s));
+	if (NULL == temp) {
+		xmlFreeDoc(doc);
+		SLOG(LOG_ERROR, stt_tag(), "[ERROR] Fail to allocate memory");
+		return -1;
+	}
 
 	temp->name = NULL;
 	temp->uuid = NULL;
@@ -306,6 +311,11 @@ int stt_parser_load_config(stt_config_s** config_info)
 	/* alloc engine info */
 	stt_config_s* temp;
 	temp = (stt_config_s*)calloc(1, sizeof(stt_config_s));
+	if (NULL == temp) {
+		xmlFreeDoc(doc);
+		SLOG(LOG_ERROR, stt_tag(), "[ERROR] Fail to allocate memory");
+		return -1;
+	}
 
 	temp->engine_id = NULL;
 	temp->setting = NULL;
