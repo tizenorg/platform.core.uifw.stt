@@ -85,6 +85,10 @@ int sttd_client_add(int pid, int uid)
 	}
 
 	client_info_s *info = (client_info_s*)calloc(1, sizeof(client_info_s));
+	if (NULL == info) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Client Data ERROR] Fail to allocate memory");
+		return STTD_ERROR_OUT_OF_MEMORY;
+	}
 
 	info->pid = pid;
 	info->uid = uid;
@@ -388,7 +392,11 @@ int sttd_client_get_list(int** uids, int* uid_count)
 
 	int *tmp;
 	tmp = (int*)calloc(count, sizeof(int));
-	
+	if (NULL == tmp) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Client Data ERROR] Fail to allocate memory");
+		return STTD_ERROR_OUT_OF_MEMORY;
+	}
+
 	GSList *iter = NULL;
 	client_info_s *data = NULL;
 	int i = 0;

@@ -28,11 +28,11 @@ int sttdc_send_hello(int uid);
 
 int sttdc_send_get_state(int uid, int* state);
 
+int sttdc_send_set_state(int uid, int state);
+
 int sttdc_send_result(int uid, int event, const char** data, int data_count, const char* result_msg);
 
 int sttdc_send_error_signal(int uid, int reason, const char *err_msg);
-
-int sttdc_send_set_state(int uid, int state);
 
 
 #ifdef __cplusplus

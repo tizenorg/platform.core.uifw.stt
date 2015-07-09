@@ -29,17 +29,7 @@ int sttd_dbus_server_hello(DBusConnection* conn, DBusMessage* msg)
 
 	DBusMessage* reply;
 	reply = dbus_message_new_method_return(msg);
-
-	int status = -1;
-	if (EINA_TRUE == sttd_get_daemon_exist()) {
-		status = STTD_DAEMON_NORMAL;
-	} else {
-		status = STTD_DAEMON_ON_TERMINATING;
-	}
-
 	if (NULL != reply) {
-		dbus_message_append_args(reply, DBUS_TYPE_INT32, &status, DBUS_TYPE_INVALID);
-
 		if (!dbus_connection_send(conn, reply, NULL)) {
 			SLOG(LOG_ERROR, TAG_STTD, "[OUT ERROR] Out Of Memory!");
 		}

@@ -23,7 +23,7 @@ PROJECT(stt)
 
 SET(PREFIX ${CMAKE_INSTALL_PREFIX})
 SET(EXEC_PREFIX "${PREFIX}")
-SET(VERSION 0.2.53)
+SET(VERSION 0.2.54)
 
 ## Include common directory ##
 INCLUDE_DIRECTORIES("${CMAKE_SOURCE_DIR}/common")
@@ -55,3 +55,5 @@ ADD_SUBDIRECTORY(test)
 ## config ##
 INSTALL(FILES ${CMAKE_SOURCE_DIR}/stt-config.xml DESTINATION /usr/lib/voice/stt/1.0)
 
+INSTALL(FILES ${CMAKE_SOURCE_DIR}/stt-server.conf DESTINATION /etc/dbus-1/system.d)
+INSTALL(FILES ${CMAKE_SOURCE_DIR}/org.tizen.voice.sttserver.service DESTINATION /usr/share/dbus-1/system-services)

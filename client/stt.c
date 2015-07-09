@@ -29,14 +29,11 @@
 #include "stt_main.h"
 
 
-static bool g_is_daemon_started = false;
-
 static Ecore_Timer* g_connect_timer = NULL;
 
-static Eina_Bool __stt_notify_state_changed(void *data);
+static void __stt_notify_state_changed(void *data);
 static Eina_Bool __stt_notify_error(void *data);
 
-static int g_stt_daemon_pid = -1;
 static int g_count_check_daemon = 0;
 
 const char* stt_tag()
@@ -229,8 +226,6 @@ int stt_destroy(stt_h stt)
 		if (0 != ret) {
 			SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to request finalize : %s", __stt_get_error_code(ret));
 		}
-
-		g_is_daemon_started = false;
 	case STT_STATE_CREATED:
 		if (NULL != g_connect_timer) {
 			SLOG(LOG_DEBUG, TAG_STTC, "Connect Timer is deleted");
@@ -250,6 +245,8 @@ int stt_destroy(stt_h stt)
 			SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to close connection");
 		}
 	}
+
+	stt = NULL;
 
 	SLOG(LOG_DEBUG, TAG_STTC, "=====");
 	SLOG(LOG_DEBUG, TAG_STTC, " ");
@@ -435,113 +432,11 @@ int stt_set_engine(stt_h stt, const char* engine_id)
 	}
 
 	client->current_engine_id = strdup(engine_id);
-#if 0
-	if (client->current_state == STT_STATE_READY) {
-		int ret = 0;
-		bool silence_supported = false;
 
-		ret = stt_dbus_request_set_current_engine(client->uid, engine_id, &silence_supported);
-
-		if (0 != ret) {
-			SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to set current engine : %s", __stt_get_error_code(ret));
-			return ret;
-		} else {
-			SECURE_SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] Current engine uuid = %s", engine_id);
-
-			/* success to change engine */
-			client->silence_supported = silence_supported;
-			SECURE_SLOG(LOG_DEBUG, TAG_STTC, "Supported options : silence(%s)", silence_supported ? "true" : "false");
-		}
-	}
-#endif
 	SLOG(LOG_DEBUG, TAG_STTC, "=====");
 	SLOG(LOG_DEBUG, TAG_STTC, " ");
 
 	return 0;
-}
-
-static int __read_proc(const char *path, char *buf, int size)
-{
-	int fd;
-	int ret;
-
-	if (NULL == buf || NULL == path) {
-		return -1;
-	}
-
-	fd = open(path, O_RDONLY);
-	if (fd < 0) {
-		return -1;
-	}
-
-	ret = read(fd, buf, size - 1);
-	if (0 >= ret) {
-		close(fd);
-		return -1;
-	} else {
-		buf[ret] = 0;
-	}
-	close(fd);
-	return ret;
-}
-
-static bool __stt_check_daemon_exist()
-{
-	char buf[128];
-	int ret;
-
-	FILE* fp;
-	fp = fopen(STT_PID_FILE_PATH, "r");
-	if (NULL == fp) {
-		return false;
-	}
-
-	g_stt_daemon_pid = -1;
-	int pid;
-	if (0 >= fscanf(fp, "%d", &pid)) {
-		SECURE_SLOG(LOG_DEBUG, TAG_STTC, "Fail to read pid");
-		fclose(fp);
-		return false;
-	}
-
-	fclose(fp);
-	snprintf(buf, sizeof(buf), "/proc/%d/cmdline", pid);
-	ret = __read_proc(buf, buf, sizeof(buf));
-	if (0 >= ret) {
-		return false;
-	} else {
-		if (!strcmp(buf, "/usr/bin/stt-daemon")) {
-			SECURE_SLOG(LOG_DEBUG, TAG_STTC, "Daemon existed - [%d]%s", pid, buf);
-			g_stt_daemon_pid = pid;
-			return true;
-		}
-	}
-	return false;
-}
-
-static void* __fork_stt_daemon(void* NotUsed)
-{
-	int pid, i;
-	pid = fork();
-
-	switch(pid) {
-	case -1:
-		SLOG(LOG_DEBUG, TAG_STTC, "[STT ERROR] fail to create STT-DAEMON");
-		break;
-
-	case 0:
-		setsid();
-		for (i = 0;i < _NSIG;i++)
-			signal(i, SIG_DFL);
-
-		execl("/usr/bin/stt-daemon", "/usr/bin/stt-daemon", NULL);
-		break;
-
-	default:
-		break;
-	}
-
-	return (void*) 1;
 }
 
 static Eina_Bool __stt_connect_daemon(void *data)
@@ -556,47 +451,11 @@ static Eina_Bool __stt_connect_daemon(void *data)
 	/* Send hello */
 	int ret = -1;
 	ret = stt_dbus_request_hello();
-
-	if (STT_DAEMON_NORMAL != ret) {
+	if (0 != ret) {
 		if (STT_ERROR_INVALID_STATE == ret) {
 			return EINA_FALSE;
 		}
-
-		if (STT_DAEMON_ON_TERMINATING == ret) {
-			/* Todo - Wait for terminating and do it again*/
-			usleep(50);
-			return EINA_TRUE;
-		} else {
-			/* for new daemon */
-			bool check = __stt_check_daemon_exist();
-			if (true == check) {
-				g_count_check_daemon++;
-				if (3 < g_count_check_daemon) {
-					/* Todo - Kill daemon and restart */
-					SECURE_SLOG(LOG_DEBUG, TAG_STTC, "Need to Kill daemon");
-				}
-				usleep(50);
-				return EINA_TRUE;
-			} else {
-				if (false == g_is_daemon_started) {
-					g_is_daemon_started = true;
-					
-					pthread_t thread;
-					int thread_id;
-					thread_id = pthread_create(&thread, NULL, __fork_stt_daemon, NULL);
-					if (thread_id < 0) {
-						SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to make thread");
-						g_connect_timer = NULL;
-						return EINA_FALSE;
-					}
-
-					pthread_detach(thread);
-				}
-
-				usleep(50);
-				return EINA_TRUE;
-			}
-		}
+		return EINA_TRUE;
 	}
 
 	g_connect_timer = NULL;
@@ -637,9 +496,9 @@ static Eina_Bool __stt_connect_daemon(void *data)
 					return ret;
 				} else {
 					SLOG(LOG_WARN, TAG_STTC, "[WARNING] retry");
-					usleep(10);
+					usleep(10000);
 					count++;
-					if (10 == count) {
+					if (STT_RETRY_COUNT == count) {
 						SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to request");
 						return ret;
 					}
@@ -719,11 +578,14 @@ int stt_prepare(stt_h stt)
 
 int stt_unprepare(stt_h stt)
 {
-	bool supported = false;
-	if (0 == system_info_get_platform_bool(STT_FEATURE_PATH, &supported)) {
-		if (false == supported) {
-			SLOG(LOG_ERROR, TAG_STTC, "[ERROR] STT NOT supported");
-			return STT_ERROR_NOT_SUPPORTED;
+	bool stt_supported = false;
+	bool mic_supported = false;
+	if (0 == system_info_get_platform_bool(STT_FEATURE_PATH, &stt_supported)) {
+		if (0 == system_info_get_platform_bool(STT_MIC_FEATURE_PATH, &mic_supported)) {
+			if (false == stt_supported || false == mic_supported) {
+				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] STT NOT supported");
+				return STT_ERROR_NOT_SUPPORTED;
+			}
 		}
 	}
 
@@ -755,17 +617,15 @@ int stt_unprepare(stt_h stt)
 				break;
 			} else {
 				SLOG(LOG_WARN, TAG_STTC, "[WARNING] retry");
-				usleep(10);
+				usleep(10000);
 				count++;
-				if (10 == count) {
+				if (STT_RETRY_COUNT == count) {
 					SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to request");
 					break;
 				}
 			}
 		}
 	}
-
-	g_is_daemon_started = false;
 
 	client->internal_state = STT_INTERNAL_STATE_NONE;
 
@@ -851,6 +711,10 @@ int stt_foreach_supported_languages(stt_h stt, stt_supported_language_cb callbac
 		}
 	} else {
 		current_engine_id = strdup(client->current_engine_id);
+		if (NULL == current_engine_id) {
+			SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to allocate memory");
+			return STT_ERROR_OUT_OF_MEMORY;
+		}
 	}
 
 	client->supported_lang_cb = callback;
@@ -1001,9 +865,9 @@ int stt_is_recognition_type_supported(stt_h stt, const char* type, bool* support
 				return ret;
 			} else {
 				SLOG(LOG_WARN, TAG_STTC, "[WARNING] retry");
-				usleep(10);
+				usleep(10000);
 				count++;
-				if (10 == count) {
+				if (STT_RETRY_COUNT == count) {
 					SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to request");
 					return ret;
 				}
@@ -1082,8 +946,12 @@ int stt_set_start_sound(stt_h stt, const char* filename)
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
-	stt_client_s* client = stt_client_get(stt);
+	if (0 != access(filename, F_OK)) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] File does not exist");
+		return STT_ERROR_INVALID_PARAMETER;
+	}
 
+	stt_client_s* client = stt_client_get(stt);
 	if (NULL == client) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Get state : A handle is not valid");
 		return STT_ERROR_INVALID_PARAMETER;
@@ -1105,9 +973,9 @@ int stt_set_start_sound(stt_h stt, const char* filename)
 				return ret;
 			} else {
 				SLOG(LOG_WARN, TAG_STTC, "[WARNING] retry");
-				usleep(10);
+				usleep(10000);
 				count++;
-				if (10 == count) {
+				if (STT_RETRY_COUNT == count) {
 					SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to request");
 					return ret;
 				}
@@ -1164,9 +1032,9 @@ int stt_unset_start_sound(stt_h stt)
 				return ret;
 			} else {
 				SLOG(LOG_WARN, TAG_STTC, "[WARNING] retry");
-				usleep(10);
+				usleep(10000);
 				count++;
-				if (10 == count) {
+				if (STT_RETRY_COUNT == count) {
 					SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to request");
 					return ret;
 				}
@@ -1200,6 +1068,11 @@ int stt_set_stop_sound(stt_h stt, const char* filename)
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
+	if (0 != access(filename, F_OK)) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] File does not exist");
+		return STT_ERROR_INVALID_PARAMETER;
+	}
+
 	stt_client_s* client = stt_client_get(stt);
 
 	if (NULL == client) {
@@ -1223,9 +1096,9 @@ int stt_set_stop_sound(stt_h stt, const char* filename)
 				return ret;
 			} else {
 				SLOG(LOG_WARN, TAG_STTC, "[WARNING] retry");
-				usleep(10);
+				usleep(10000);
 				count++;
-				if (10 == count) {
+				if (STT_RETRY_COUNT == count) {
 					SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to request");
 					return ret;
 				}
@@ -1282,9 +1155,9 @@ int stt_unset_stop_sound(stt_h stt)
 				return ret;
 			} else {
 				SLOG(LOG_WARN, TAG_STTC, "[WARNING] retry");
-				usleep(10);
+				usleep(10000);
 				count++;
-				if (10 == count) {
+				if (STT_RETRY_COUNT == count) {
 					SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to request");
 					return ret;
 				}
@@ -1345,10 +1218,11 @@ int stt_start(stt_h stt, const char* language, const char* type)
 		return STT_ERROR_INVALID_STATE;
 	}
 
+	int ret = -1;
 	char appid[128] = {0, };
-	aul_app_get_appid_bypid(getpid(), appid, sizeof(appid));
-	
-	if (0 == strlen(appid)) {
+	ret = aul_app_get_appid_bypid(getpid(), appid, sizeof(appid));
+
+	if ((AUL_R_OK != ret) || (0 == strlen(appid))) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to get application ID");
 	} else {
 		SLOG(LOG_DEBUG, TAG_STTC, "[DEBUG] Current app id is %s", appid);
@@ -1361,7 +1235,7 @@ int stt_start(stt_h stt, const char* language, const char* type)
 		temp = strdup(language);
 	}
 
-	int ret = -1;
+	ret = -1;
 	/* do request */
 	int count = 0;
 	while (0 != ret) {
@@ -1374,9 +1248,9 @@ int stt_start(stt_h stt, const char* language, const char* type)
 				return ret;
 			} else {
 				SLOG(LOG_WARN, TAG_STTC, "[WARNING] retry to start");
-				usleep(10);
+				usleep(10000);
 				count++;
-				if (10 == count) {
+				if (STT_RETRY_COUNT == count) {
 					SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to request");
 					if (NULL != temp)	free(temp);
 					return ret;
@@ -1392,11 +1266,7 @@ int stt_start(stt_h stt, const char* language, const char* type)
 				client->current_state = STT_STATE_RECORDING;
 
 				if (NULL != client->state_changed_cb) {
-					stt_client_use_callback(client);
-					client->state_changed_cb(client->stt, client->before_state, 
-						client->current_state, client->state_changed_user_data);
-					stt_client_not_use_callback(client);
-					SLOG(LOG_DEBUG, TAG_STTC, "State changed callback is called");
+					ecore_main_loop_thread_safe_call_async(__stt_notify_state_changed, client);
 				} else {
 					SLOG(LOG_WARN, TAG_STTC, "[WARNING] State changed callback is null");
 				}
@@ -1477,9 +1347,9 @@ int stt_stop(stt_h stt)
 				return ret;
 			} else {
 				SLOG(LOG_WARN, TAG_STTC, "[WARNING] retry stop");
-				usleep(10);
+				usleep(10000);
 				count++;
-				if (10 == count) {
+				if (STT_RETRY_COUNT == count) {
 					SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to request");
 					return ret;
 				}
@@ -1491,10 +1361,7 @@ int stt_stop(stt_h stt)
 				client->current_state = STT_STATE_PROCESSING;
 
 				if (NULL != client->state_changed_cb) {
-					stt_client_use_callback(client);
-					client->state_changed_cb(client->stt, client->before_state, 
-						client->current_state, client->state_changed_user_data); 
-					stt_client_not_use_callback(client);
+					ecore_main_loop_thread_safe_call_async(__stt_notify_state_changed, client);
 					SLOG(LOG_DEBUG, TAG_STTC, "State changed callback is called");
 				} else {
 					SLOG(LOG_WARN, TAG_STTC, "[WARNING] State changed callback is null");
@@ -1576,9 +1443,9 @@ int stt_cancel(stt_h stt)
 				return ret;
 			} else {
 				SLOG(LOG_WARN, TAG_STTC, "[WARNING] retry");
-				usleep(10);
+				usleep(10000);
 				count++;
-				if (10 == count) {
+				if (STT_RETRY_COUNT == count) {
 					SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to request");
 					return ret;
 				}
@@ -1590,10 +1457,7 @@ int stt_cancel(stt_h stt)
 			client->current_state = STT_STATE_READY;
 
 			if (NULL != client->state_changed_cb) {
-				stt_client_use_callback(client);
-				client->state_changed_cb(client->stt, client->before_state, 
-					client->current_state, client->state_changed_user_data); 
-				stt_client_not_use_callback(client);
+				ecore_main_loop_thread_safe_call_async(__stt_notify_state_changed, client);
 				SLOG(LOG_DEBUG, TAG_STTC, "State changed callback is called");
 			} else {
 				SLOG(LOG_WARN, TAG_STTC, "[WARNING] State changed callback is null");
@@ -1781,18 +1645,19 @@ int __stt_cb_error(int uid, int reason)
 	return 0;
 }
 
-static Eina_Bool __stt_notify_state_changed(void *data)
+static void __stt_notify_state_changed(void *data)
 {
 	stt_client_s* client = (stt_client_s*)data;
 
 	/* check handle */
 	if (NULL == client) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to notify error : A handle is not valid");
-		return EINA_FALSE;
+		return;
 	}
 
-	if (NULL == stt_client_get_by_uid(client->uid))
-		return EINA_FALSE;
+	if (NULL == stt_client_get_by_uid(client->uid)) {
+		return;
+	}
 
 	if (STT_INTERNAL_STATE_STARTING == client->internal_state && STT_STATE_RECORDING == client->current_state) {
 		client->internal_state = STT_INTERNAL_STATE_NONE;
@@ -1807,11 +1672,12 @@ static Eina_Bool __stt_notify_state_changed(void *data)
 		client->state_changed_cb(client->stt, client->before_state, 
 			client->current_state, client->state_changed_user_data); 
 		stt_client_not_use_callback(client);
+		SLOG(LOG_DEBUG, TAG_STTC, "State changed callback is called");
 	} else {
 		SLOG(LOG_WARN, TAG_STTC, "[WARNING] State changed callback is null");
 	}
 
-	return EINA_FALSE;
+	return;
 }
 
 static Eina_Bool __stt_notify_result(void *data)
@@ -1869,7 +1735,7 @@ static Eina_Bool __stt_notify_result(void *data)
 		client->current_state = STT_STATE_READY;
 
 		if (NULL != client->state_changed_cb) {
-			ecore_timer_add(0, __stt_notify_state_changed, client);
+			ecore_main_loop_thread_safe_call_async(__stt_notify_state_changed, client);
 		} else {
 			SLOG(LOG_WARN, TAG_STTC, "[WARNING] State changed callback is null");
 		}
@@ -1885,7 +1751,7 @@ int __stt_cb_result(int uid, int event, char** data, int data_count, const char*
 	client = stt_client_get_by_uid(uid);
 	if (NULL == client) {
 		SLOG(LOG_ERROR, TAG_STTC, "Handle is NOT valid");
-		return -1;
+		return STT_ERROR_INVALID_PARAMETER;
 	}
 
 	if (NULL != msg)	SLOG(LOG_DEBUG, TAG_STTC, "Recognition Result Message = %s", msg);
@@ -1906,6 +1772,10 @@ int __stt_cb_result(int uid, int event, char** data, int data_count, const char*
 		if (data_count > 0) {
 			char **temp = NULL;
 			temp = (char**)calloc(data_count, sizeof(char*));
+			if (NULL == temp) {
+				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to allocate memory");
+				return STT_ERROR_OUT_OF_MEMORY;
+			}
 
 			for (i = 0;i < data_count;i++) {
 				if(NULL != data[i])
@@ -1916,13 +1786,13 @@ int __stt_cb_result(int uid, int event, char** data, int data_count, const char*
 
 			client->data_list = temp;
 		}
-
-		ecore_timer_add(0, __stt_notify_result, client);
 	} else {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] User result callback is null");
 	}
 
-	return 0;
+	ecore_timer_add(0, __stt_notify_result, client);
+
+	return STT_ERROR_NONE;
 }
 
 int __stt_cb_set_state(int uid, int state)
@@ -1943,7 +1813,7 @@ int __stt_cb_set_state(int uid, int state)
 	client->before_state = client->current_state;
 	client->current_state = state_from_daemon;
 
-	ecore_timer_add(0, __stt_notify_state_changed, client);
+	ecore_main_loop_thread_safe_call_async(__stt_notify_state_changed, client);
 	return 0;
 }
 

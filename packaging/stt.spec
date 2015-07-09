@@ -1,8 +1,8 @@
 Name:       stt
 Summary:    Speech To Text client library and daemon
-Version:    0.2.53
+Version:    0.2.54
 Release:    1
-Group:      Graphics & UI Framework/Libraries
+Group:      Graphics & UI Framework/Voice Framework
 License:    Apache-2.0
 Source0:    %{name}-%{version}.tar.gz
 Source1001: %{name}.manifest
@@ -104,8 +104,6 @@ chown 5000:5000 /opt/usr/data/voice/stt/1.0
 
 %postun -p /sbin/ldconfig
 
-/usr/bin/vconftool set -t string db/voice_input/language "auto" -g 5000 -f -s system::vconf_inhouse
-
 %files
 %manifest %{name}.manifest
 %license LICENSE.APLv2
@@ -115,6 +113,8 @@ chown 5000:5000 /opt/usr/data/voice/stt/1.0
 %{_libdir}/libstt_setting.so
 /usr/lib/voice/stt/1.0/stt-config.xml
 %{_bindir}/stt-daemon
+/etc/dbus-1/system.d/stt-server.conf
+/usr/share/dbus-1/system-services/org.tizen.voice.sttserver.service
 /opt/usr/devel/bin/stt-test
 /usr/share/license/%{name}
 

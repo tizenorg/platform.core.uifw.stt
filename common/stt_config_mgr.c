@@ -24,7 +24,6 @@
 #include "stt_defs.h"
 #include "stt_config_parser.h"
 
-#define VCONFKEY_VOICE_INPUT_LANGUAGE     "db/voice_input/language"
 
 typedef struct {
 	int	uid;
@@ -343,39 +342,23 @@ int __stt_config_mgr_unregister_config_event()
 int __stt_config_set_auto_language()
 {
 	char* value = NULL;
-	value = vconf_get_str(VCONFKEY_VOICE_INPUT_LANGUAGE);
+	char candidate_lang[6] = {'\0', };
+
+	value = vconf_get_str(VCONFKEY_LANGSET);
 	if (NULL == value) {
-		SLOG(LOG_ERROR, stt_tag(), "[Config ERROR] Fail to get voice input language");
+		SLOG(LOG_ERROR, stt_tag(), "[Config ERROR] Fail to get display language");
 		return -1;
 	}
 
-	char candidate_lang[6] = {'\0', };
+	strncpy(candidate_lang, value, 5);
+	free(value);
 
-	/* Check auto is on or not */
-	if (0 == strncmp(value, "auto", 4)) {
-		free(value);
-	
-		value = vconf_get_str(VCONFKEY_LANGSET);
-		if (NULL == value) {
-			SLOG(LOG_ERROR, stt_tag(), "[Config ERROR] Fail to get display language");
-			return -1;
-		}
-
-		strncpy(candidate_lang, value, 5);
-		free(value);
-
-		/* Check current language */
-		if (0 == strncmp(g_config_info->language, candidate_lang, 5)) {
-			SECURE_SLOG(LOG_DEBUG, stt_tag(), "[Config] Language is auto. STT language(%s) is same with display lang", g_config_info->language);
-			return 0;
-		} else {
-			SECURE_SLOG(LOG_DEBUG, stt_tag(), "[Config] Display language : %s", candidate_lang);
-		}
+	/* Check current language */
+	if (0 == strncmp(g_config_info->language, candidate_lang, 5)) {
+		SLOG(LOG_DEBUG, stt_tag(), "[Config] Language is auto. STT language(%s) is same with display lang", g_config_info->language);
+		return 0;
 	} else {
-		strncpy(candidate_lang, value, 5);
-		SECURE_SLOG(LOG_DEBUG, stt_tag(), "[Config] Voice input language is NOT auto. Voice input language : %s", candidate_lang);
-
-		free(value);
+		SLOG(LOG_DEBUG, stt_tag(), "[Config] Display language : %s", candidate_lang);
 	}
 
 	if (true == __stt_config_mgr_check_lang_is_valid(g_config_info->engine_id, candidate_lang)) {
@@ -479,6 +462,182 @@ void __stt_config_language_changed_cb(keynode_t *key, void *data)
 	return;
 }
 
+void __stt_config_release_client(int uid)
+{
+	GSList *iter = NULL;
+	stt_config_client_s* temp_client = NULL;
+
+	if (0 < g_slist_length(g_config_client_list)) {
+		/* Check uid */
+		iter = g_slist_nth(g_config_client_list, 0);
+
+		while (NULL != iter) {
+			temp_client = iter->data;
+
+			if (NULL != temp_client) {
+				if (uid == temp_client->uid) {
+					g_config_client_list = g_slist_remove(g_config_client_list, temp_client);
+					free(temp_client);
+					temp_client = NULL;
+					break;
+				}
+			}
+
+			iter = g_slist_next(iter);
+		}
+	}
+
+	if (0 < g_slist_length(g_config_client_list)) {
+		SLOG(LOG_DEBUG, stt_tag(), "Client count (%d)", g_slist_length(g_config_client_list));
+	}
+}
+
+void __stt_config_release_engine()
+{
+	GSList *iter = NULL;
+	stt_engine_info_s *engine_info = NULL;
+
+	if (0 < g_slist_length(g_engine_list)) {
+
+		/* Get a first item */
+		iter = g_slist_nth(g_engine_list, 0);
+
+		while (NULL != iter) {
+			engine_info = iter->data;
+
+			if (NULL != engine_info) {
+				g_engine_list = g_slist_remove(g_engine_list, engine_info);
+
+				stt_parser_free_engine_info(engine_info);
+			}
+
+			iter = g_slist_nth(g_engine_list, 0);
+		}
+	}
+}
+
+int __stt_config_mgr_check_engine_is_valid(const char* engine_id)
+{
+	if (NULL == engine_id) {
+		SLOG(LOG_ERROR, stt_tag(), "Input parameter is NULL");
+		return STT_CONFIG_ERROR_INVALID_PARAMETER;
+	}
+
+	GSList *iter = NULL;
+	stt_engine_info_s *engine_info = NULL;
+
+	if (0 >= g_slist_length(g_engine_list)) {
+		SLOG(LOG_ERROR, stt_tag(), "There is no engine!!");
+		return STT_CONFIG_ERROR_ENGINE_NOT_FOUND;
+	}
+
+	/* Get a first item */
+	iter = g_slist_nth(g_engine_list, 0);
+
+	while (NULL != iter) {
+		engine_info = iter->data;
+
+		if (NULL == engine_info) {
+			SLOG(LOG_ERROR, stt_tag(), "engine info is NULL");
+			return STT_CONFIG_ERROR_ENGINE_NOT_FOUND;
+		}
+
+		if (0 == strcmp(engine_id, engine_info->uuid)) {
+			SLOG(LOG_DEBUG, stt_tag(), "Default engine is valid : %s", engine_id);
+			return STT_CONFIG_ERROR_NONE;
+		}
+
+		iter = g_slist_next(iter);
+	}
+
+	/* Change default engine */
+	iter = g_slist_nth(g_engine_list, 0);
+	engine_info = iter->data;
+	if (NULL == engine_info) {
+		SLOG(LOG_ERROR, stt_tag(), "[ERROR] Engine info is NULL");
+		return STT_CONFIG_ERROR_ENGINE_NOT_FOUND;
+	}
+
+	if (NULL != g_config_info->engine_id) {
+		free(g_config_info->engine_id);
+		g_config_info->engine_id = NULL;
+	}
+	if (NULL != g_config_info->setting) {
+		free(g_config_info->setting);
+		g_config_info->setting = NULL;
+	}
+
+	if (NULL != engine_info->uuid) {
+		g_config_info->engine_id = strdup(engine_info->uuid);
+	}
+
+	if (NULL != engine_info->setting) {
+		g_config_info->setting = strdup(engine_info->setting);
+	}
+
+	/* Engine is valid*/
+	GSList *iter_lang = NULL;
+	char* lang;
+	bool is_valid_lang = false;
+
+	if (0 >= g_slist_length(engine_info->languages)) {
+		SLOG(LOG_ERROR, stt_tag(), "[ERROR] Empty supported language");
+		return STT_CONFIG_ERROR_ENGINE_NOT_FOUND;
+	}
+
+	/* Get a first item */
+	iter_lang = g_slist_nth(engine_info->languages, 0);
+
+	while (NULL != iter_lang) {
+		/*Get handle data from list*/
+		lang = iter_lang->data;
+
+		SLOG(LOG_DEBUG, stt_tag(), " %s", lang);
+		if (NULL != lang) {
+			if (0 == strcmp(lang, g_config_info->language)) {
+				/* language is valid */
+				is_valid_lang = true;
+				break;
+			}
+		}
+
+		/*Get next item*/
+		iter_lang = g_slist_next(iter_lang);
+	}
+
+	if (false == is_valid_lang) {
+		iter_lang = g_slist_nth(engine_info->languages, 0);
+		if (NULL != iter_lang) {
+			lang = iter_lang->data;
+			if (NULL != lang) {
+				if (NULL != g_config_info->language)
+					free(g_config_info->language);
+				g_config_info->language = strdup(lang);
+			}
+		}
+	}
+
+	/* Check options */
+	if (false == engine_info->support_silence_detection) {
+		if (true == g_config_info->silence_detection)
+			g_config_info->silence_detection = false;
+	}
+
+	SLOG(LOG_DEBUG, stt_tag(), "[Config] Engine changed");
+	SLOG(LOG_DEBUG, stt_tag(), "  Engine : %s", g_config_info->engine_id);
+	SLOG(LOG_DEBUG, stt_tag(), "  Setting : %s", g_config_info->setting);
+	SLOG(LOG_DEBUG, stt_tag(), "  language : %s", g_config_info->language);
+	SLOG(LOG_DEBUG, stt_tag(), "  Silence detection : %s", g_config_info->silence_detection ? "on" : "off");
+
+	if ( 0 != stt_parser_set_engine(g_config_info->engine_id, g_config_info->setting, g_config_info->language,
+		g_config_info->silence_detection)) {
+			SLOG(LOG_ERROR, stt_tag(), " Fail to save config");
+			return STT_CONFIG_ERROR_OPERATION_FAILED;
+	}
+
+	return STT_CONFIG_ERROR_NONE;
+}
+
 int stt_config_mgr_initialize(int uid)
 {
 	GSList *iter = NULL;
@@ -501,6 +660,10 @@ int stt_config_mgr_initialize(int uid)
 		}
 
 		temp_client = (stt_config_client_s*)calloc(1, sizeof(stt_config_client_s));
+		if (NULL == temp_client) {
+			SLOG(LOG_ERROR, stt_tag(), "[ERROR] Fail to allocate memory");
+			return STT_CONFIG_ERROR_OUT_OF_MEMORY;
+		}
 		temp_client->uid = uid;
 		temp_client->bool_cb = NULL;
 		temp_client->engine_cb = NULL;
@@ -567,7 +730,18 @@ int stt_config_mgr_initialize(int uid)
 
 	if (0 != stt_parser_load_config(&g_config_info)) {
 		SLOG(LOG_ERROR, stt_tag(), "[ERROR] Fail to parse configure information");
-		return -1; 
+		__stt_config_release_client(uid);
+		__stt_config_release_engine();
+		return STT_CONFIG_ERROR_OPERATION_FAILED; 
+	}
+
+	/* Check whether engine id is valid */
+	if (0 != __stt_config_mgr_check_engine_is_valid(g_config_info->engine_id)) {
+		SLOG(LOG_ERROR, stt_tag(), "[ERROR] Fail to get default engine");
+		__stt_config_release_client(uid);
+		__stt_config_release_engine();
+		stt_parser_unload_config(g_config_info);
+		return STT_CONFIG_ERROR_ENGINE_NOT_FOUND;
 	}
 
 	if (true == g_config_info->auto_lang) {
@@ -579,7 +753,10 @@ int stt_config_mgr_initialize(int uid)
 			char* tmp_language;
 			if (0 != __stt_config_mgr_select_lang(g_config_info->engine_id, &tmp_language)) {
 				SLOG(LOG_ERROR, stt_tag(), "[ERROR] Fail to select language");
-				return -1;
+				__stt_config_release_client(uid);
+				__stt_config_release_engine();
+				stt_parser_unload_config(g_config_info);
+				return STT_CONFIG_ERROR_OPERATION_FAILED;
 			}
 
 			if (NULL != tmp_language) {
@@ -604,14 +781,20 @@ int stt_config_mgr_initialize(int uid)
 
 	if (0 != __stt_config_mgr_register_config_event()) {
 		SLOG(LOG_ERROR, stt_tag(), "[ERROR] Fail to register config event");
+		__stt_config_release_client(uid);
+		__stt_config_release_engine();
+		stt_parser_unload_config(g_config_info);
 		return STT_CONFIG_ERROR_OPERATION_FAILED;
 	}
 
 	/* Register to detect display language change */
 	vconf_notify_key_changed(VCONFKEY_LANGSET, __stt_config_language_changed_cb, NULL);
-	vconf_notify_key_changed(VCONFKEY_VOICE_INPUT_LANGUAGE, __stt_config_language_changed_cb, NULL);
 
 	temp_client = (stt_config_client_s*)calloc(1, sizeof(stt_config_client_s));
+	if (NULL == temp_client) {
+		SLOG(LOG_ERROR, stt_tag(), "[ERROR] Fail to allocate memory");
+		return STT_CONFIG_ERROR_OUT_OF_MEMORY;
+	}
 	temp_client->uid = uid;
 	temp_client->bool_cb = NULL;
 	temp_client->engine_cb = NULL;
@@ -675,7 +858,6 @@ int stt_config_mgr_finalize(int uid)
 	}
 
 	vconf_ignore_key_changed(VCONFKEY_LANGSET, __stt_config_language_changed_cb);
-	vconf_ignore_key_changed(VCONFKEY_VOICE_INPUT_LANGUAGE, __stt_config_language_changed_cb);
 
 	__stt_config_mgr_unregister_config_event();
 
@@ -950,8 +1132,16 @@ int stt_config_mgr_get_engine_agreement(const char* engine, char** agreement)
 
 	if (NULL == engine) {
 		current_engine = strdup(g_config_info->engine_id);
+		if (NULL == current_engine) {
+			SLOG(LOG_ERROR, stt_tag(), "[ERROR] Fail to allocate memory");
+			return STT_CONFIG_ERROR_OUT_OF_MEMORY;;
+		}
 	} else {
 		current_engine = strdup(engine);
+		if (NULL == current_engine) {
+			SLOG(LOG_ERROR, stt_tag(), "[ERROR] Fail to allocate memory");
+			return STT_CONFIG_ERROR_OUT_OF_MEMORY;;
+		}
 	}
 
 	/* Get a first item */
@@ -1350,7 +1540,10 @@ int stt_config_mgr_add_time_info(int index, int event, const char* text, long st
 	}
 
 	stt_result_time_info_s *info = (stt_result_time_info_s*)calloc(1, sizeof(stt_result_time_info_s));
-
+	if (NULL == info) {
+		SLOG(LOG_ERROR, stt_tag(), "[ERROR] Fail to allocate memory");
+		return STT_CONFIG_ERROR_OUT_OF_MEMORY;
+	}
 	info->index = index;
 	info->event = event;
 	if (NULL != text) {

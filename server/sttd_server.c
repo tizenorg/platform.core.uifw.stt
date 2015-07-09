@@ -34,18 +34,11 @@ static double g_recording_timeout = 60;
 Ecore_Timer*	g_recording_timer = NULL;
 Ecore_Timer*	g_processing_timer = NULL;
 
-static Eina_Bool g_stt_daemon_exist = EINA_TRUE;
-
 static int g_recording_log_count = 0;
 
 /*
 * STT Server Callback Functions
 */
-
-Eina_Bool sttd_get_daemon_exist()
-{
-	return g_stt_daemon_exist;
-}
 
 Eina_Bool __stop_by_silence(void *data)
 {
@@ -590,7 +583,7 @@ int sttd_server_finalize(int uid)
 
 	/* unload engine, if ref count of client is 0 */
 	if (0 == sttd_client_get_ref_count()) {
-		g_stt_daemon_exist = EINA_FALSE;
+		sttd_dbus_close_connection();
 		ecore_timer_add(0, __quit_ecore_loop, NULL);
 	}
 	

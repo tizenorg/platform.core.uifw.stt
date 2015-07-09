@@ -103,6 +103,10 @@ int stt_engine_load(int engine_id, const char* filepath)
 
 	/* allocation memory */
 	engine = (sttengine_s*)calloc(1, sizeof(sttengine_s));
+	if (NULL == engine) {
+		SLOG(LOG_ERROR, stt_tag(), "[ERROR] Fail to allocate memory");
+		return STTP_ERROR_OUT_OF_MEMORY;
+	}
 
 	/* load engine */
 	char *error;
@@ -115,7 +119,20 @@ int stt_engine_load(int engine_id, const char* filepath)
 	}
 
 	engine->pefuncs = (sttpe_funcs_s*)calloc(1, sizeof(sttpe_funcs_s));
+	if (NULL == engine->pefuncs) {
+		SLOG(LOG_ERROR, stt_tag(), "[ERROR] Fail to allocate memory");
+		dlclose(engine->handle);
+		free(engine);
+		return STTP_ERROR_OUT_OF_MEMORY;
+	}
 	engine->pdfuncs = (sttpd_funcs_s*)calloc(1, sizeof(sttpd_funcs_s));
+	if (NULL == engine->pdfuncs) {
+		SLOG(LOG_ERROR, stt_tag(), "[ERROR] Fail to allocate memory");
+		dlclose(engine->handle);
+		free(engine->pefuncs);
+		free(engine);
+		return STTP_ERROR_OUT_OF_MEMORY;
+	}
 
 	engine->sttp_unload_engine = NULL;
 	engine->sttp_load_engine = NULL;
