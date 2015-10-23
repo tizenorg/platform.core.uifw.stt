@@ -71,7 +71,11 @@ extern "C" {
 
 #define STT_TIME_INFO_PATH		tzplatform_mkpath(TZ_USER_HOME, "share/.voice/stt-time.xml")
 
+#ifdef LIB64
+#define STT_USR_BASE			"/usr/lib64/voice"
+#else
 #define STT_USR_BASE			"/usr/lib/voice"
+#endif
 #define STT_OPT_BASE			"/opt/usr/data/voice"
 
 #define STT_DEFAULT_CONFIG		STT_USR_BASE"/stt/1.0/stt-config.xml"
