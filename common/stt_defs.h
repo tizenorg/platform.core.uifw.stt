@@ -15,6 +15,8 @@
 #ifndef __STT_DEFS_H__
 #define __STT_DEFS_H__
 
+#include <tzplatform_config.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -67,13 +69,13 @@ extern "C" {
 
 #define STT_AUDIO_VOLUME_PATH		"/tmp/stt_vol"
 
-#define STT_TIME_INFO_PATH		"/opt/home/app/.voice/stt-time.xml"
+#define STT_TIME_INFO_PATH		tzplatform_mkpath(TZ_USER_HOME, "share/.voice/stt-time.xml")
 
 #define STT_USR_BASE			"/usr/lib/voice"
 #define STT_OPT_BASE			"/opt/usr/data/voice"
 
 #define STT_DEFAULT_CONFIG		STT_USR_BASE"/stt/1.0/stt-config.xml"
-#define STT_CONFIG			"/opt/home/app/.voice/stt-config.xml"
+#define STT_CONFIG			tzplatform_mkpath(TZ_USER_HOME, "share/.voice/stt-config.xml")
 
 #define STT_DEFAULT_ENGINE		STT_USR_BASE"/stt/1.0/engine"
 #define STT_DOWNLOAD_ENGINE		STT_OPT_BASE"/stt/1.0/engine"
