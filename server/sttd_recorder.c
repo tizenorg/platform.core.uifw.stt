@@ -1,5 +1,5 @@
 /*
-*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved 
+*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -35,7 +35,7 @@ typedef struct {
 	int			engine_id;
 	audio_in_h		audio_h;
 	sttp_audio_type_e	audio_type;
-}stt_recorder_s;
+} stt_recorder_s;
 
 static GSList *g_recorder_list;
 
@@ -61,11 +61,11 @@ static char g_temp_file_name[128] = {'\0',};
 static FILE* g_pFile;
 
 static int g_count = 1;
-#endif 
+#endif
 
 const char* __stt_get_session_interrupt_code(sound_session_interrupted_code_e code)
 {
-	switch(code) {
+	switch (code) {
 	case SOUND_SESSION_INTERRUPTED_COMPLETED:		return "SOUND_SESSION_INTERRUPTED_COMPLETED";
 	case SOUND_SESSION_INTERRUPTED_BY_MEDIA:		return "SOUND_SESSION_INTERRUPTED_BY_MEDIA";
 	case SOUND_SESSION_INTERRUPTED_BY_CALL:			return "SOUND_SESSION_INTERRUPTED_BY_CALL";
@@ -81,8 +81,8 @@ const char* __stt_get_session_interrupt_code(sound_session_interrupted_code_e co
 
 void __sttd_recorder_sound_interrupted_cb(sound_session_interrupted_code_e code, void *user_data)
 {
-	SLOG(LOG_DEBUG, TAG_STTD, "[Recorder] Get the interrupt code from sound mgr : %s", 
-		__stt_get_session_interrupt_code(code));
+	SLOG(LOG_DEBUG, TAG_STTD, "[Recorder] Get the interrupt code from sound mgr : %s",
+		 __stt_get_session_interrupt_code(code));
 
 	if (SOUND_SESSION_INTERRUPTED_COMPLETED == code || SOUND_SESSION_INTERRUPTED_BY_EARJACK_UNPLUG == code)
 		return;
@@ -104,7 +104,7 @@ int sttd_recorder_initialize(stt_recorder_audio_cb audio_cb, stt_recorder_interr
 		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Current state of recorder is recording");
 		return STTD_ERROR_INVALID_STATE;
 	}
-	
+
 	g_audio_cb = audio_cb;
 	g_interrupt_cb = interrupt_cb;
 	g_recorder_state = STTD_RECORDER_STATE_NONE;
@@ -148,7 +148,7 @@ int sttd_recorder_deinitialize()
 
 	if (0 == access(STT_AUDIO_VOLUME_PATH, R_OK)) {
 		if (0 != remove(STT_AUDIO_VOLUME_PATH)) {
-			SLOG(LOG_WARN, TAG_STTD, "[Recorder WARN] Fail to remove volume file"); 
+			SLOG(LOG_WARN, TAG_STTD, "[Recorder WARN] Fail to remove volume file");
 		}
 	}
 
@@ -199,7 +199,7 @@ int sttd_recorder_create(int engine_id, sttp_audio_type_e type, int channel, uns
 	audio_sample_type_e audio_type;
 	audio_in_h temp_in_h;
 
-	switch(channel) {
+	switch (channel) {
 		case 1:	audio_ch = AUDIO_CHANNEL_MONO;		break;
 		case 2:	audio_ch = AUDIO_CHANNEL_STEREO;	break;
 		default:
@@ -235,7 +235,7 @@ int sttd_recorder_create(int engine_id, sttp_audio_type_e type, int channel, uns
 	recorder->engine_id = engine_id;
 	recorder->audio_h = temp_in_h;
 	recorder->audio_type = type;
-	
+
 	g_recorder_list = g_slist_append(g_recorder_list, recorder);
 
 	g_recorder_state = STTD_RECORDER_STATE_READY;
@@ -357,7 +357,7 @@ Eina_Bool __read_audio_func(void *data)
 	/* Audio read log */
 	if (0 == g_buffer_count % 50) {
 		SLOG(LOG_DEBUG, TAG_STTD, "[Recorder][%d] Recording... : read_size(%d)", g_buffer_count, read_byte);
-		
+
 		if (100000 == g_buffer_count) {
 			g_buffer_count = 0;
 		}
@@ -386,7 +386,7 @@ int sttd_recorder_start(int engine_id)
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
-	int ret = -1; 
+	int ret = -1;
 	ret = audio_in_prepare(recorder->audio_h);
 	if (AUDIO_IO_ERROR_NONE != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to start audio : %d", ret);
@@ -418,7 +418,7 @@ int sttd_recorder_start(int engine_id)
 	if (!g_pFile) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] File not found!");
 		return -1;
-	}	
+	}
 #endif
 
 	return 0;
@@ -437,7 +437,7 @@ int sttd_recorder_stop(int engine_id)
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
-	int ret; 
+	int ret;
 	ret = audio_in_unprepare(recorder->audio_h);
 	if (AUDIO_IO_ERROR_NONE != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to unprepare audioin : %d", ret);
@@ -450,7 +450,7 @@ int sttd_recorder_stop(int engine_id)
 
 #ifdef BUF_SAVE_MODE
 	fclose(g_pFile);
-#endif	
+#endif
 
 	return 0;
 }

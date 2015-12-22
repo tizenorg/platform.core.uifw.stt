@@ -1,5 +1,5 @@
 /*
-*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved 
+*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -41,7 +41,7 @@ typedef struct _sttengine_info {
 	bool	use_network;
 
 	bool	is_loaded;
-}sttengine_info_s;
+} sttengine_info_s;
 
 static GSList*	g_engine_list;
 
@@ -58,7 +58,7 @@ const char* stt_tag()
 
 static const char* __stt_file_get_error_code(stt_file_error_e err)
 {
-	switch(err) {
+	switch (err) {
 	case STT_FILE_ERROR_NONE:			return "STT_FILE_ERROR_NONE";
 	case STT_FILE_ERROR_OUT_OF_MEMORY:		return "STT_FILE_ERROR_OUT_OF_MEMORY";
 	case STT_FILE_ERROR_IO_ERROR:			return "STT_FILE_ERROR_IO_ERROR";
@@ -78,7 +78,7 @@ static const char* __stt_file_get_error_code(stt_file_error_e err)
 void __stt_file_engine_info_cb(const char* engine_uuid, const char* engine_name, const char* setting_ug_name, 
 		      bool use_network, void* user_data)
 {
-	sttengine_info_s* temp = (sttengine_info_s*)user_data; 
+	sttengine_info_s* temp = (sttengine_info_s*)user_data;
 
 	temp->engine_uuid = g_strdup(engine_uuid);
 	temp->engine_name = g_strdup(engine_name);
@@ -89,7 +89,7 @@ void __stt_file_engine_info_cb(const char* engine_uuid, const char* engine_name,
 static int __stt_file_get_engine_info(const char* filepath, sttengine_info_s** info)
 {
 	if (NULL == filepath || NULL == info) {
-		SLOG(LOG_ERROR, TAG_STTFC, "[Engine Agent ERROR] Invalid Parameter"); 
+		SLOG(LOG_ERROR, TAG_STTFC, "[Engine Agent ERROR] Invalid Parameter");
 		return STT_FILE_ERROR_INVALID_PARAMETER;
 	}
 
@@ -97,7 +97,7 @@ static int __stt_file_get_engine_info(const char* filepath, sttengine_info_s** i
 	char *error;
 	void* handle;
 
-	handle = dlopen (filepath, RTLD_LAZY);
+	handle = dlopen(filepath, RTLD_LAZY);
 
 	if (!handle) {
 		SECURE_SLOG(LOG_WARN, TAG_STTFC, "[Engine Agent] Invalid engine : %s", filepath);
@@ -107,14 +107,14 @@ static int __stt_file_get_engine_info(const char* filepath, sttengine_info_s** i
 	/* link engine to daemon */
 	dlsym(handle, "sttp_load_engine");
 	if ((error = dlerror()) != NULL) {
-		SLOG(LOG_WARN, TAG_STTFC, "[Engine Agent] Invalid engine. Fail to open sttp_load_engine : %s", error); 
+		SLOG(LOG_WARN, TAG_STTFC, "[Engine Agent] Invalid engine. Fail to open sttp_load_engine : %s", error);
 		dlclose(handle);
 		return STT_FILE_ERROR_ENGINE_NOT_FOUND;
 	}
 
 	dlsym(handle, "sttp_unload_engine");
 	if ((error = dlerror()) != NULL) {
-		SLOG(LOG_WARN, TAG_STTFC, "[Engine Agent] Invalid engine. Fail to open sttp_unload_engine : %s", error); 
+		SLOG(LOG_WARN, TAG_STTFC, "[Engine Agent] Invalid engine. Fail to open sttp_unload_engine : %s", error);
 		dlclose(handle);
 		return STT_FILE_ERROR_ENGINE_NOT_FOUND;
 	}
@@ -123,7 +123,7 @@ static int __stt_file_get_engine_info(const char* filepath, sttengine_info_s** i
 
 	get_engine_info = (int (*)(sttpe_engine_info_cb, void*))dlsym(handle, "sttp_get_engine_info");
 	if ((error = dlerror()) != NULL || NULL == get_engine_info) {
-		SLOG(LOG_WARN, TAG_STTFC, "[Engine Agent WARNING] Invalid engine. Fail to open sttp_get_engine_info : %s", error); 
+		SLOG(LOG_WARN, TAG_STTFC, "[Engine Agent WARNING] Invalid engine. Fail to open sttp_get_engine_info : %s", error);
 		dlclose(handle);
 		return -1;
 	}
@@ -138,7 +138,7 @@ static int __stt_file_get_engine_info(const char* filepath, sttengine_info_s** i
 
 	/* get engine info */
 	if (0 != get_engine_info(__stt_file_engine_info_cb, (void*)temp)) {
-		SLOG(LOG_ERROR, TAG_STTFC, "[Engine Agent ERROR] Fail to get engine info from engine"); 
+		SLOG(LOG_ERROR, TAG_STTFC, "[Engine Agent ERROR] Fail to get engine info from engine");
 		dlclose(handle);
 		free(temp);
 		return STT_FILE_ERROR_ENGINE_NOT_FOUND;
@@ -159,7 +159,7 @@ static int __stt_file_get_engine_info(const char* filepath, sttengine_info_s** i
 	SECURE_SLOG(LOG_DEBUG, TAG_STTFC, "Engine name : %s", temp->engine_name);
 	SECURE_SLOG(LOG_DEBUG, TAG_STTFC, "Engine path : %s", temp->engine_path);
 	SECURE_SLOG(LOG_DEBUG, TAG_STTFC, "Engine setting path : %s", temp->engine_setting_path);
-	SECURE_SLOG(LOG_DEBUG, TAG_STTFC, "Use network : %s", temp->use_network ? "true":"false");
+	SECURE_SLOG(LOG_DEBUG, TAG_STTFC, "Use network : %s", temp->use_network ? "true" : "false");
 	SLOG(LOG_DEBUG, TAG_STTFC, "-----");
 	SLOG(LOG_DEBUG, TAG_STTFC, "  ");
 
@@ -184,7 +184,7 @@ static bool __stt_file_is_engine(const char* filepath)
 			if (0 == strcmp(engine->engine_path, filepath)) {
 				return true;
 			}
-		
+
 			iter = g_slist_next(iter);
 		}
 	}
@@ -207,13 +207,13 @@ void __stt_file_relseae_engine_info()
 			/* Get handle data from list */
 			engine = iter->data;
 			g_engine_list = g_slist_remove_link(g_engine_list, iter);
-			
+
 			/* Check engine unload */
 			if (NULL != engine) {
 				if (engine->is_loaded) {
 					SECURE_SLOG(LOG_DEBUG, TAG_STTFC, "[Engine Agent] Unload engine id(%d)", engine->engine_id);
 
-					if (0 != stt_engine_deinitialize(engine->engine_id)) 
+					if (0 != stt_engine_deinitialize(engine->engine_id))
 						SECURE_SLOG(LOG_WARN, TAG_STTFC, "[Engine Agent] Fail to deinitialize engine id(%d)", engine->engine_id);
 
 					if (0 != stt_engine_unload(engine->engine_id))
@@ -246,7 +246,7 @@ static sttengine_info_s* __stt_file_get_engine_by_id(int engine_id)
 
 		data = iter->data;
 
-		if (data->engine_id == engine_id) 
+		if (data->engine_id == engine_id)
 			return data;
 
 		iter = g_slist_next(iter);
@@ -258,12 +258,12 @@ static sttengine_info_s* __stt_file_get_engine_by_id(int engine_id)
 void __stt_file_result_cb(sttp_result_event_e event, const char* type, const char** data, int data_count, 
 		 const char* msg, void* time_info, void *user_data)
 {
-	
+
 	SLOG(LOG_DEBUG, TAG_STTFC, "[STT FILE] Result event(%d) type(%s) msg(%s)", event, type, msg);
 
 	if (NULL != data) {
 		int i = 0;
-		for (i = 0;i < data_count;i++) {
+		for (i = 0; i < data_count; i++) {
 			if (NULL != data[i]) {
 				SLOG(LOG_DEBUG, TAG_STTFC, "[STT FILE] [%d] %s", i, data[i]);
 			}
@@ -295,13 +295,13 @@ void __stt_file_result_cb(sttp_result_event_e event, const char* type, const cha
 
 	if (STTP_RESULT_EVENT_FINAL_RESULT == event || STTP_RESULT_EVENT_ERROR == event) {
 		SLOG(LOG_DEBUG, TAG_STTFC, "[STT FILE] State change : 'Ready'");
-		
+
 		client->before_state = client->current_state;
 		client->current_state = STT_FILE_STATE_READY;
 
 		if (NULL != client->state_changed_cb) {
 			stt_file_client_use_callback(client);
-			client->state_changed_cb(client->before_state, client->current_state, client->state_changed_user_data); 
+			client->state_changed_cb(client->before_state, client->current_state, client->state_changed_user_data);
 			stt_file_client_not_use_callback(client);
 			SLOG(LOG_DEBUG, TAG_STTFC, "State changed callback is called");
 		} else {
@@ -398,7 +398,7 @@ int stt_file_initialize()
 
 		closedir(dp);
 	} else {
-		SLOG(LOG_WARN, TAG_STTFC, "[Engine Agent WARNING] Fail to open default directory"); 
+		SLOG(LOG_WARN, TAG_STTFC, "[Engine Agent WARNING] Fail to open default directory");
 	}
 
 	if (0 >= g_slist_length(g_engine_list)) {
@@ -435,7 +435,7 @@ int stt_file_initialize()
 		__stt_file_relseae_engine_info();
 		return STT_FILE_ERROR_OPERATION_FAILED;
 	}
-	
+
 	SLOG(LOG_DEBUG, TAG_STTFC, "[STT FILE] Get engine id : %s", engine_id);
 
 	bool is_found = false;
@@ -501,7 +501,7 @@ int stt_file_initialize()
 int stt_file_deinitialize()
 {
 	SLOG(LOG_DEBUG, TAG_STTFC, "===== Deinitialize STT FILE");
-	
+
 	stt_file_client_s* client = stt_file_client_get();
 	if (NULL == client) {
 		SLOG(LOG_ERROR, TAG_STTFC, "[STT FILE ERROR] Not initialized");
@@ -562,7 +562,7 @@ int stt_file_get_state(stt_file_state_e* state)
 
 	*state = client->current_state;
 
-	switch(*state) {
+	switch (*state) {
 		case STT_FILE_STATE_NONE:	SLOG(LOG_DEBUG, TAG_STTFC, "Current state is 'NONE'");		break;
 		case STT_FILE_STATE_READY:	SLOG(LOG_DEBUG, TAG_STTFC, "Current state is 'Ready'");		break;
 		case STT_FILE_STATE_PROCESSING:	SLOG(LOG_DEBUG, TAG_STTFC, "Current state is 'Processing'");	break;
@@ -620,7 +620,7 @@ int stt_file_foreach_supported_engines(stt_file_supported_engine_cb callback, vo
 
 	SLOG(LOG_DEBUG, TAG_STTFC, "=====");
 	SLOG(LOG_DEBUG, TAG_STTFC, " ");
-	
+
 	return STT_FILE_ERROR_NONE;
 }
 
@@ -668,7 +668,7 @@ int stt_file_get_engine(char** engine_id)
 }
 
 int stt_file_set_engine(const char* engine_id)
-{	
+{
 	SLOG(LOG_DEBUG, TAG_STTFC, "===== Set current engine");
 
 	if (NULL == engine_id) {
@@ -718,11 +718,11 @@ int stt_file_set_engine(const char* engine_id)
 
 			break;
 		}
-	
+
 		iter = g_slist_next(iter);
 		engine = NULL;
 	}
-	
+
 	if (NULL == engine) {
 		SLOG(LOG_ERROR, TAG_STTFC, "[Engine Agent ERROR] Engine id is NOT valid");
 		return STT_FILE_ERROR_INVALID_PARAMETER;
@@ -856,8 +856,8 @@ int stt_file_start(const char* language, const char* type, const char* filepath,
 		}
 	}
 
-	SLOG(LOG_DEBUG, TAG_STTFC, "[START Info] Engine(%d) Lang(%s) Type(%s) Filepath(%s) Audio(%d) Sample rate(%d)"
-		,client->current_engine_id, language, type, filepath, audio_type, sample_rate);
+	SLOG(LOG_DEBUG, TAG_STTFC, "[START Info] Engine(%d) Lang(%s) Type(%s) Filepath(%s) Audio(%d) Sample rate(%d)",
+		 , client->current_engine_id, language, type, filepath, audio_type, sample_rate);
 
 	int ret = -1;
 	ret = stt_engine_recognize_start_file(client->current_engine_id, language, type, filepath, audio_type, sample_rate, NULL);
@@ -873,7 +873,7 @@ int stt_file_start(const char* language, const char* type, const char* filepath,
 
 	if (NULL != client->state_changed_cb) {
 		stt_file_client_use_callback(client);
-		client->state_changed_cb(client->before_state, client->current_state, client->state_changed_user_data); 
+		client->state_changed_cb(client->before_state, client->current_state, client->state_changed_user_data);
 		stt_file_client_not_use_callback(client);
 		SLOG(LOG_DEBUG, TAG_STTFC, "State changed callback is called");
 	} else {
@@ -898,7 +898,7 @@ int stt_file_cancel()
 		SLOG(LOG_DEBUG, TAG_STTFC, "=====");
 		SLOG(LOG_DEBUG, TAG_STTFC, " ");
 		return STT_FILE_ERROR_INVALID_PARAMETER;
-	} 	
+	}
 
 	/* check state */
 	if (STT_FILE_STATE_PROCESSING != client->current_state) {
@@ -922,7 +922,7 @@ int stt_file_cancel()
 
 	if (NULL != client->state_changed_cb) {
 		stt_file_client_use_callback(client);
-		client->state_changed_cb(client->before_state, client->current_state, client->state_changed_user_data); 
+		client->state_changed_cb(client->before_state, client->current_state, client->state_changed_user_data);
 		stt_file_client_not_use_callback(client);
 		SLOG(LOG_DEBUG, TAG_STTFC, "State changed callback is called");
 	} else {
@@ -935,10 +935,10 @@ int stt_file_cancel()
 	return STT_FILE_ERROR_NONE;
 }
 
-bool __stt_file_result_time_cb(int index, sttp_result_time_event_e event, const char* text, long start_time, long end_time, void* user_data) 
+bool __stt_file_result_time_cb(int index, sttp_result_time_event_e event, const char* text, long start_time, long end_time, void* user_data)
 {
 	SLOG(LOG_DEBUG, TAG_STTFC, "(%d) event(%d) text(%s) start(%ld) end(%ld)",
-			index, event, text, start_time, end_time);
+		 index, event, text, start_time, end_time);
 
 	stt_file_client_s* client = stt_file_client_get();
 

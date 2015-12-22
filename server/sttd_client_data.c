@@ -1,5 +1,5 @@
 /*
-*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved 
+*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -31,13 +31,13 @@ int client_show_list()
 		/* Get a first item */
 		iter = g_slist_nth(g_client_list, 0);
 
-		int i = 1;	
+		int i = 1;
 		while (NULL != iter) {
 			/*Get handle data from list*/
 			data = iter->data;
 
 			SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[%dth] uid(%d), state(%d)", i, data->uid, data->state);
-			
+
 			/*Get next item*/
 			iter = g_slist_next(iter);
 			i++;
@@ -63,9 +63,9 @@ GSList* __client_get_item(int uid)
 			/* Get handle data from list */
 			data = iter->data;
 
-			if (uid == data->uid) 
+			if (uid == data->uid)
 				return iter;
-			
+
 			iter = g_slist_next(iter);
 		}
 	}
@@ -78,7 +78,7 @@ int sttd_client_add(int pid, int uid)
 	/*Check uid is duplicated*/
 	GSList *tmp = NULL;
 	tmp = __client_get_item(uid);
-	
+
 	if (NULL != tmp) {
 		SLOG(LOG_WARN, TAG_STTD, "[Client Data] Client uid is already registered");
 		return STTD_ERROR_INVALID_PARAMETER;
@@ -100,7 +100,7 @@ int sttd_client_add(int pid, int uid)
 
 	/* Add item to global list */
 	g_client_list = g_slist_append(g_client_list, info);
-	
+
 	if (NULL == g_client_list) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Client Data ERROR] Fail to add new client");
 		return -1;
@@ -108,7 +108,7 @@ int sttd_client_add(int pid, int uid)
 
 #ifdef CLIENT_DATA_DEBUG
 	client_show_list();
-#endif 
+#endif
 	return 0;
 }
 
@@ -137,7 +137,7 @@ int sttd_client_delete(int uid)
 
 #ifdef CLIENT_DATA_DEBUG
 	client_show_list();
-#endif 
+#endif
 
 	return 0;
 }
@@ -182,7 +182,7 @@ int sttd_client_set_start_sound(int uid, const char* filename)
 	if (NULL != hnd->start_beep) {
 		free(hnd->start_beep);
 	}
-	
+
 	if (NULL != filename) {
 		hnd->start_beep = strdup(filename);
 		SLOG(LOG_DEBUG, TAG_STTD, "[Client Data] Start sound file : %s", hnd->start_beep);
@@ -233,7 +233,7 @@ int sttd_client_set_stop_sound(int uid, const char* filename)
 	if (NULL != hnd->stop_beep) {
 		free(hnd->stop_beep);
 	}
-	
+
 	if (NULL != filename) {
 		hnd->stop_beep = strdup(filename);
 		SLOG(LOG_DEBUG, TAG_STTD, "[Client Data] Stop sound file : %s", hnd->stop_beep);
@@ -313,7 +313,7 @@ int sttd_client_get_current_recording()
 			/* Get handle data from list */
 			data = iter->data;
 
-			if (APP_STATE_RECORDING == data->state) 
+			if (APP_STATE_RECORDING == data->state)
 				return data->uid;
 
 			iter = g_slist_next(iter);
@@ -335,7 +335,7 @@ int sttd_client_get_current_thinking()
 			/* Get handle data from list */
 			data = iter->data;
 
-			if (APP_STATE_PROCESSING == data->state) 
+			if (APP_STATE_PROCESSING == data->state)
 				return data->uid;
 
 			iter = g_slist_next(iter);
@@ -384,7 +384,7 @@ int sttd_client_get_list(int** uids, int* uid_count)
 {
 	if (NULL == uids || NULL == uid_count)
 		return -1;
-	
+
 	int count = g_slist_length(g_client_list);
 
 	if (0 == count)
@@ -402,7 +402,7 @@ int sttd_client_get_list(int** uids, int* uid_count)
 	int i = 0;
 
 	iter = g_slist_nth(g_client_list, 0);
-	for (i = 0;i < count;i++) {
+	for (i = 0; i < count; i++) {
 		data = iter->data;
 		tmp[i] = data->uid;
 		iter = g_slist_next(iter);
@@ -443,7 +443,7 @@ int stt_client_set_app_agreed(int uid)
 
 	tmp = __client_get_item(uid);
 	if (NULL == tmp) {
-		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Client Data ERROR] uid(%d) is NOT valid", uid); 
+		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Client Data ERROR] uid(%d) is NOT valid", uid);
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
@@ -460,7 +460,7 @@ bool stt_client_get_app_agreed(int uid)
 
 	tmp = __client_get_item(uid);
 	if (NULL == tmp) {
-		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Client Data ERROR] uid(%d) is NOT valid", uid); 
+		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Client Data ERROR] uid(%d) is NOT valid", uid);
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 

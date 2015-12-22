@@ -1,5 +1,5 @@
 /*
-*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved 
+*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -116,7 +116,7 @@ static Eina_Bool __get_engine_list(void *data)
 		SLOG(LOG_ERROR, TAG_STT_TEST, "[ERROR] Fail to get engine");
 		return EINA_FALSE;
 	}
-	
+
 	if (NULL != cur_engine) {
 		SLOG(LOG_DEBUG, TAG_STT_TEST, "Current engine - %s", cur_engine);
 		free(cur_engine);
@@ -187,7 +187,7 @@ static void __stt_recognition_result_cb(stt_h stt, stt_result_event_e event, con
 	ecore_timer_add(0, __stt_finalize, NULL);
 }
 
-int main (int argc, char *argv[])
+int main(int argc, char *argv[])
 {
 	if (2 < argc) {
 		SLOG(LOG_DEBUG, TAG_STT_TEST, "Please check parameter");

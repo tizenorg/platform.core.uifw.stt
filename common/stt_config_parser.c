@@ -1,5 +1,5 @@
 /*
-*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved 
+*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -103,7 +103,7 @@ int stt_parser_get_engine_info(const char* path, stt_engine_info_s** engine_info
 		if (0 == xmlStrcmp(cur->name, (const xmlChar *)STT_TAG_ENGINE_NAME)) {
 			key = xmlNodeGetContent(cur);
 			if (NULL != key) {
-				// SLOG(LOG_DEBUG, stt_tag(), "Engine name : %s", (char *)key);
+				/* SLOG(LOG_DEBUG, stt_tag(), "Engine name : %s", (char *)key); */
 				if (NULL != temp->name)	free(temp->name);
 				temp->name = strdup((char*)key);
 				xmlFree(key);
@@ -113,7 +113,7 @@ int stt_parser_get_engine_info(const char* path, stt_engine_info_s** engine_info
 		} else if (0 == xmlStrcmp(cur->name, (const xmlChar *)STT_TAG_ENGINE_ID)) {
 			key = xmlNodeGetContent(cur);
 			if (NULL != key) {
-				// SLOG(LOG_DEBUG, stt_tag(), "Engine uuid : %s", (char *)key);
+				/* SLOG(LOG_DEBUG, stt_tag(), "Engine uuid : %s", (char *)key); */
 				if (NULL != temp->uuid)	free(temp->uuid);
 				temp->uuid = strdup((char*)key);
 				xmlFree(key);
@@ -147,10 +147,10 @@ int stt_parser_get_engine_info(const char* path, stt_engine_info_s** engine_info
 			lang_node = cur->xmlChildrenNode;
 
 			while (lang_node != NULL) {
-				if (0 == xmlStrcmp(lang_node->name, (const xmlChar *)STT_TAG_ENGINE_LANGUAGE)){
+				if (0 == xmlStrcmp(lang_node->name, (const xmlChar *)STT_TAG_ENGINE_LANGUAGE)) {
 					key = xmlNodeGetContent(lang_node);
 					if (NULL != key) {
-						// SLOG(LOG_DEBUG, stt_tag(), "language : %s", (char *)key);
+						/* SLOG(LOG_DEBUG, stt_tag(), "language : %s", (char *)key); */
 						temp_lang = strdup((char*)key);
 						temp->languages = g_slist_append(temp->languages, temp_lang);
 						xmlFree(key);
@@ -164,13 +164,13 @@ int stt_parser_get_engine_info(const char* path, stt_engine_info_s** engine_info
 		} else if (0 == xmlStrcmp(cur->name, (const xmlChar *)STT_TAG_ENGINE_SILENCE_SUPPORT)) {
 			key = xmlNodeGetContent(cur);
 			if (NULL != key) {
-				//SLOG(LOG_DEBUG, stt_tag(), "silence-detection-support : %s", (char *)key);
+				/*SLOG(LOG_DEBUG, stt_tag(), "silence-detection-support : %s", (char *)key); */
 
 				if (0 == xmlStrcmp(key, (const xmlChar *)"true"))
 					temp->support_silence_detection = true;
 				else
 					temp->support_silence_detection = false;
-				
+
 				xmlFree(key);
 			} else {
 				SECURE_SLOG(LOG_ERROR, stt_tag(), "[ERROR] <%s> has no content", STT_TAG_ENGINE_SILENCE_SUPPORT);
@@ -213,7 +213,7 @@ int stt_parser_free_engine_info(stt_engine_info_s* engine_info)
 	int i ;
 	char *temp_lang;
 
-	for (i = 0;i < count ;i++) {
+	for (i = 0; i < count ; i++) {
 		temp_lang = g_slist_nth_data(engine_info->languages, 0);
 
 		if (NULL != temp_lang) {
@@ -221,12 +221,12 @@ int stt_parser_free_engine_info(stt_engine_info_s* engine_info)
 
 			if (NULL != temp_lang)
 				free(temp_lang);
-		} 
+		}
 	}
 
 	if (NULL != engine_info)	free(engine_info);
 
-	return 0;	
+	return 0;
 }
 
 int stt_parser_print_engine_info(stt_engine_info_s* engine_info)
@@ -246,7 +246,7 @@ int stt_parser_print_engine_info(stt_engine_info_s* engine_info)
 		/* Get a first item */
 		iter = g_slist_nth(engine_info->languages, 0);
 
-		int i = 1;	
+		int i = 1;
 		while (NULL != iter) {
 			/*Get handle data from list*/
 			lang = iter->data;
@@ -325,7 +325,7 @@ int stt_parser_load_config(stt_config_s** config_info)
 		if (0 == xmlStrcmp(cur->name, (const xmlChar *)STT_TAG_CONFIG_ENGINE_ID)) {
 			key = xmlNodeGetContent(cur);
 			if (NULL != key) {
-				//SLOG(LOG_DEBUG, stt_tag(), "Engine id : %s", (char *)key);
+				/*SLOG(LOG_DEBUG, stt_tag(), "Engine id : %s", (char *)key); */
 				if (NULL != temp->engine_id)	free(temp->engine_id);
 				temp->engine_id = strdup((char*)key);
 				xmlFree(key);
@@ -335,7 +335,7 @@ int stt_parser_load_config(stt_config_s** config_info)
 		} else if (0 == xmlStrcmp(cur->name, (const xmlChar *)STT_TAG_CONFIG_ENGINE_SETTING)) {
 			key = xmlNodeGetContent(cur);
 			if (NULL != key) {
-				//SECURE_SLOG(LOG_DEBUG, stt_tag(), "Setting path : %s", (char *)key);
+				/*SECURE_SLOG(LOG_DEBUG, stt_tag(), "Setting path : %s", (char *)key); */
 				if (NULL != temp->setting)	free(temp->setting);
 				temp->setting = strdup((char*)key);
 				xmlFree(key);
@@ -346,7 +346,7 @@ int stt_parser_load_config(stt_config_s** config_info)
 		} else if (0 == xmlStrcmp(cur->name, (const xmlChar *)STT_TAG_CONFIG_AUTO_LANGUAGE)) {
 			key = xmlNodeGetContent(cur);
 			if (NULL != key) {
-				//SECURE_SLOG(LOG_DEBUG, stt_tag(), "Auto language : %s", (char *)key);
+				/*SECURE_SLOG(LOG_DEBUG, stt_tag(), "Auto language : %s", (char *)key); */
 
 				if (0 == xmlStrcmp(key, (const xmlChar *)"on")) {
 					temp->auto_lang = true;
@@ -364,7 +364,7 @@ int stt_parser_load_config(stt_config_s** config_info)
 		} else if (0 == xmlStrcmp(cur->name, (const xmlChar *)STT_TAG_CONFIG_LANGUAGE)) {
 			key = xmlNodeGetContent(cur);
 			if (NULL != key) {
-				//SLOG(LOG_DEBUG, stt_tag(), "language : %s", (char *)key);
+				/*SLOG(LOG_DEBUG, stt_tag(), "language : %s", (char *)key); */
 				if (NULL != temp->language)	free(temp->language);
 				temp->language = strdup((char*)key);
 				xmlFree(key);
@@ -374,7 +374,7 @@ int stt_parser_load_config(stt_config_s** config_info)
 		} else if (0 == xmlStrcmp(cur->name, (const xmlChar *)STT_TAG_CONFIG_SILENCE_DETECTION)) {
 			key = xmlNodeGetContent(cur);
 			if (NULL != key) {
-				//SLOG(LOG_DEBUG, stt_tag(), "silence-detection : %s", (char *)key);
+				/*SLOG(LOG_DEBUG, stt_tag(), "silence-detection : %s", (char *)key); */
 
 				if (0 == xmlStrcmp(key, (const xmlChar *)"on"))
 					temp->silence_detection = true;
@@ -454,7 +454,7 @@ int stt_parser_set_engine(const char* engine_id, const char* setting, const char
 		if (0 == xmlStrcmp(cur->name, (const xmlChar *)STT_TAG_CONFIG_SILENCE_DETECTION)) {
 			if (true == silence)
 				xmlNodeSetContent(cur, (const xmlChar *)"on");
-			else 
+			else
 				xmlNodeSetContent(cur, (const xmlChar *)"off");
 		}
 
@@ -493,7 +493,7 @@ int stt_parser_set_language(const char* language)
 	while (cur != NULL) {
 		if (0 == xmlStrcmp(cur->name, (const xmlChar *)STT_TAG_CONFIG_LANGUAGE)) {
 			xmlNodeSetContent(cur, (const xmlChar *)language);
-		} 
+		}
 
 		cur = cur->next;
 	}
@@ -576,9 +576,9 @@ int stt_parser_set_silence_detection(bool value)
 		if (0 == xmlStrcmp(cur->name, (const xmlChar *)STT_TAG_CONFIG_SILENCE_DETECTION)) {
 			if (true == value)
 				xmlNodeSetContent(cur, (const xmlChar *)"on");
-			else 
+			else
 				xmlNodeSetContent(cur, (const xmlChar *)"off");
-		} 
+		}
 
 		cur = cur->next;
 	}
@@ -726,7 +726,7 @@ int stt_parser_find_config_changed(char** engine, char** setting, int* auto_lang
 								*silence = 0;
 							}
 						}
-						
+
 						xmlFree(key_new);
 					}
 					xmlFree(key_old);
@@ -741,7 +741,7 @@ int stt_parser_find_config_changed(char** engine, char** setting, int* auto_lang
 		cur_new = cur_new->next;
 		cur_old = cur_old->next;
 	}
-	
+
 	xmlFreeDoc(g_config_doc);
 	g_config_doc = doc;
 
@@ -790,16 +790,16 @@ int stt_parser_set_time_info(GSList* time_list)
 	iter = g_slist_nth(time_list, 0);
 	while (NULL != iter) {
 		data = iter->data;
-		
+
 		xmlNodePtr temp_node = NULL;
 
-		SLOG(LOG_DEBUG, stt_tag(), "[%d] i(%d) t(%s) s(%d) e(%d)", 
-			data->index, data->event, data->text, data->start_time, data->end_time);
-		
+		SLOG(LOG_DEBUG, stt_tag(), "[%d] i(%d) t(%s) s(%d) e(%d)",
+			 data->index, data->event, data->text, data->start_time, data->end_time);
+
 		temp_node = xmlNewNode(NULL, (const xmlChar*)STT_TAG_TIME_TEXT);
 		xmlNodeSetContent(temp_node, (const xmlChar*)data->text);
 		xmlAddChild(inode, temp_node);
-	
+
 		temp_node = xmlNewNode(NULL, (const xmlChar*)STT_TAG_TIME_START);
 		snprintf(temp_str, 256, "%ld", data->start_time);
 		xmlNodeSetContent(temp_node, (const xmlChar*)temp_str);
@@ -869,7 +869,7 @@ int stt_parser_get_time_info(GSList** time_list)
 				SLOG(LOG_ERROR, stt_tag(), "[ERROR] <%s> has no content", STT_TAG_TIME_COUNT);
 				return -1;
 			}
-			
+
 			SLOG(LOG_DEBUG, stt_tag(), "Count : %s", (char *)key);
 
 			/* Get time count */
@@ -886,7 +886,7 @@ int stt_parser_get_time_info(GSList** time_list)
 			time_node = cur->xmlChildrenNode;
 
 			int i = 0;
-			for (i = 0;i < count;i++) {
+			for (i = 0; i < count; i++) {
 				/* text */
 				time_node = time_node->next;
 
@@ -935,7 +935,7 @@ int stt_parser_get_time_info(GSList** time_list)
 						break;
 					}
 				}
-				
+
 				/* text */
 				time_node = time_node->next;
 				time_node = time_node->next;

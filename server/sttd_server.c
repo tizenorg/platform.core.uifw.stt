@@ -1,5 +1,5 @@
 /*
-*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved 
+*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -50,11 +50,11 @@ Eina_Bool __stop_by_silence(void *data)
 
 	int ret;
 	if (0 != uid) {
-		ret = sttd_server_stop(uid); 
+		ret = sttd_server_stop(uid);
 		if (0 > ret) {
 			return EINA_FALSE;
 		}
-	
+
 		if (STTD_RESULT_STATE_DONE == ret) {
 			ret = sttdc_send_set_state(uid, (int)APP_STATE_PROCESSING);
 			if (0 != ret) {
@@ -132,8 +132,8 @@ int __server_audio_recorder_callback(const void* data, const unsigned int length
 	if (0 != uid) {
 		ret = sttd_engine_agent_set_recording_data(uid, data, length);
 		if (ret < 0) {
-			 ecore_timer_add(0, __cancel_by_error, NULL);
-			 return -1;
+			ecore_timer_add(0, __cancel_by_error, NULL);
+			return -1;
 		}
 		g_recording_log_count++;
 		if (200 <= g_recording_log_count) {
@@ -170,7 +170,7 @@ Eina_Bool __cancel_by_no_record(void *data)
 
 	SLOG(LOG_DEBUG, TAG_STTD, "=====");
 	SLOG(LOG_DEBUG, TAG_STTD, "  ");
-	
+
 	return EINA_FALSE;
 }
 
@@ -194,7 +194,7 @@ void __server_recognition_result_callback(sttp_result_event_e event, const char*
 
 	/* send result to client */
 	if (STTP_RESULT_EVENT_FINAL_RESULT == event) {
-		if (APP_STATE_PROCESSING != state ) {
+		if (APP_STATE_PROCESSING != state) {
 			SLOG(LOG_WARN, TAG_STTD, "[Server WARNING] Current state is NOT 'Processing'.");
 		}
 		SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[Server] the size of result from engine is '%d'", data_count);
@@ -210,7 +210,7 @@ void __server_recognition_result_callback(sttp_result_event_e event, const char*
 
 		if (NULL == data || 0 == data_count) {
 			if (0 != sttdc_send_result(uid, event, NULL, 0, msg)) {
-				SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to send result");	
+				SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to send result");
 				int reason = (int)STTD_ERROR_OPERATION_FAILED;
 
 				if (0 != sttdc_send_error_signal(uid, reason, "Fail to send recognition result")) {
@@ -219,7 +219,7 @@ void __server_recognition_result_callback(sttp_result_event_e event, const char*
 			}
 		} else {
 			if (0 != sttdc_send_result(uid, event, data, data_count, msg)) {
-				SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to send result");	
+				SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to send result");
 				int reason = (int)STTD_ERROR_OPERATION_FAILED;
 
 				if (0 != sttdc_send_error_signal(uid, reason, "Fail to send recognition result")) {
@@ -261,7 +261,7 @@ void __server_recognition_result_callback(sttp_result_event_e event, const char*
 			SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to send result ");
 
 			/* send error msg */
-			int reason = (int)STTD_ERROR_INVALID_STATE;	
+			int reason = (int)STTD_ERROR_INVALID_STATE;
 			if (0 != sttdc_send_error_signal(uid, reason, "[ERROR] Fail to send recognition result")) {
 				SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to send error info ");
 			}
@@ -282,8 +282,8 @@ void __server_recognition_result_callback(sttp_result_event_e event, const char*
 
 bool __server_result_time_callback(int index, sttp_result_time_event_e event, const char* text, long start_time, long end_time, void* user_data)
 {
-	SLOG(LOG_DEBUG, TAG_STTD, "[Server] index(%d) event(%d) text(%s) start(%ld) end(%ld)", 
-		index, event, text, start_time, end_time);
+	SLOG(LOG_DEBUG, TAG_STTD, "[Server] index(%d) event(%d) text(%s) start(%ld) end(%ld)",
+		 index, event, text, start_time, end_time);
 
 	if (0 == index) {
 		int ret;
@@ -365,7 +365,7 @@ void __sttd_server_engine_changed_cb(const char* engine_id, const char* language
 		if (0 != ret)
 			SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to set default lang : result(%d)", ret);
 	}
-	
+
 	ret = sttd_engine_agent_set_silence_detection(support_silence);
 	if (0 != ret)
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to Result(%d)", ret);
@@ -426,7 +426,7 @@ int sttd_initialize()
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to engine agent initialize : result(%d)", ret);
 		return ret;
 	}
-	
+
 	/* Update engine list */
 	ret = sttd_engine_agent_initialize_engine_list();
 	if (0 != ret) {
@@ -471,7 +471,7 @@ Eina_Bool sttd_cleanup_client(void *data)
 	if (NULL != client_list) {
 		SLOG(LOG_DEBUG, TAG_STTD, "===== Clean up client ");
 
-		for (i = 0;i < client_count;i++) {
+		for (i = 0; i < client_count; i++) {
 			result = sttdc_send_hello(client_list[i]);
 
 			if (0 == result) {
@@ -500,7 +500,7 @@ int sttd_server_initialize(int pid, int uid, bool* silence)
 	if (false == sttd_engine_agent_is_default_engine()) {
 		/* Update installed engine */
 		sttd_engine_agent_initialize_engine_list();
-		
+
 		if (false == sttd_engine_agent_is_default_engine()) {
 			SLOG(LOG_WARN, TAG_STTD, "[Server WARNING] No stt-engine");
 			return STTD_ERROR_ENGINE_NOT_FOUND;
@@ -571,7 +571,7 @@ int sttd_server_finalize(int uid)
 
 		stt_client_unset_current_recognition();
 	}
-	
+
 	if (0 != sttd_engine_agent_unload_current_engine(uid)) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to unload engine");
 	}
@@ -586,7 +586,7 @@ int sttd_server_finalize(int uid)
 		sttd_dbus_close_connection();
 		ecore_timer_add(0, __quit_ecore_loop, NULL);
 	}
-	
+
 	return STTD_ERROR_NONE;
 }
 
@@ -660,7 +660,7 @@ int sttd_server_get_current_engine(int uid, char** engine_id)
 		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] The state of uid(%d) is not Ready", uid);
 		return STTD_ERROR_INVALID_STATE;
 	}
-	
+
 	int ret;
 	ret = sttd_engine_agent_get_current_engine(uid, engine_id);
 	if (0 != ret) {
@@ -676,7 +676,7 @@ int sttd_server_check_agg_agreed(int uid, const char* appid, bool* available)
 	/* Check if uid is valid */
 	app_state_e state;
 	if (0 != sttd_client_get_state(uid, &state)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] uid is NOT valid "); 
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] uid is NOT valid ");
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
@@ -743,7 +743,7 @@ int sttd_server_get_current_langauage(int uid, char** current_lang)
 
 	/*get current language from engine */
 	int ret = sttd_engine_agent_get_default_lang(uid, current_lang);
-	if (0 != ret) {	
+	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to get default language :result(%d)", ret);
 		return STTD_ERROR_OPERATION_FAILED;
 	}
@@ -769,11 +769,11 @@ int sttd_server_is_recognition_type_supported(int uid, const char* type, int* su
 
 	bool temp;
 	int ret = sttd_engine_agent_is_recognition_type_supported(uid, type, &temp);
-	if (0 != ret) {	
+	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to get recognition type supported : result(%d)", ret);
 		return STTD_ERROR_OPERATION_FAILED;
 	}
-	
+
 	*support = (int)temp;
 
 	SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[Server SUCCESS] recognition type supporting is %s", *support ? "true" : "false");
@@ -791,7 +791,7 @@ int sttd_server_set_start_sound(int uid, const char* file)
 	}
 
 	int ret = sttd_client_set_start_sound(uid, file);
-	if (0 != ret) {	
+	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to set start sound file : result(%d)", ret);
 		return STTD_ERROR_OPERATION_FAILED;
 	}
@@ -809,7 +809,7 @@ int sttd_server_set_stop_sound(int uid, const char* file)
 	}
 
 	int ret = sttd_client_set_stop_sound(uid, file);
-	if (0 != ret) {	
+	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to set start sound file : result(%d)", ret);
 		return STTD_ERROR_OPERATION_FAILED;
 	}
@@ -818,7 +818,7 @@ int sttd_server_set_stop_sound(int uid, const char* file)
 }
 
 Eina_Bool __check_recording_state(void *data)
-{	
+{
 	/* current uid */
 	int uid = stt_client_get_current_recognition();
 	if (0 == uid)
@@ -964,8 +964,8 @@ int sttd_server_start(int uid, const char* lang, const char* recognition_type, i
 	}
 
 	/* engine start recognition */
-	SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[Server] start : uid(%d), lang(%s), recog_type(%s)", 
-			uid, lang, recognition_type);
+	SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[Server] start : uid(%d), lang(%s), recog_type(%s)",
+				uid, lang, recognition_type);
 	if (NULL != sound)
 		SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[Server] start sound : %s", sound);
 
@@ -1055,7 +1055,7 @@ Eina_Bool __time_out_for_processing(void *data)
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to send result ");
 
 		/* send error msg */
-		int reason = (int)STTD_ERROR_TIMED_OUT;	
+		int reason = (int)STTD_ERROR_TIMED_OUT;
 		if (0 != sttdc_send_error_signal(uid, reason, "[ERROR] Fail to send recognition result")) {
 			SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to send error info ");
 		}
@@ -1129,7 +1129,7 @@ int sttd_server_stop(int uid)
 
 	char* sound = NULL;
 	if (0 != sttd_client_get_stop_sound(uid, &sound)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to get start beep sound"); 
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to get start beep sound");
 		return STTD_ERROR_OPERATION_FAILED;
 	}
 
@@ -1141,7 +1141,7 @@ int sttd_server_stop(int uid)
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to stop recorder : result(%d)", ret);
 		if (0 != sttd_engine_agent_recognize_cancel(uid)) {
-				SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to cancel recognize");
+			SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to cancel recognize");
 		}
 		if (NULL != sound)	free(sound);
 		return STTD_ERROR_OPERATION_FAILED;
@@ -1184,7 +1184,7 @@ int sttd_server_stop(int uid)
 		sttd_client_set_state(uid, APP_STATE_PROCESSING);
 
 		SLOG(LOG_DEBUG, TAG_STTD, "[Server SUCCESS] Stop recognition");
-		
+
 		g_processing_timer = ecore_timer_add(g_processing_timeout, __time_out_for_processing, NULL);
 
 		return STTD_RESULT_STATE_DONE;
@@ -1202,7 +1202,7 @@ int sttd_server_cancel(int uid)
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
-	/* check uid state */ 
+	/* check uid state */
 	if (APP_STATE_READY == state) {
 		SLOG(LOG_WARN, TAG_STTD, "[Server WARNING] Current state is ready");
 		return STTD_ERROR_NONE;
@@ -1226,7 +1226,7 @@ int sttd_server_cancel(int uid)
 		if (0 != ret) {
 			SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to unset session : %d", ret);
 			return STTD_ERROR_OPERATION_FAILED;
-		}		
+		}
 	}
 
 	/* change uid state */

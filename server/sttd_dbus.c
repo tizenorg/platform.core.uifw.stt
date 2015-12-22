@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved 
+* Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -76,9 +76,9 @@ int sttdc_send_hello(int uid)
 	if (NULL != result_msg) {
 		dbus_message_get_args(result_msg, &err, DBUS_TYPE_INT32, &result, DBUS_TYPE_INVALID);
 
-		if (dbus_error_is_set(&err)) { 
+		if (dbus_error_is_set(&err)) {
 			SLOG(LOG_ERROR, TAG_STTD, "[Dbus] Get arguments error (%s)\n", err.message);
-			dbus_error_free(&err); 
+			dbus_error_free(&err);
 			result = -1;
 		}
 
@@ -130,8 +130,7 @@ int sttdc_send_set_state(int uid, int state)
 
 	if (!dbus_connection_send(g_conn_sender, msg, NULL)) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] Fail to send message : Out Of Memory !");
-	}
-	else {
+	} else {
 		SLOG(LOG_DEBUG, TAG_STTD, "<<<< Send error message : uid(%d), state(%d)", uid, state);
 		dbus_connection_flush(g_conn_sender);
 	}
@@ -167,8 +166,8 @@ int sttdc_send_get_state(int uid, int* state)
 		target_if_name, 
 		STTD_METHOD_GET_STATE);
 
-	if (NULL == msg) { 
-		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] Fail to create message"); 
+	if (NULL == msg) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] Fail to create message");
 		return -1;
 	}
 
@@ -191,9 +190,9 @@ int sttdc_send_get_state(int uid, int* state)
 	if (NULL != result_msg) {
 		dbus_message_get_args(result_msg, &err, DBUS_TYPE_INT32, &tmp, DBUS_TYPE_INVALID);
 
-		if (dbus_error_is_set(&err)) { 
+		if (dbus_error_is_set(&err)) {
 			SLOG(LOG_ERROR, TAG_STTD, "[Dbus] Get arguments error (%s)\n", err.message);
-			dbus_error_free(&err); 
+			dbus_error_free(&err);
 			result = -1;
 		} else {
 			*state = tmp;
@@ -205,7 +204,7 @@ int sttdc_send_get_state(int uid, int* state)
 		SLOG(LOG_ERROR, TAG_STTD, "[Dbus] Result message is NULL. Client is not available");
 		result = -1;
 	}
-	
+
 	return result;
 }
 
@@ -213,7 +212,7 @@ int sttdc_send_result(int uid, int event, const char** data, int data_count, con
 {
 	int pid = sttd_client_get_pid(uid);
 	if (0 > pid) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] pid is NOT valid" );
+		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] pid is NOT valid");
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
@@ -252,24 +251,24 @@ int sttdc_send_result(int uid, int event, const char** data, int data_count, con
 	if (NULL == result_msg) {
 		msg_temp = strdup("None");
 		dbus_message_iter_append_basic(&args, DBUS_TYPE_STRING, &msg_temp);
-		SLOG(LOG_WARN, TAG_STTD, "[Dbus] result message is NULL"); 
+		SLOG(LOG_WARN, TAG_STTD, "[Dbus] result message is NULL");
 		free(msg_temp);
 	} else {
-		SLOG(LOG_DEBUG, TAG_STTD, "[Dbus] result message(%s)", result_msg ); 
+		SLOG(LOG_DEBUG, TAG_STTD, "[Dbus] result message(%s)", result_msg);
 		dbus_message_iter_append_basic(&args, DBUS_TYPE_STRING, &(result_msg));
 	}
-	
+
 	/* Append result size */
 	if (!dbus_message_iter_append_basic(&args, DBUS_TYPE_INT32, &(data_count))) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Dbus] response message : Fail to append result size"); 
+		SLOG(LOG_ERROR, TAG_STTD, "[Dbus] response message : Fail to append result size");
 		return -1;
 	}
 
 	int i;
-	SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[Dbus] result size (%d)", data_count); 
-	for (i = 0;i < data_count;i++) {
+	SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[Dbus] result size (%d)", data_count);
+	for (i = 0; i < data_count; i++) {
 		if (NULL != data[i]) {
-			SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[Dbus] result (%d, %s)", i, data[i] ); 
+			SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[Dbus] result (%d, %s)", i, data[i]);
 
 			if (!dbus_message_iter_append_basic(&args, DBUS_TYPE_STRING, &data[i])) {
 				SLOG(LOG_ERROR, TAG_STTD, "[Dbus] response message : Fail to append result data");
@@ -280,7 +279,7 @@ int sttdc_send_result(int uid, int event, const char** data, int data_count, con
 			int reason = (int)STTD_ERROR_OPERATION_FAILED;
 
 			if (0 != sttdc_send_error_signal(uid, reason, "Fail to get recognition result from engine")) {
-				SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] Fail to send error info. Remove client data"); 
+				SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] Fail to send error info. Remove client data");
 
 				/* clean client data */
 				sttd_client_delete(uid);
@@ -307,13 +306,13 @@ int sttdc_send_result(int uid, int event, const char** data, int data_count, con
 int sttdc_send_error_signal(int uid, int reason, const char *err_msg)
 {
 	if (NULL == err_msg) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] Input parameter is NULL"); 
+		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] Input parameter is NULL");
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
 	int pid = sttd_client_get_pid(uid);
 	if (0 > pid) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] pid is NOT valid" );
+		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] pid is NOT valid");
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
@@ -369,7 +368,7 @@ static Eina_Bool listener_event_callback(void* data, Ecore_Fd_Handler *fd_handle
 	}
 
 	/* loop again if we haven't read a message */
-	if (NULL == msg) { 
+	if (NULL == msg) {
 		return ECORE_CALLBACK_RENEW;
 	}
 
@@ -450,13 +449,13 @@ int sttd_dbus_open_connection()
 	/* connect to the bus and check for errors */
 	g_conn_listener = dbus_bus_get(DBUS_BUS_SYSTEM, &err);
 
-	if (dbus_error_is_set(&err)) { 
+	if (dbus_error_is_set(&err)) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] Fail dbus_bus_get : %s", err.message);
-		dbus_error_free(&err); 
+		dbus_error_free(&err);
 	}
 
-	if (NULL == g_conn_listener) { 
-		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] Fail to get dbus connection" );
+	if (NULL == g_conn_listener) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] Fail to get dbus connection");
 		return STTD_ERROR_OPERATION_FAILED;
 	}
 
@@ -468,7 +467,7 @@ int sttd_dbus_open_connection()
 		return STTD_ERROR_OPERATION_FAILED;
 	}
 
-	if (dbus_error_is_set(&err)) { 
+	if (dbus_error_is_set(&err)) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] dbus_bus_request_name() : %s", err.message);
 		dbus_error_free(&err);
 		return STTD_ERROR_OPERATION_FAILED;
@@ -482,7 +481,7 @@ int sttd_dbus_open_connection()
 	dbus_bus_add_match(g_conn_listener, rule, &err); /* see signals from the given interface */
 	dbus_connection_flush(g_conn_listener);
 
-	if (dbus_error_is_set(&err)) { 
+	if (dbus_error_is_set(&err)) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] dbus_bus_add_match() : %s", err.message);
 		return STTD_ERROR_OPERATION_FAILED;
 	}

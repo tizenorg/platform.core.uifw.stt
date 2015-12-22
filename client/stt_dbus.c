@@ -1,5 +1,5 @@
 /*
-*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved 
+*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -48,7 +48,7 @@ static Eina_Bool listener_event_callback(void* data, Ecore_Fd_Handler *fd_handle
 	}
 
 	/* loop again if we haven't read a message */
-	if (NULL == msg) { 
+	if (NULL == msg) {
 		return ECORE_CALLBACK_RENEW;
 	}
 
@@ -73,33 +73,33 @@ static Eina_Bool listener_event_callback(void* data, Ecore_Fd_Handler *fd_handle
 
 		if (uid > 0) {
 			SECURE_SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt get hello : uid(%d)", uid);
-			
+
 			/* check uid */
 			stt_client_s* client = stt_client_get_by_uid(uid);
-			if( NULL != client ) 
+			if (NULL != client)
 				response = 1;
-			else 
+			else
 				response = 0;
 		} else {
 			SLOG(LOG_ERROR, TAG_STTC, "<<<< stt get hello : invalid uid");
 		}
 
 		reply = dbus_message_new_method_return(msg);
-		
+
 		if (NULL != reply) {
 			dbus_message_append_args(reply, DBUS_TYPE_INT32, &response, DBUS_TYPE_INVALID);
 
 			if (!dbus_connection_send(g_conn_listener, reply, NULL))
 				SLOG(LOG_ERROR, TAG_STTC, ">>>> stt get hello : fail to send reply");
-			else 
+			else
 				SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt get hello : result(%d)", response);
 
 			dbus_connection_flush(g_conn_listener);
-			dbus_message_unref(reply); 
+			dbus_message_unref(reply);
 		} else {
 			SLOG(LOG_ERROR, TAG_STTC, ">>>> stt get hello : fail to create reply message");
 		}
-		
+
 		SLOG(LOG_DEBUG, TAG_STTC, "=====");
 		SLOG(LOG_DEBUG, TAG_STTC, " ");
 	} /* STTD_METHOD_HELLO */
@@ -146,11 +146,11 @@ static Eina_Bool listener_event_callback(void* data, Ecore_Fd_Handler *fd_handle
 
 			/* check state */
 			stt_client_s* client = stt_client_get_by_uid(uid);
-			if( NULL != client ) 
+			if (NULL != client)
 				response = client->current_state;
-			else 
+			else
 				SLOG(LOG_ERROR, TAG_STTC, "invalid uid");
-			
+
 		} else {
 			SLOG(LOG_ERROR, TAG_STTC, "<<<< stt get state : invalid uid");
 		}
@@ -162,11 +162,11 @@ static Eina_Bool listener_event_callback(void* data, Ecore_Fd_Handler *fd_handle
 
 			if (!dbus_connection_send(g_conn_listener, reply, NULL))
 				SLOG(LOG_ERROR, TAG_STTC, ">>>> stt get state : fail to send reply");
-			else 
+			else
 				SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt get state : result(%d)", response);
 
 			dbus_connection_flush(g_conn_listener);
-			dbus_message_unref(reply); 
+			dbus_message_unref(reply);
 		} else {
 			SLOG(LOG_ERROR, TAG_STTC, ">>>> stt get hello : fail to create reply message");
 		}
@@ -179,15 +179,15 @@ static Eina_Bool listener_event_callback(void* data, Ecore_Fd_Handler *fd_handle
 		SLOG(LOG_DEBUG, TAG_STTC, "===== Get Result");
 		int uid = 0;
 		DBusMessageIter args;
-			
+
 		dbus_message_iter_init(msg, &args);
-		
+
 		/* Get result */
 		if (DBUS_TYPE_INT32 == dbus_message_iter_get_arg_type(&args)) {
 			dbus_message_iter_get_basic(&args, &uid);
 			dbus_message_iter_next(&args);
 		}
-		
+
 		if (uid > 0) {
 			char** temp_result = NULL;
 			char* temp_msg = NULL;
@@ -202,7 +202,7 @@ static Eina_Bool listener_event_callback(void* data, Ecore_Fd_Handler *fd_handle
 			}
 
 			if (DBUS_TYPE_STRING == dbus_message_iter_get_arg_type(&args)) {
-				dbus_message_iter_get_basic(&args, &(temp_msg) );
+				dbus_message_iter_get_basic(&args, &(temp_msg));
 				dbus_message_iter_next(&args);
 			}
 
@@ -224,8 +224,8 @@ static Eina_Bool listener_event_callback(void* data, Ecore_Fd_Handler *fd_handle
 					SLOG(LOG_ERROR, TAG_STTC, "Fail : memory allocation error");
 				} else {
 					int i = 0;
-					for (i = 0;i < temp_count;i++) {
-						dbus_message_iter_get_basic(&args, &(temp_char) );
+					for (i = 0; i < temp_count; i++) {
+						dbus_message_iter_get_basic(&args, &(temp_char));
 						dbus_message_iter_next(&args);
 
 						if (NULL != temp_char) {
@@ -236,7 +236,7 @@ static Eina_Bool listener_event_callback(void* data, Ecore_Fd_Handler *fd_handle
 
 					__stt_cb_result(uid, temp_event, temp_result, temp_count, temp_msg);
 
-					for (i = 0;i < temp_count;i++) {
+					for (i = 0; i < temp_count; i++) {
 						if (NULL != temp_result[i])
 							free(temp_result[i]);
 					}
@@ -250,7 +250,7 @@ static Eina_Bool listener_event_callback(void* data, Ecore_Fd_Handler *fd_handle
 
 		SLOG(LOG_DEBUG, TAG_STTC, "=====");
 		SLOG(LOG_DEBUG, TAG_STTC, " ");
-	}/* STTD_METHOD_RESULT */
+	} /* STTD_METHOD_RESULT */
 
 	else if (dbus_message_is_method_call(msg, if_name, STTD_METHOD_ERROR)) {
 		SLOG(LOG_DEBUG, TAG_STTC, "===== Get Error");
@@ -264,9 +264,9 @@ static Eina_Bool listener_event_callback(void* data, Ecore_Fd_Handler *fd_handle
 			DBUS_TYPE_STRING, &err_msg,
 			DBUS_TYPE_INVALID);
 
-		if (dbus_error_is_set(&err)) { 
+		if (dbus_error_is_set(&err)) {
 			SLOG(LOG_ERROR, TAG_STTC, "<<<< stt Get Error message : Get arguments error (%s)", err.message);
-			dbus_error_free(&err); 
+			dbus_error_free(&err);
 		} else {
 			SECURE_SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt Get Error message : uid(%d), reason(%d), msg(%s)", uid, reason, err_msg);
 			__stt_cb_error(uid, reason);
@@ -274,7 +274,7 @@ static Eina_Bool listener_event_callback(void* data, Ecore_Fd_Handler *fd_handle
 
 		SLOG(LOG_DEBUG, TAG_STTC, "=====");
 		SLOG(LOG_DEBUG, TAG_STTC, " ");
-	}/* STTD_METHOD_ERROR */
+	} /* STTD_METHOD_ERROR */
 
 	/* free the message */
 	dbus_message_unref(msg);
@@ -311,14 +311,14 @@ int stt_dbus_open_connection()
 	/* connect to the DBUS system bus, and check for errors */
 	g_conn_listener = dbus_bus_get_private(DBUS_BUS_SYSTEM, &err);
 
-	if (dbus_error_is_set(&err)) { 
-		SLOG(LOG_ERROR, TAG_STTC, "Dbus Connection Error (%s)", err.message); 
+	if (dbus_error_is_set(&err)) {
+		SLOG(LOG_ERROR, TAG_STTC, "Dbus Connection Error (%s)", err.message);
 		dbus_error_free(&err);
 	}
 
 	if (NULL == g_conn_listener) {
 		SLOG(LOG_ERROR, TAG_STTC, "Fail to get dbus connection");
-		return STT_ERROR_OPERATION_FAILED; 
+		return STT_ERROR_OPERATION_FAILED;
 	}
 
 	int pid = getpid();
@@ -333,21 +333,21 @@ int stt_dbus_open_connection()
 	dbus_bus_request_name(g_conn_listener, service_name, DBUS_NAME_FLAG_REPLACE_EXISTING , &err);
 
 	if (dbus_error_is_set(&err)) {
-		SLOG(LOG_ERROR, TAG_STTC, "Name Error (%s)\n", err.message); 
-		dbus_error_free(&err); 
+		SLOG(LOG_ERROR, TAG_STTC, "Name Error (%s)\n", err.message);
+		dbus_error_free(&err);
 	}
 
 	char rule[128];
 	snprintf(rule, 128, "type='signal',interface='%s'", STT_CLIENT_SERVICE_INTERFACE);
 
 	/* add a rule for which messages we want to see */
-	dbus_bus_add_match(g_conn_listener, rule, &err); 
+	dbus_bus_add_match(g_conn_listener, rule, &err);
 	dbus_connection_flush(g_conn_listener);
 
-	if (dbus_error_is_set(&err)) { 
+	if (dbus_error_is_set(&err)) {
 		SLOG(LOG_ERROR, TAG_STTC, "Match Error (%s)\n", err.message);
 		dbus_error_free(&err);
-		return STT_ERROR_OPERATION_FAILED; 
+		return STT_ERROR_OPERATION_FAILED;
 	}
 
 	int fd = 0;
@@ -383,7 +383,7 @@ int stt_dbus_close_connection()
 	memset(service_name, '\0', 64);
 	snprintf(service_name, 64, "%s", STT_CLIENT_SERVICE_NAME);
 
-	dbus_bus_release_name (g_conn_listener, service_name, &err);
+	dbus_bus_release_name(g_conn_listener, service_name, &err);
 	if (dbus_error_is_set(&err)) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Release name Error (%s)", err.message);
 		dbus_error_free(&err);
@@ -405,14 +405,14 @@ int stt_dbus_reconnect()
 	if (false == sender_connected || false == listener_connected) {
 		stt_dbus_close_connection();
 
-		if(0 != stt_dbus_open_connection()) {
+		if (0 != stt_dbus_open_connection()) {
 			SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to reconnect");
 			return -1;
-		} 
+		}
 
 		SLOG(LOG_DEBUG, TAG_STTC, "[DBUS] Reconnect");
 	}
-	
+
 	return 0;
 }
 
@@ -426,10 +426,10 @@ int stt_dbus_request_hello()
 		STT_SERVER_SERVICE_INTERFACE, 
 		STT_METHOD_HELLO);
 
-	if (NULL == msg) { 
-		SLOG(LOG_ERROR, TAG_STTC, ">>>> Request stt hello : Fail to make message"); 
+	if (NULL == msg) {
+		SLOG(LOG_ERROR, TAG_STTC, ">>>> Request stt hello : Fail to make message");
 		return STT_ERROR_OPERATION_FAILED;
-	} 
+	}
 
 	DBusError err;
 	dbus_error_init(&err);
@@ -470,15 +470,15 @@ int stt_dbus_request_initialize(int uid, bool* silence_supported)
 		STT_SERVER_SERVICE_INTERFACE, 
 		STT_METHOD_INITIALIZE);
 
-	if (NULL == msg) { 
-		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt initialize : Fail to make message"); 
+	if (NULL == msg) {
+		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt initialize : Fail to make message");
 		return STT_ERROR_OPERATION_FAILED;
 	} else {
 		SECURE_SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt initialize : uid(%d)", uid);
 	}
 
 	int pid = getpid();
-	dbus_message_append_args( msg, 
+	dbus_message_append_args(msg,
 		DBUS_TYPE_INT32, &pid,
 		DBUS_TYPE_INT32, &uid,
 		DBUS_TYPE_INVALID);
@@ -502,9 +502,9 @@ int stt_dbus_request_initialize(int uid, bool* silence_supported)
 			DBUS_TYPE_INT32, silence_supported,
 			DBUS_TYPE_INVALID);
 
-		if (dbus_error_is_set(&err)) { 
+		if (dbus_error_is_set(&err)) {
 			SLOG(LOG_ERROR, TAG_STTC, "<<<< Get arguments error (%s)\n", err.message);
-			dbus_error_free(&err); 
+			dbus_error_free(&err);
 			result = STT_ERROR_OPERATION_FAILED;
 		}
 
@@ -535,8 +535,8 @@ int stt_dbus_request_finalize(int uid)
 		STT_SERVER_SERVICE_INTERFACE, 
 		STT_METHOD_FINALIZE);
 
-	if (NULL == msg) { 
-		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt finalize : Fail to make message"); 
+	if (NULL == msg) {
+		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt finalize : Fail to make message");
 		return STT_ERROR_OPERATION_FAILED;
 	} else {
 		SECURE_SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt finalize : uid(%d)", uid);
@@ -562,9 +562,9 @@ int stt_dbus_request_finalize(int uid)
 				DBUS_TYPE_INT32, &result,
 				DBUS_TYPE_INVALID);
 
-		if (dbus_error_is_set(&err)) { 
+		if (dbus_error_is_set(&err)) {
 			SLOG(LOG_ERROR, TAG_STTC, "<<<< Get arguments error (%s)", err.message);
-			dbus_error_free(&err); 
+			dbus_error_free(&err);
 			result = STT_ERROR_OPERATION_FAILED;
 		}
 
@@ -594,14 +594,14 @@ int stt_dbus_request_set_current_engine(int uid, const char* engine_id, bool* si
 		STT_SERVER_SERVICE_INTERFACE, 
 		STT_METHOD_SET_CURRENT_ENGINE);
 
-	if (NULL == msg) { 
-		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt set engine : Fail to make message"); 
+	if (NULL == msg) {
+		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt set engine : Fail to make message");
 		return STT_ERROR_OPERATION_FAILED;
 	} else {
 		SECURE_SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt set engine : uid(%d)", uid);
 	}
 
-	dbus_message_append_args( msg, 
+	dbus_message_append_args(msg,
 		DBUS_TYPE_INT32, &uid,
 		DBUS_TYPE_STRING, &engine_id,
 		DBUS_TYPE_INVALID);
@@ -627,7 +627,7 @@ int stt_dbus_request_set_current_engine(int uid, const char* engine_id, bool* si
 
 		if (dbus_error_is_set(&err)) {
 			SLOG(LOG_ERROR, TAG_STTC, "<<<< Get arguments error (%s)\n", err.message);
-			dbus_error_free(&err); 
+			dbus_error_free(&err);
 			result = STT_ERROR_OPERATION_FAILED;
 		}
 
@@ -697,7 +697,7 @@ int stt_dbus_request_check_app_agreed(int uid, const char* appid, bool* value)
 
 		if (dbus_error_is_set(&err)) {
 			SLOG(LOG_ERROR, TAG_STTC, "<<<< Get arguments error (%s)", err.message);
-			dbus_error_free(&err); 
+			dbus_error_free(&err);
 			result = STT_ERROR_OPERATION_FAILED;
 		}
 		dbus_message_unref(result_msg);
@@ -732,8 +732,8 @@ int stt_dbus_request_get_support_langs(int uid, stt_h stt, stt_supported_languag
 		STT_SERVER_SERVICE_INTERFACE, 
 		STT_METHOD_GET_SUPPORT_LANGS);
 
-	if (NULL == msg) { 
-		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt get supported languages : Fail to make message"); 
+	if (NULL == msg) {
+		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt get supported languages : Fail to make message");
 		return STT_ERROR_OPERATION_FAILED;
 	} else {
 		SECURE_SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt get supported languages : uid(%d)", uid);
@@ -767,7 +767,7 @@ int stt_dbus_request_get_support_langs(int uid, stt_h stt, stt_supported_languag
 				SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt get support languages : result = %d", result);
 
 				/* Get voice size */
-				int size = 0; 
+				int size = 0;
 				if (DBUS_TYPE_INT32 == dbus_message_iter_get_arg_type(&args)) {
 					dbus_message_iter_get_basic(&args, &size);
 					dbus_message_iter_next(&args);
@@ -776,10 +776,10 @@ int stt_dbus_request_get_support_langs(int uid, stt_h stt, stt_supported_languag
 				if (0 >= size) {
 					SLOG(LOG_ERROR, TAG_STTC, "<<<< stt size of language error : size = %d", size);
 				} else {
-					int i=0;
+					int i = 0;
 					char* temp_lang;
 
-					for (i=0 ; i<size ; i++) {
+					for (i = 0; i < size; i++) {
 						dbus_message_iter_get_basic(&args, &(temp_lang));
 						dbus_message_iter_next(&args);
 
@@ -791,7 +791,7 @@ int stt_dbus_request_get_support_langs(int uid, stt_h stt, stt_supported_languag
 			} else {
 				SLOG(LOG_ERROR, TAG_STTC, "<<<< stt get support languages : result = %d", result);
 			}
-		} 
+		}
 		dbus_message_unref(result_msg);
 	} else {
 		SLOG(LOG_ERROR, TAG_STTC, "<<<< stt get support languages : result message is NULL");
@@ -817,14 +817,14 @@ int stt_dbus_request_get_default_lang(int uid, char** language)
 		STT_SERVER_SERVICE_INTERFACE, 
 		STT_METHOD_GET_CURRENT_LANG);
 
-	if (NULL == msg) { 
-		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt get default language : Fail to make message"); 
+	if (NULL == msg) {
+		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt get default language : Fail to make message");
 		return STT_ERROR_OPERATION_FAILED;
 	} else {
 		SECURE_SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt get default language  : uid(%d)", uid);
 	}
 
-	dbus_message_append_args( msg, 
+	dbus_message_append_args(msg,
 		DBUS_TYPE_INT32, &uid,
 		DBUS_TYPE_INVALID);
 
@@ -848,9 +848,9 @@ int stt_dbus_request_get_default_lang(int uid, char** language)
 			DBUS_TYPE_STRING, &temp_lang,
 			DBUS_TYPE_INVALID);
 
-		if (dbus_error_is_set(&err)) { 
+		if (dbus_error_is_set(&err)) {
 			SLOG(LOG_ERROR, TAG_STTC, "<<<< Get arguments error (%s)", err.message);
-			dbus_error_free(&err); 
+			dbus_error_free(&err);
 			result = STT_ERROR_OPERATION_FAILED;
 		}
 		dbus_message_unref(result_msg);
@@ -885,14 +885,14 @@ int stt_dbus_request_is_recognition_type_supported(int uid, const char* type, bo
 		   STT_SERVER_SERVICE_INTERFACE, 
 		   STT_METHOD_IS_TYPE_SUPPORTED);
 
-	if (NULL == msg) { 
-		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt is partial result supported : Fail to make message"); 
+	if (NULL == msg) {
+		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt is partial result supported : Fail to make message");
 		return STT_ERROR_OPERATION_FAILED;
 	} else {
 		SECURE_SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt is recognition type supported : uid(%d) type(%s)", uid, type);
 	}
 
-	dbus_message_append_args( msg, 
+	dbus_message_append_args(msg,
 		DBUS_TYPE_INT32, &uid,
 		DBUS_TYPE_STRING, &type,
 		DBUS_TYPE_INVALID);
@@ -917,9 +917,9 @@ int stt_dbus_request_is_recognition_type_supported(int uid, const char* type, bo
 			DBUS_TYPE_INT32, &result_support,
 			DBUS_TYPE_INVALID);
 
-		if (dbus_error_is_set(&err)) { 
+		if (dbus_error_is_set(&err)) {
 			SLOG(LOG_ERROR, TAG_STTC, "<<<< Get arguments error (%s)", err.message);
-			dbus_error_free(&err); 
+			dbus_error_free(&err);
 			result = STT_ERROR_OPERATION_FAILED;
 		}
 		dbus_message_unref(result_msg);
@@ -954,14 +954,14 @@ int stt_dbus_request_set_start_sound(int uid, const char* file)
 		   STT_SERVER_SERVICE_INTERFACE, 
 		   STT_METHOD_SET_START_SOUND);
 
-	if (NULL == msg) { 
-		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt set start sound : Fail to make message"); 
+	if (NULL == msg) {
+		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt set start sound : Fail to make message");
 		return STT_ERROR_OPERATION_FAILED;
 	} else {
 		SECURE_SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt set start sound : uid(%d) file(%s)", uid, file);
 	}
 
-	dbus_message_append_args( msg, 
+	dbus_message_append_args(msg,
 		DBUS_TYPE_INT32, &uid,
 		DBUS_TYPE_STRING, &file,
 		DBUS_TYPE_INVALID);
@@ -984,9 +984,9 @@ int stt_dbus_request_set_start_sound(int uid, const char* file)
 			DBUS_TYPE_INT32, &result,
 			DBUS_TYPE_INVALID);
 
-		if (dbus_error_is_set(&err)) { 
+		if (dbus_error_is_set(&err)) {
 			SLOG(LOG_ERROR, TAG_STTC, "<<<< Get arguments error (%s)", err.message);
-			dbus_error_free(&err); 
+			dbus_error_free(&err);
 			result = STT_ERROR_OPERATION_FAILED;
 		}
 		dbus_message_unref(result_msg);
@@ -1015,14 +1015,14 @@ int stt_dbus_request_unset_start_sound(int uid)
 		   STT_SERVER_SERVICE_INTERFACE, 
 		   STT_METHOD_UNSET_START_SOUND);
 
-	if (NULL == msg) { 
-		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt unset start sound : Fail to make message"); 
+	if (NULL == msg) {
+		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt unset start sound : Fail to make message");
 		return STT_ERROR_OPERATION_FAILED;
 	} else {
 		SECURE_SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt unset start sound : uid(%d)", uid);
 	}
 
-	dbus_message_append_args( msg, 
+	dbus_message_append_args(msg,
 		DBUS_TYPE_INT32, &uid,
 		DBUS_TYPE_INVALID);
 
@@ -1044,9 +1044,9 @@ int stt_dbus_request_unset_start_sound(int uid)
 			DBUS_TYPE_INT32, &result,
 			DBUS_TYPE_INVALID);
 
-		if (dbus_error_is_set(&err)) { 
+		if (dbus_error_is_set(&err)) {
 			SLOG(LOG_ERROR, TAG_STTC, "<<<< Get arguments error (%s)", err.message);
-			dbus_error_free(&err); 
+			dbus_error_free(&err);
 			result = STT_ERROR_OPERATION_FAILED;
 		}
 		dbus_message_unref(result_msg);
@@ -1080,14 +1080,14 @@ int stt_dbus_request_set_stop_sound(int uid, const char* file)
 		   STT_SERVER_SERVICE_INTERFACE, 
 		   STT_METHOD_SET_STOP_SOUND);
 
-	if (NULL == msg) { 
-		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt set stop sound : Fail to make message"); 
+	if (NULL == msg) {
+		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt set stop sound : Fail to make message");
 		return STT_ERROR_OPERATION_FAILED;
 	} else {
 		SECURE_SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt set stop sound : uid(%d) file(%s)", uid, file);
 	}
 
-	dbus_message_append_args( msg, 
+	dbus_message_append_args(msg,
 		DBUS_TYPE_INT32, &uid,
 		DBUS_TYPE_STRING, &file,
 		DBUS_TYPE_INVALID);
@@ -1110,9 +1110,9 @@ int stt_dbus_request_set_stop_sound(int uid, const char* file)
 			DBUS_TYPE_INT32, &result,
 			DBUS_TYPE_INVALID);
 
-		if (dbus_error_is_set(&err)) { 
+		if (dbus_error_is_set(&err)) {
 			SLOG(LOG_ERROR, TAG_STTC, "<<<< Get arguments error (%s)", err.message);
-			dbus_error_free(&err); 
+			dbus_error_free(&err);
 			result = STT_ERROR_OPERATION_FAILED;
 		}
 		dbus_message_unref(result_msg);
@@ -1141,14 +1141,14 @@ int stt_dbus_request_unset_stop_sound(int uid)
 		   STT_SERVER_SERVICE_INTERFACE, 
 		   STT_METHOD_UNSET_STOP_SOUND);
 
-	if (NULL == msg) { 
-		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt unset stop sound : Fail to make message"); 
+	if (NULL == msg) {
+		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt unset stop sound : Fail to make message");
 		return STT_ERROR_OPERATION_FAILED;
 	} else {
 		SECURE_SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt unset stop sound : uid(%d)", uid);
 	}
 
-	dbus_message_append_args( msg, 
+	dbus_message_append_args(msg,
 		DBUS_TYPE_INT32, &uid,
 		DBUS_TYPE_INVALID);
 
@@ -1170,9 +1170,9 @@ int stt_dbus_request_unset_stop_sound(int uid)
 			DBUS_TYPE_INT32, &result,
 			DBUS_TYPE_INVALID);
 
-		if (dbus_error_is_set(&err)) { 
+		if (dbus_error_is_set(&err)) {
 			SLOG(LOG_ERROR, TAG_STTC, "<<<< Get arguments error (%s)", err.message);
-			dbus_error_free(&err); 
+			dbus_error_free(&err);
 			result = STT_ERROR_OPERATION_FAILED;
 		}
 		dbus_message_unref(result_msg);
@@ -1207,14 +1207,14 @@ int stt_dbus_request_start(int uid, const char* lang, const char* type, int sile
 		STT_SERVER_SERVICE_INTERFACE,	
 		STT_METHOD_START);		
 
-	if (NULL == msg) { 
-		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt start : Fail to make message"); 
+	if (NULL == msg) {
+		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt start : Fail to make message");
 		return STT_ERROR_OPERATION_FAILED;
 	} else {
 		SECURE_SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt start : uid(%d), language(%s), type(%s)", uid, lang, type);
 	}
 
-	dbus_message_append_args( msg, 
+	dbus_message_append_args(msg,
 		DBUS_TYPE_INT32, &uid, 
 		DBUS_TYPE_STRING, &lang,   
 		DBUS_TYPE_STRING, &type,
@@ -1240,9 +1240,9 @@ int stt_dbus_request_start(int uid, const char* lang, const char* type, int sile
 			DBUS_TYPE_INT32, &result,
 			DBUS_TYPE_INVALID);
 
-		if (dbus_error_is_set(&err)) { 
+		if (dbus_error_is_set(&err)) {
 			SLOG(LOG_ERROR, TAG_STTC, "<<<< Get arguments error (%s)", err.message);
-			dbus_error_free(&err); 
+			dbus_error_free(&err);
 			result = STT_ERROR_OPERATION_FAILED;
 		}
 		dbus_message_unref(result_msg);
@@ -1272,8 +1272,8 @@ int stt_dbus_request_stop(int uid)
 		STT_SERVER_SERVICE_INTERFACE,	
 		STT_METHOD_STOP);
 
-	if (NULL == msg) { 
-		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt stop : Fail to make message"); 
+	if (NULL == msg) {
+		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt stop : Fail to make message");
 		return STT_ERROR_OPERATION_FAILED;
 	} else {
 		SECURE_SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt stop : uid(%d)", uid);
@@ -1301,9 +1301,9 @@ int stt_dbus_request_stop(int uid)
 			DBUS_TYPE_INT32, &result,
 			DBUS_TYPE_INVALID);
 
-		if (dbus_error_is_set(&err)) { 
+		if (dbus_error_is_set(&err)) {
 			SLOG(LOG_ERROR, TAG_STTC, "<<<< Get arguments error (%s)", err.message);
-			dbus_error_free(&err); 
+			dbus_error_free(&err);
 			result = STT_ERROR_OPERATION_FAILED;
 		}
 		dbus_message_unref(result_msg);
@@ -1333,8 +1333,8 @@ int stt_dbus_request_cancel(int uid)
 		STT_SERVER_SERVICE_INTERFACE,	/* interface name of the signal */
 		STT_METHOD_CANCEL);	/* name of the signal */
 
-	if (NULL == msg) { 
-		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt cancel : Fail to make message"); 
+	if (NULL == msg) {
+		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt cancel : Fail to make message");
 		return STT_ERROR_OPERATION_FAILED;
 	} else {
 		SECURE_SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt cancel : uid(%d)", uid);
@@ -1362,9 +1362,9 @@ int stt_dbus_request_cancel(int uid)
 			DBUS_TYPE_INT32, &result,
 			DBUS_TYPE_INVALID);
 
-		if (dbus_error_is_set(&err)) { 
+		if (dbus_error_is_set(&err)) {
 			SLOG(LOG_ERROR, TAG_STTC, "<<<< Get arguments error (%s)", err.message);
-			dbus_error_free(&err); 
+			dbus_error_free(&err);
 			result = STT_ERROR_OPERATION_FAILED;
 		}
 		dbus_message_unref(result_msg);

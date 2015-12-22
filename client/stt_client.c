@@ -1,5 +1,5 @@
 /*
-*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved 
+*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -57,9 +57,9 @@ int stt_client_new(stt_h* stt)
 
 	/* initialize client data */
 	client->stt = temp;
-	client->pid = getpid(); 
+	client->pid = getpid();
 	client->uid = temp->handle;
-	
+
 	client->recognition_result_cb = NULL;
 	client->recognition_result_user_data = NULL;
 	client->state_changed_cb = NULL;
@@ -90,7 +90,7 @@ int stt_client_new(stt_h* stt)
 
 	*stt = temp;
 
-	return 0;	
+	return 0;
 }
 
 int stt_client_destroy(stt_h stt)
@@ -113,11 +113,10 @@ int stt_client_destroy(stt_h stt)
 			if (stt->handle == data->stt->handle) {
 				g_client_list = g_list_remove_link(g_client_list, iter);
 
-				while (0 != data->cb_ref_count)
-				{
+				while (0 != data->cb_ref_count) {
 					/* wait for release callback function */
 				}
-				
+
 				if (NULL != data->current_engine_id) {
 					free(data->current_engine_id);
 				}
@@ -156,7 +155,7 @@ stt_client_s* stt_client_get(stt_h stt)
 		while (NULL != iter) {
 			data = iter->data;
 			if (NULL != data) {
-				if (stt->handle == data->stt->handle) 
+				if (stt->handle == data->stt->handle)
 					return data;
 			}
 			/* Next item */

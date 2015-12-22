@@ -1,5 +1,5 @@
 /*
-*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved 
+*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -64,7 +64,7 @@ void __config_bool_changed_cb(stt_config_type_e type, bool bool_value, void* use
 	SECURE_SLOG(LOG_DEBUG, TAG_STTD, " type(%d) bool(%s)", type, bool_value ? "on" : "off");
 
 	if (STT_CONFIG_TYPE_OPTION_SILENCE_DETECTION == type) {
-		if (NULL != g_silence_cb){
+		if (NULL != g_silence_cb) {
 			g_silence_cb(bool_value, g_user_data);
 			SLOG(LOG_DEBUG, TAG_STTD, "Call back silence detection changed");
 		}

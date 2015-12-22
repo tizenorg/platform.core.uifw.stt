@@ -1,5 +1,5 @@
 /*
-*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved 
+*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -103,10 +103,10 @@ int stt_setting_initialize(void)
 	return STT_SETTING_ERROR_NONE;
 }
 
-int stt_setting_finalize ()
+int stt_setting_finalize()
 {
 	SLOG(LOG_DEBUG, TAG_STTC, "===== Finalize STT Setting");
-	
+
 	stt_config_mgr_finalize(getpid());
 
 	g_state = STT_SETTING_STATE_NONE;
@@ -216,7 +216,7 @@ int stt_setting_set_engine(const char* engine_id)
 
 	SLOG(LOG_DEBUG, TAG_STTC, "=====");
 	SLOG(LOG_DEBUG, TAG_STTC, " ");
-    
+
 	return ret;
 }
 
@@ -243,7 +243,7 @@ int stt_setting_foreach_supported_languages(stt_setting_supported_language_cb ca
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to get current engine : %d", ret);
 		return -1;
-	} 
+	}
 
 	ret = stt_config_mgr_get_language_list(current_engine, (stt_config_supported_langauge_cb)callback, user_data);
 
@@ -255,7 +255,7 @@ int stt_setting_foreach_supported_languages(stt_setting_supported_language_cb ca
 	} else {
 		SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] Foreach supported languages");
 	}
-	
+
 	SLOG(LOG_DEBUG, TAG_STTC, "=====");
 	SLOG(LOG_DEBUG, TAG_STTC, " ");
 
@@ -378,7 +378,7 @@ int stt_setting_get_auto_language(bool* value)
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Result : %d", ret);
 	} else {
 		/* Copy value */
-		SECURE_SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] Get auto language (%s)", *value ? "true":"false");
+		SECURE_SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] Get auto language (%s)", *value ? "true" : "false");
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "=====");
@@ -407,9 +407,9 @@ int stt_setting_get_silence_detection(bool* value)
 
 	int ret = stt_config_mgr_get_silence_detection(value);
 	if (0 != ret) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Result (%d)", ret);    
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Result (%d)", ret);
 	} else {
-		SECURE_SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] Get silence detection(%s)", *value ? "true":"false");
+		SECURE_SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] Get silence detection(%s)", *value ? "true" : "false");
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "=====");
@@ -431,9 +431,9 @@ int stt_setting_set_silence_detection(bool value)
 
 	int ret = stt_config_mgr_set_silence_detection(value);
 	if (0 != ret) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Result (%d)", ret);    
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Result (%d)", ret);
 	} else {
-		SECURE_SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] Set silence detection(%s)", value ? "true":"false");
+		SECURE_SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] Set silence detection(%s)", value ? "true" : "false");
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "=====");

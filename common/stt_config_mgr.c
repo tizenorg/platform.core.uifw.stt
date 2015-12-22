@@ -1,5 +1,5 @@
 /*
-*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved 
+*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -31,7 +31,7 @@ typedef struct {
 	stt_config_lang_changed_cb	lang_cb;
 	stt_config_bool_changed_cb	bool_cb;
 	void*	user_data;
-}stt_config_client_s;
+} stt_config_client_s;
 
 
 extern const char* stt_tag();
@@ -85,7 +85,7 @@ bool __stt_config_mgr_check_lang_is_valid(const char* engine_id, const char* lan
 			/* Get a first item */
 			iter_lang = g_slist_nth(engine_info->languages, 0);
 
-			int i = 1;	
+			int i = 1;
 			while (NULL != iter_lang) {
 				/*Get handle data from list*/
 				engine_lang = iter_lang->data;
@@ -137,13 +137,13 @@ int __stt_config_mgr_select_lang(const char* engine_id, char** language)
 			iter = g_slist_next(iter);
 			continue;
 		}
-		
+
 		GSList *iter_lang = NULL;
 		char* engine_lang = NULL;
 		if (g_slist_length(engine_info->languages) > 0) {
 			/* Get a first item */
 			iter_lang = g_slist_nth(engine_info->languages, 0);
-			
+
 			while (NULL != iter_lang) {
 				engine_lang = iter_lang->data;
 				if (NULL != engine_lang) {
@@ -184,7 +184,7 @@ Eina_Bool stt_config_mgr_inotify_event_cb(void* data, Ecore_Fd_Handler *fd_handl
 		SLOG(LOG_ERROR, stt_tag(), "[ERROR] Empty Inotify event");
 		SLOG(LOG_DEBUG, stt_tag(), "=====");
 		SLOG(LOG_DEBUG, stt_tag(), " ");
-		return ECORE_CALLBACK_PASS_ON; 
+		return ECORE_CALLBACK_PASS_ON;
 	}
 
 	if (IN_MODIFY == event.mask) {
@@ -320,7 +320,7 @@ int __stt_config_mgr_register_config_event()
 	wd = inotify_add_watch(fd, STT_CONFIG, IN_MODIFY);
 	g_wd_noti = wd;
 
-	g_fd_handler_noti = ecore_main_fd_handler_add(fd, ECORE_FD_READ, (Ecore_Fd_Cb)stt_config_mgr_inotify_event_cb, NULL, NULL, NULL);		
+	g_fd_handler_noti = ecore_main_fd_handler_add(fd, ECORE_FD_READ, (Ecore_Fd_Cb)stt_config_mgr_inotify_event_cb, NULL, NULL, NULL);
 	if (NULL == g_fd_handler_noti) {
 		SLOG(LOG_ERROR, stt_tag(), "[ERROR] Fail to get handler_noti");
 		return -1;
@@ -629,7 +629,7 @@ int __stt_config_mgr_check_engine_is_valid(const char* engine_id)
 	SLOG(LOG_DEBUG, stt_tag(), "  language : %s", g_config_info->language);
 	SLOG(LOG_DEBUG, stt_tag(), "  Silence detection : %s", g_config_info->silence_detection ? "on" : "off");
 
-	if ( 0 != stt_parser_set_engine(g_config_info->engine_id, g_config_info->setting, g_config_info->language,
+	if (0 != stt_parser_set_engine(g_config_info->engine_id, g_config_info->setting, g_config_info->language,
 		g_config_info->silence_detection)) {
 			SLOG(LOG_ERROR, stt_tag(), " Fail to save config");
 			return STT_CONFIG_ERROR_OPERATION_FAILED;
@@ -723,7 +723,7 @@ int stt_config_mgr_initialize(int uid)
 
 		closedir(dp);
 	} else {
-		SLOG(LOG_WARN, stt_tag(), "[Config WARNING] Fail to open default directory"); 
+		SLOG(LOG_WARN, stt_tag(), "[Config WARNING] Fail to open default directory");
 	}
 
 	__stt_config_mgr_print_engine_info();
@@ -732,7 +732,7 @@ int stt_config_mgr_initialize(int uid)
 		SLOG(LOG_ERROR, stt_tag(), "[ERROR] Fail to parse configure information");
 		__stt_config_release_client(uid);
 		__stt_config_release_engine();
-		return STT_CONFIG_ERROR_OPERATION_FAILED; 
+		return STT_CONFIG_ERROR_OPERATION_FAILED;
 	}
 
 	/* Check whether engine id is valid */
@@ -896,7 +896,7 @@ int stt_config_mgr_set_callback(int uid, stt_config_engine_changed_cb engine_cb,
 }
 
 int stt_config_mgr_unset_callback(int uid)
-{	
+{
 	GSList *iter = NULL;
 	stt_config_client_s* temp_client = NULL;
 
@@ -955,7 +955,7 @@ int stt_config_mgr_get_engine_list(stt_config_supported_engine_cb callback, void
 			engine_info->setting, engine_info->support_silence_detection, user_data)) {
 			break;
 		}
-		
+
 		iter = g_slist_next(iter);
 	}
 
@@ -1101,7 +1101,7 @@ int stt_config_mgr_set_engine(const char* engine)
 		SECURE_SLOG(LOG_DEBUG, stt_tag(), "  language : %s", g_config_info->language);
 		SECURE_SLOG(LOG_DEBUG, stt_tag(), "  Silence detection : %s", g_config_info->silence_detection ? "on" : "off");
 
-		if ( 0 != stt_parser_set_engine(g_config_info->engine_id, g_config_info->setting, g_config_info->language,
+		if (0 != stt_parser_set_engine(g_config_info->engine_id, g_config_info->setting, g_config_info->language,
 			g_config_info->silence_detection)) {
 				SLOG(LOG_ERROR, stt_tag(), " Fail to save config");
 				return STT_CONFIG_ERROR_OPERATION_FAILED;
@@ -1180,7 +1180,7 @@ int stt_config_mgr_get_language_list(const char* engine_id, stt_config_supported
 		SLOG(LOG_ERROR, stt_tag(), "Not initialized");
 		return STT_CONFIG_ERROR_INVALID_STATE;
 	}
-	
+
 	if (0 >= g_slist_length(g_engine_list)) {
 		SLOG(LOG_ERROR, stt_tag(), "There is no engine");
 		return STT_CONFIG_ERROR_ENGINE_NOT_FOUND;
@@ -1207,7 +1207,7 @@ int stt_config_mgr_get_language_list(const char* engine_id, stt_config_supported
 
 		GSList *iter_lang = NULL;
 		char* lang;
-		
+
 		/* Get a first item */
 		iter_lang = g_slist_nth(engine_info->languages, 0);
 
@@ -1220,7 +1220,7 @@ int stt_config_mgr_get_language_list(const char* engine_id, stt_config_supported
 				if (false == callback(engine_info->uuid, lang, user_data))
 					break;
 			}
-			
+
 			/*Get next item*/
 			iter_lang = g_slist_next(iter_lang);
 		}
@@ -1360,7 +1360,7 @@ bool stt_config_check_default_engine_is_valid(const char* engine)
 		return false;
 	}
 
-	if (0 >= g_slist_length(g_engine_list)) 
+	if (0 >= g_slist_length(g_engine_list))
 		return false;
 
 	GSList *iter = NULL;
@@ -1399,7 +1399,7 @@ bool stt_config_check_default_language_is_valid(const char* language)
 		return false;
 	}
 
-	if (0 >= g_slist_length(g_engine_list)) 
+	if (0 >= g_slist_length(g_engine_list))
 		return false;
 
 	GSList *iter = NULL;
@@ -1416,7 +1416,7 @@ bool stt_config_check_default_language_is_valid(const char* language)
 			iter = g_slist_next(iter);
 			continue;
 		}
-		
+
 		if (0 != strcmp(g_config_info->engine_id, engine_info->uuid)) {
 			iter = g_slist_next(iter);
 			continue;
@@ -1430,7 +1430,7 @@ bool stt_config_check_default_language_is_valid(const char* language)
 
 		while (NULL != iter_lang) {
 			lang = iter_lang->data;
-			
+
 			if (0 == strcmp(language, lang))
 				return true;
 
@@ -1460,7 +1460,7 @@ int __stt_config_mgr_print_engine_info()
 
 	SLOG(LOG_DEBUG, stt_tag(), "--------------- engine list -----------------");
 
-	int i = 1;	
+	int i = 1;
 	while (NULL != iter) {
 		engine_info = iter->data;
 
@@ -1477,7 +1477,7 @@ int __stt_config_mgr_print_engine_info()
 			/* Get a first item */
 			iter_lang = g_slist_nth(engine_info->languages, 0);
 
-			int j = 1;	
+			int j = 1;
 			while (NULL != iter_lang) {
 				/*Get handle data from list*/
 				lang = iter_lang->data;

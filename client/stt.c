@@ -1,5 +1,5 @@
 /*
-*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved 
+*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -17,7 +17,7 @@
 #include <fcntl.h>
 #include <pthread.h>
 #include <sys/stat.h>
-#include <sys/types.h> 
+#include <sys/types.h>
 #include <sys/wait.h>
 #include <system_info.h>
 #include <unistd.h>
@@ -43,7 +43,7 @@ const char* stt_tag()
 
 static const char* __stt_get_error_code(stt_error_e err)
 {
-	switch(err) {
+	switch (err) {
 	case STT_ERROR_NONE:			return "STT_ERROR_NONE";
 	case STT_ERROR_OUT_OF_MEMORY:		return "STT_ERROR_OUT_OF_MEMORY";
 	case STT_ERROR_IO_ERROR:		return "STT_ERROR_IO_ERROR";
@@ -111,7 +111,7 @@ void __stt_config_lang_changed_cb(const char* before_language, const char* curre
 		}
 	}
 
-	return; 
+	return;
 }
 
 int stt_create(stt_h* stt)
@@ -198,7 +198,7 @@ int stt_destroy(stt_h stt)
 		SLOG(LOG_DEBUG, TAG_STTC, " ");
 		return STT_ERROR_INVALID_PARAMETER;
 	}
-	
+
 	stt_client_s* client = stt_client_get(stt);
 
 	/* check handle */
@@ -271,7 +271,7 @@ bool __stt_config_supported_engine_cb(const char* engine_id, const char* engine_
 	} else {
 		SLOG(LOG_WARN, TAG_STTC, "No registered callback function of supported engine");
 	}
-	
+
 	return false;
 }
 
@@ -469,7 +469,7 @@ static Eina_Bool __stt_connect_daemon(void *data)
 
 	if (STT_ERROR_ENGINE_NOT_FOUND == ret) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to initialize : %s", __stt_get_error_code(ret));
-		
+
 		client->reason = STT_ERROR_ENGINE_NOT_FOUND;
 		ecore_timer_add(0, __stt_notify_error, (void*)client);
 
@@ -813,7 +813,7 @@ int stt_get_state(stt_h stt, stt_state_e* state)
 
 	*state = client->current_state;
 
-	switch(*state) {
+	switch (*state) {
 		case STT_STATE_CREATED:		SLOG(LOG_DEBUG, TAG_STTC, "Current state is 'CREATED'");	break;
 		case STT_STATE_READY:		SLOG(LOG_DEBUG, TAG_STTC, "Current state is 'Ready'");		break;
 		case STT_STATE_RECORDING:	SLOG(LOG_DEBUG, TAG_STTC, "Current state is 'Recording'");	break;
@@ -914,13 +914,13 @@ int stt_set_silence_detection(stt_h stt, stt_option_silence_detection_e type)
 
 	if (true == client->silence_supported) {
 		if (type >= STT_OPTION_SILENCE_DETECTION_FALSE && type <= STT_OPTION_SILENCE_DETECTION_AUTO) {
-			client->silence = type;	
+			client->silence = type;
 		} else {
 			SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Type is invalid");
 			return STT_ERROR_INVALID_PARAMETER;
 		}
 	} else {
-		return STT_ERROR_NOT_SUPPORTED_FEATURE; 
+		return STT_ERROR_NOT_SUPPORTED_FEATURE;
 	}
 
 	return STT_ERROR_NONE;
@@ -1241,7 +1241,7 @@ int stt_start(stt_h stt, const char* language, const char* type)
 	while (0 != ret) {
 		ret = stt_dbus_request_start(client->uid, temp, type, client->silence, appid);
 		if (0 > ret) {
-			/* Failure */			
+			/* Failure */
 			if (STT_ERROR_TIMED_OUT != ret) {
 				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to start : %s", __stt_get_error_code(ret));
 				if (NULL != temp)	free(temp);
@@ -1318,8 +1318,8 @@ int stt_stop(stt_h stt)
 		SLOG(LOG_DEBUG, TAG_STTC, "=====");
 		SLOG(LOG_DEBUG, TAG_STTC, " ");
 		return STT_ERROR_INVALID_PARAMETER;
-	}   
-	
+	}
+
 	/* check state */
 	if (client->current_state != STT_STATE_RECORDING) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State : Current state is NOT RECORDING");
@@ -1341,7 +1341,7 @@ int stt_stop(stt_h stt)
 	while (0 != ret) {
 		ret = stt_dbus_request_stop(client->uid);
 		if (0 > ret) {
-			/* Failure */			
+			/* Failure */
 			if (STT_ERROR_TIMED_OUT != ret) {
 				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to stop : %s", __stt_get_error_code(ret));
 				return ret;
@@ -1414,7 +1414,7 @@ int stt_cancel(stt_h stt)
 		SLOG(LOG_DEBUG, TAG_STTC, "=====");
 		SLOG(LOG_DEBUG, TAG_STTC, " ");
 		return STT_ERROR_INVALID_PARAMETER;
-	} 	
+	}
 
 	/* check state */
 	if (STT_STATE_RECORDING != client->current_state && STT_STATE_PROCESSING != client->current_state) {
@@ -1436,8 +1436,8 @@ int stt_cancel(stt_h stt)
 	int count = 0;
 	while (0 != ret) {
 		ret = stt_dbus_request_cancel(client->uid);
-		if (0 != ret) {	
-			/* Failure */			
+		if (0 != ret) {
+			/* Failure */
 			if (STT_ERROR_TIMED_OUT != ret) {
 				SLOG(LOG_DEBUG, TAG_STTC, "[ERROR] Fail to cancel : %s", __stt_get_error_code(ret));
 				return ret;
@@ -1514,13 +1514,13 @@ int stt_get_recording_volume(stt_h stt, float* volume)
 	if (NULL == client) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not available");
 		return STT_ERROR_INVALID_PARAMETER;
-	} 
-	
+	}
+
 	if (STT_STATE_RECORDING != client->current_state) {
 		SLOG(LOG_DEBUG, TAG_STTC, "[ERROR] Invalid state : NO 'Recording' state");
 		return STT_ERROR_INVALID_STATE;
-	}    
-	
+	}
+
 	int ret = 0;
 	ret = __stt_get_audio_volume(volume);
 	if (0 != ret) {
@@ -1531,7 +1531,7 @@ int stt_get_recording_volume(stt_h stt, float* volume)
 	return STT_ERROR_NONE;
 }
 
-bool __stt_result_time_cb(int index, int event, const char* text, long start_time, long end_time, void* user_data) 
+bool __stt_result_time_cb(int index, int event, const char* text, long start_time, long end_time, void* user_data)
 {
 	stt_client_s* client = (stt_client_s*)user_data;
 
@@ -1616,7 +1616,7 @@ static Eina_Bool __stt_notify_error(void *data)
 
 	if (NULL != client->error_cb) {
 		stt_client_use_callback(client);
-		client->error_cb(client->stt, client->reason, client->error_user_data); 
+		client->error_cb(client->stt, client->reason, client->error_user_data);
 		stt_client_not_use_callback(client);
 		SLOG(LOG_DEBUG, TAG_STTC, "Error callback is called");
 	} else {
@@ -1629,7 +1629,7 @@ static Eina_Bool __stt_notify_error(void *data)
 int __stt_cb_error(int uid, int reason)
 {
 	stt_client_s* client = stt_client_get_by_uid(uid);
-	if( NULL == client ) {
+	if (NULL == client) {
 		SLOG(LOG_ERROR, TAG_STTC, "Handle not found\n");
 		return -1;
 	}
@@ -1640,7 +1640,7 @@ int __stt_cb_error(int uid, int reason)
 		ecore_timer_add(0, __stt_notify_error, client);
 	} else {
 		SLOG(LOG_WARN, TAG_STTC, "[WARNING] Error callback is null");
-	}    
+	}
 
 	return 0;
 }
@@ -1714,7 +1714,7 @@ static Eina_Bool __stt_notify_result(void *data)
 		temp = client->data_list;
 
 		int i = 0;
-		for (i = 0;i < client->data_count;i++) {
+		for (i = 0; i < client->data_count; i++) {
 			if (NULL != temp[i]) {
 				free(temp[i]);
 				temp[i] = NULL;
@@ -1729,7 +1729,7 @@ static Eina_Bool __stt_notify_result(void *data)
 	client->data_count = 0;
 
 	stt_config_mgr_remove_time_info_file();
-	
+
 	if (STT_RESULT_EVENT_FINAL_RESULT == client->event || STT_RESULT_EVENT_ERROR == client->event) {
 		client->before_state = client->current_state;
 		client->current_state = STT_STATE_READY;
@@ -1747,7 +1747,7 @@ static Eina_Bool __stt_notify_result(void *data)
 int __stt_cb_result(int uid, int event, char** data, int data_count, const char* msg)
 {
 	stt_client_s* client = NULL;
-	
+
 	client = stt_client_get_by_uid(uid);
 	if (NULL == client) {
 		SLOG(LOG_ERROR, TAG_STTC, "Handle is NOT valid");
@@ -1756,10 +1756,10 @@ int __stt_cb_result(int uid, int event, char** data, int data_count, const char*
 
 	if (NULL != msg)	SLOG(LOG_DEBUG, TAG_STTC, "Recognition Result Message = %s", msg);
 
-	int i=0;
-	for (i = 0;i < data_count;i++) {
+	int i = 0;
+	for (i = 0; i < data_count; i++) {
 		if (NULL != data[i])	SECURE_SLOG(LOG_DEBUG, TAG_STTC, "Recognition Result[%d] = %s", i, data[i]);
-	}	
+	}
 
 	if (NULL != client->recognition_result_cb) {
 		client->event = event;
@@ -1777,10 +1777,10 @@ int __stt_cb_result(int uid, int event, char** data, int data_count, const char*
 				return STT_ERROR_OUT_OF_MEMORY;
 			}
 
-			for (i = 0;i < data_count;i++) {
-				if(NULL != data[i])
+			for (i = 0; i < data_count; i++) {
+				if (NULL != data[i])
 					temp[i] = strdup(data[i]);
-				else 
+				else
 					SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Result data is error");
 			}
 
@@ -1798,7 +1798,7 @@ int __stt_cb_result(int uid, int event, char** data, int data_count, const char*
 int __stt_cb_set_state(int uid, int state)
 {
 	stt_client_s* client = stt_client_get_by_uid(uid);
-	if( NULL == client ) {
+	if (NULL == client) {
 		SLOG(LOG_ERROR, TAG_STTC, "Handle not found");
 		return -1;
 	}

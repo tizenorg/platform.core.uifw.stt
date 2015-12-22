@@ -1,5 +1,5 @@
 /*
-*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved 
+*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -34,7 +34,7 @@ typedef struct {
 
 	int (*sttp_load_engine)(sttpd_funcs_s* pdfuncs, sttpe_funcs_s* pefuncs);
 	int (*sttp_unload_engine)();
-}sttengine_s;
+} sttengine_s;
 
 extern const char* stt_tag();
 
@@ -43,7 +43,7 @@ static GSList *g_engine_list;
 
 static const char* __stt_get_engine_error_code(sttp_error_e err)
 {
-	switch(err) {
+	switch (err) {
 	case STTP_ERROR_NONE:			return "STTP_ERROR_NONE";
 	case STTP_ERROR_OUT_OF_MEMORY:		return "STTP_ERROR_OUT_OF_MEMORY";
 	case STTP_ERROR_IO_ERROR:		return "STTP_ERROR_IO_ERROR";
@@ -88,7 +88,7 @@ static sttengine_s* __get_engine(int engine_id)
 int stt_engine_load(int engine_id, const char* filepath)
 {
 	if (NULL == filepath || engine_id < 0) {
-		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Invalid Parameter"); 
+		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Invalid Parameter");
 		return STTP_ERROR_INVALID_PARAMETER;
 	}
 
@@ -147,7 +147,7 @@ int stt_engine_load(int engine_id, const char* filepath)
 		return STTP_ERROR_OPERATION_FAILED;
 	}
 
-	engine->sttp_load_engine = (int (*)(sttpd_funcs_s*, sttpe_funcs_s*) )dlsym(engine->handle, "sttp_load_engine");
+	engine->sttp_load_engine = (int (*)(sttpd_funcs_s*, sttpe_funcs_s*))dlsym(engine->handle, "sttp_load_engine");
 	if (NULL != (error = dlerror()) || NULL == engine->sttp_load_engine) {
 		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Fail to link daemon to sttp_load_engine() : %s", error);
 		dlclose(engine->handle);
@@ -162,8 +162,8 @@ int stt_engine_load(int engine_id, const char* filepath)
 
 	engine->pdfuncs->version = 1;
 	engine->pdfuncs->size = sizeof(sttpd_funcs_s);
-	
-	int ret = engine->sttp_load_engine(engine->pdfuncs, engine->pefuncs); 
+
+	int ret = engine->sttp_load_engine(engine->pdfuncs, engine->pefuncs);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Fail sttp_load_engine() : %s", __stt_get_engine_error_code(ret));
 		dlclose(engine->handle);
@@ -203,10 +203,10 @@ int stt_engine_load(int engine_id, const char* filepath)
 		free(engine->engine_path);
 		free(engine);
 
-		return STTP_ERROR_OPERATION_FAILED; 
+		return STTP_ERROR_OPERATION_FAILED;
 	}
 
-	SECURE_SLOG(LOG_DEBUG, stt_tag(), "[Engine Success] Load engine : version(%d), size(%d)",engine->pefuncs->version, engine->pefuncs->size);
+	SECURE_SLOG(LOG_DEBUG, stt_tag(), "[Engine Success] Load engine : version(%d), size(%d)", engine->pefuncs->version, engine->pefuncs->size);
 
 	g_engine_list = g_slist_append(g_engine_list, engine);
 
@@ -226,7 +226,7 @@ int stt_engine_unload(int engine_id)
 	/* unload engine */
 	engine->sttp_unload_engine();
 	dlclose(engine->handle);
-	
+
 	if (NULL != engine->engine_path)	free(engine->engine_path);
 	if (NULL != engine->pefuncs)		free(engine->pefuncs);
 	if (NULL != engine->pdfuncs)		free(engine->pdfuncs);
@@ -234,7 +234,7 @@ int stt_engine_unload(int engine_id)
 	g_engine_list = g_slist_remove(g_engine_list, engine);
 
 	free(engine);
-	
+
 	return 0;
 }
 
@@ -243,7 +243,7 @@ int stt_engine_unload(int engine_id)
 int stt_engine_initialize(int engine_id, sttpe_result_cb result_cb, sttpe_silence_detected_cb silence_cb)
 {
 	if (NULL == result_cb || NULL == silence_cb) {
-		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Invalid Parameter"); 
+		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Invalid Parameter");
 		return STTP_ERROR_INVALID_PARAMETER;
 	}
 
@@ -302,7 +302,7 @@ static bool __supported_language_cb(const char* language, void* user_data)
 int stt_engine_get_supported_langs(int engine_id, GSList** lang_list)
 {
 	if (NULL == lang_list) {
-		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Invalid Parameter"); 
+		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Invalid Parameter");
 		return STTP_ERROR_INVALID_PARAMETER;
 	}
 
@@ -326,7 +326,7 @@ int stt_engine_get_supported_langs(int engine_id, GSList** lang_list)
 int stt_engine_is_valid_language(int engine_id, const char* language, bool *is_valid)
 {
 	if (NULL == language || NULL == is_valid) {
-		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Invalid Parameter"); 
+		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Invalid Parameter");
 		return STTP_ERROR_INVALID_PARAMETER;
 	}
 
@@ -336,7 +336,7 @@ int stt_engine_is_valid_language(int engine_id, const char* language, bool *is_v
 		SECURE_SLOG(LOG_WARN, stt_tag(), "[Engine WARNING] engine id(%d) is invalid", engine_id);
 		return STTP_ERROR_INVALID_PARAMETER;
 	}
-	
+
 	bool result;
 	result = engine->pefuncs->is_valid_lang(language);
 
@@ -348,7 +348,7 @@ int stt_engine_is_valid_language(int engine_id, const char* language, bool *is_v
 int stt_engine_get_first_language(int engine_id, char** language)
 {
 	if (NULL == language) {
-		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Invalid Parameter"); 
+		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Invalid Parameter");
 		return STTP_ERROR_INVALID_PARAMETER;
 	}
 
@@ -404,7 +404,7 @@ int stt_engine_get_first_language(int engine_id, char** language)
 int stt_engine_support_silence(int engine_id, bool* support)
 {
 	if (NULL == support) {
-		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Invalid Parameter"); 
+		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Invalid Parameter");
 		return STTP_ERROR_INVALID_PARAMETER;
 	}
 
@@ -425,7 +425,7 @@ int stt_engine_support_silence(int engine_id, bool* support)
 int stt_engine_support_recognition_type(int engine_id, const char* type, bool* support)
 {
 	if (NULL == type || NULL == support) {
-		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Invalid Parameter"); 
+		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Invalid Parameter");
 		return STTP_ERROR_INVALID_PARAMETER;
 	}
 
@@ -449,7 +449,7 @@ int stt_engine_support_recognition_type(int engine_id, const char* type, bool* s
 int stt_engine_get_audio_type(int engine_id, sttp_audio_type_e* types, int* rate, int* channels)
 {
 	if (NULL == types || NULL == rate || NULL == channels) {
-		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Invalid Parameter"); 
+		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Invalid Parameter");
 		return STTP_ERROR_INVALID_PARAMETER;
 	}
 
@@ -482,13 +482,13 @@ int stt_engine_set_silence_detection(int engine_id, bool value)
 
 	int ret = engine->pefuncs->set_silence_detection(value);
 	if (STTP_ERROR_NOT_SUPPORTED_FEATURE == ret) {
-		SLOG(LOG_WARN, stt_tag(), "[Engine WARNING] Not support silence detection"); 
+		SLOG(LOG_WARN, stt_tag(), "[Engine WARNING] Not support silence detection");
 		return STTP_ERROR_NOT_SUPPORTED_FEATURE;
 	} else if (0 != ret) {
-		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Fail to set silence detection : %d", ret); 
+		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Fail to set silence detection : %d", ret);
 		return STTP_ERROR_OPERATION_FAILED;
 	}
-	
+
 	return 0;
 }
 
@@ -513,7 +513,7 @@ int stt_engine_check_app_agreed(int engine_id, const char* appid, bool* value)
 		*value = false;
 		return STTP_ERROR_OPERATION_FAILED;
 	}
-	
+
 	return 0;
 }
 
@@ -521,7 +521,7 @@ int stt_engine_check_app_agreed(int engine_id, const char* appid, bool* value)
 int stt_engine_recognize_start(int engine_id, const char* lang, const char* recognition_type, void* user_param)
 {
 	if (NULL == lang || NULL == recognition_type) {
-		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Invalid Parameter"); 
+		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Invalid Parameter");
 		return STTP_ERROR_INVALID_PARAMETER;
 	}
 
@@ -544,7 +544,7 @@ int stt_engine_recognize_start(int engine_id, const char* lang, const char* reco
 int stt_engine_set_recording_data(int engine_id, const void* data, unsigned int length)
 {
 	if (NULL == data) {
-		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Invalid Parameter"); 
+		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Invalid Parameter");
 		return STTP_ERROR_INVALID_PARAMETER;
 	}
 
@@ -614,7 +614,7 @@ int stt_engine_foreach_result_time(int engine_id, void* time_info, sttpe_result_
 		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Fail to foreach result time : %s", __stt_get_engine_error_code(ret));
 		return STTP_ERROR_OPERATION_FAILED;
 	}
-	
+
 	return 0;
 }
 
@@ -622,7 +622,7 @@ int stt_engine_recognize_start_file(int engine_id, const char* lang, const char*
 				     const char* filepath, sttp_audio_type_e audio_type, int sample_rate, void* user_param)
 {
 	if (NULL == filepath || NULL == lang || NULL == recognition_type) {
-		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Invalid Parameter"); 
+		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Invalid Parameter");
 		return STTP_ERROR_INVALID_PARAMETER;
 	}
 
