@@ -698,7 +698,7 @@ int stt_start(stt_h stt, const char* language, const char* type);
 int stt_stop(stt_h stt);
 
 /**
- * @brief Cancels processing recognition and recording.
+ * @brief Cancels processing recognition and recording asynchronously.
  * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @privlevel public
  * @privilege %http://tizen.org/privilege/recorder
