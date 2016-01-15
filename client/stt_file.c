@@ -857,7 +857,7 @@ int stt_file_start(const char* language, const char* type, const char* filepath,
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTFC, "[START Info] Engine(%d) Lang(%s) Type(%s) Filepath(%s) Audio(%d) Sample rate(%d)",
-		 , client->current_engine_id, language, type, filepath, audio_type, sample_rate);
+		client->current_engine_id, language, type, filepath, audio_type, sample_rate);
 
 	int ret = -1;
 	ret = stt_engine_recognize_start_file(client->current_engine_id, language, type, filepath, audio_type, sample_rate, NULL);
