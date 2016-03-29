@@ -33,253 +33,255 @@ extern int __stt_cb_result(int uid, int event, char** data, int data_count, cons
 
 extern int __stt_cb_set_state(int uid, int state);
 
+extern int __stt_cb_set_volume(int uid, float volume);
+
 static Eina_Bool listener_event_callback(void* data, Ecore_Fd_Handler *fd_handler)
 {
 	if (NULL == g_conn_listener)	return ECORE_CALLBACK_RENEW;
 
 	dbus_connection_read_write_dispatch(g_conn_listener, 50);
 
-	DBusMessage* msg = NULL;
-	msg = dbus_connection_pop_message(g_conn_listener);
+	while (1) {
+		DBusMessage* msg = NULL;
+		msg = dbus_connection_pop_message(g_conn_listener);
 
-	if (true != dbus_connection_get_is_connected(g_conn_listener)) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Connection is disconnected");
-		return ECORE_CALLBACK_RENEW;
-	}
-
-	/* loop again if we haven't read a message */
-	if (NULL == msg) {
-		return ECORE_CALLBACK_RENEW;
-	}
-
-	DBusError err;
-	dbus_error_init(&err);
-
-	DBusMessage *reply = NULL;
-
-	char if_name[64];
-	snprintf(if_name, 64, "%s", STT_CLIENT_SERVICE_INTERFACE);
-
-	if (dbus_message_is_method_call(msg, if_name, STTD_METHOD_HELLO)) {
-		SLOG(LOG_DEBUG, TAG_STTC, "===== Get Hello");
-		int uid = 0;
-		int response = -1;
-
-		dbus_message_get_args(msg, &err, DBUS_TYPE_INT32, &uid, DBUS_TYPE_INVALID);
-		if (dbus_error_is_set(&err)) {
-			SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Get arguments error (%s)", err.message);
-			dbus_error_free(&err);
+		if (true != dbus_connection_get_is_connected(g_conn_listener)) {
+			SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Connection is disconnected");
+			break;
 		}
 
-		if (uid > 0) {
-			SECURE_SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt get hello : uid(%d)", uid);
-
-			/* check uid */
-			stt_client_s* client = stt_client_get_by_uid(uid);
-			if (NULL != client)
-				response = 1;
-			else
-				response = 0;
-		} else {
-			SLOG(LOG_ERROR, TAG_STTC, "<<<< stt get hello : invalid uid");
+		/* loop again if we haven't read a message */
+		if (NULL == msg) {
+			break;
 		}
 
-		reply = dbus_message_new_method_return(msg);
+		SLOG(LOG_DEBUG, TAG_STTC, "[DEBUG] Message is arrived");
 
-		if (NULL != reply) {
-			dbus_message_append_args(reply, DBUS_TYPE_INT32, &response, DBUS_TYPE_INVALID);
+		DBusError err;
+		dbus_error_init(&err);
 
-			if (!dbus_connection_send(g_conn_listener, reply, NULL))
-				SLOG(LOG_ERROR, TAG_STTC, ">>>> stt get hello : fail to send reply");
-			else
-				SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt get hello : result(%d)", response);
+		DBusMessage *reply = NULL;
 
-			dbus_connection_flush(g_conn_listener);
-			dbus_message_unref(reply);
-		} else {
-			SLOG(LOG_ERROR, TAG_STTC, ">>>> stt get hello : fail to create reply message");
-		}
+		char if_name[64];
+		snprintf(if_name, 64, "%s%d", STT_CLIENT_SERVICE_INTERFACE, getpid());
 
-		SLOG(LOG_DEBUG, TAG_STTC, "=====");
-		SLOG(LOG_DEBUG, TAG_STTC, " ");
-	} /* STTD_METHOD_HELLO */
+		if (dbus_message_is_method_call(msg, if_name, STTD_METHOD_HELLO)) {
+			SLOG(LOG_DEBUG, TAG_STTC, "===== Get Hello");
+			int uid = 0;
+			int response = -1;
 
-	else if (dbus_message_is_method_call(msg, if_name, STTD_METHOD_SET_STATE)) {
-		SLOG(LOG_DEBUG, TAG_STTC, "===== Set State");
-		int uid = 0;
-		int state = -1;
+			dbus_message_get_args(msg, &err, DBUS_TYPE_INT32, &uid, DBUS_TYPE_INVALID);
+			if (dbus_error_is_set(&err)) {
+				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Get arguments error (%s)", err.message);
+				dbus_error_free(&err);
+			}
 
-		dbus_message_get_args(msg, &err, 
-			DBUS_TYPE_INT32, &uid, 
-			DBUS_TYPE_INT32, &state,
-			DBUS_TYPE_INVALID);
+			if (uid > 0) {
+				SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt get hello : uid(%d)", uid);
 
-		if (dbus_error_is_set(&err)) {
-			SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Get arguments error (%s)", err.message);
-			dbus_error_free(&err);
-		}
+				/* check uid */
+				stt_client_s* client = stt_client_get_by_uid(uid);
+				if (NULL != client)
+					response = 1;
+				else
+					response = 0;
+			}
+			else {
+				SLOG(LOG_ERROR, TAG_STTC, "<<<< stt get hello : invalid uid");
+			}
 
-		if (uid > 0 && state >= 0) {
-			SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt set state : uid(%d), state(%d)", uid, state);
-			__stt_cb_set_state(uid, state);
-		} else {
-			SLOG(LOG_ERROR, TAG_STTC, "<<<< stt set state : invalid uid or state");
-		}
+			reply = dbus_message_new_method_return(msg);
 
-		SLOG(LOG_DEBUG, TAG_STTC, "=====");
-		SLOG(LOG_DEBUG, TAG_STTC, " ");
-	} /* STTD_METHOD_SET_STATE */
-	else if (dbus_message_is_method_call(msg, if_name, STTD_METHOD_GET_STATE)) {
-		SLOG(LOG_DEBUG, TAG_STTC, "===== Get state");
-		int uid = 0;
-		int response = -1;
+			if (NULL != reply) {
+				dbus_message_append_args(reply, DBUS_TYPE_INT32, &response, DBUS_TYPE_INVALID);
 
-		dbus_message_get_args(msg, &err, DBUS_TYPE_INT32, &uid, DBUS_TYPE_INVALID);
+				if (!dbus_connection_send(g_conn_listener, reply, NULL))
+					SLOG(LOG_ERROR, TAG_STTC, ">>>> stt get hello : fail to send reply");
+				else
+					SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt get hello : result(%d)", response);
 
-		if (dbus_error_is_set(&err)) {
-			SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Get arguments error (%s)", err.message);
-			dbus_error_free(&err);
-		}
+				dbus_connection_flush(g_conn_listener);
+				dbus_message_unref(reply);
+			}
+			else {
+				SLOG(LOG_ERROR, TAG_STTC, ">>>> stt get hello : fail to create reply message");
+			}
 
-		if (uid > 0) {
-			SECURE_SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt get state : uid(%d)", uid);
+			SLOG(LOG_DEBUG, TAG_STTC, "=====");
+			SLOG(LOG_DEBUG, TAG_STTC, " ");
+		} /* STTD_METHOD_HELLO */
 
-			/* check state */
-			stt_client_s* client = stt_client_get_by_uid(uid);
-			if (NULL != client)
-				response = client->current_state;
-			else
-				SLOG(LOG_ERROR, TAG_STTC, "invalid uid");
+		else if (dbus_message_is_signal(msg, if_name, STTD_METHOD_SET_STATE)) {
+			SLOG(LOG_DEBUG, TAG_STTC, "===== Set State");
+			int uid = 0;
+			int state = -1;
 
-		} else {
-			SLOG(LOG_ERROR, TAG_STTC, "<<<< stt get state : invalid uid");
-		}
+			dbus_message_get_args(msg, &err,
+				DBUS_TYPE_INT32, &uid,
+				DBUS_TYPE_INT32, &state,
+				DBUS_TYPE_INVALID);
 
-		reply = dbus_message_new_method_return(msg);
+			if (dbus_error_is_set(&err)) {
+				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Get arguments error (%s)", err.message);
+				dbus_error_free(&err);
+			}
 
-		if (NULL != reply) {
-			dbus_message_append_args(reply, DBUS_TYPE_INT32, &response, DBUS_TYPE_INVALID);
+			if (uid > 0 && state >= 0) {
+				SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt set state : uid(%d), state(%d)", uid, state);
+				__stt_cb_set_state(uid, state);
+			}
+			else {
+				SLOG(LOG_ERROR, TAG_STTC, "<<<< stt set state : invalid uid or state");
+			}
 
-			if (!dbus_connection_send(g_conn_listener, reply, NULL))
-				SLOG(LOG_ERROR, TAG_STTC, ">>>> stt get state : fail to send reply");
-			else
-				SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt get state : result(%d)", response);
+			SLOG(LOG_DEBUG, TAG_STTC, "=====");
+			SLOG(LOG_DEBUG, TAG_STTC, " ");
+		} /* STTD_METHOD_SET_STATE */
 
-			dbus_connection_flush(g_conn_listener);
-			dbus_message_unref(reply);
-		} else {
-			SLOG(LOG_ERROR, TAG_STTC, ">>>> stt get hello : fail to create reply message");
-		}
+		else if (dbus_message_is_signal(msg, if_name, STTD_METHOD_SET_VOLUME)) {
+			SLOG(LOG_DEBUG, TAG_STTC, "===== Set volume : signal");
+			int uid = 0;
+			float volume = 0;
 
-		SLOG(LOG_DEBUG, TAG_STTC, "=====");
-		SLOG(LOG_DEBUG, TAG_STTC, " ");
-	} /* STTD_METHOD_GET_STATE */
+			dbus_message_get_args(msg, &err,
+				DBUS_TYPE_INT32, &uid,
+				DBUS_TYPE_INT32, &volume,
+				DBUS_TYPE_INVALID);
 
-	else if (dbus_message_is_method_call(msg, if_name, STTD_METHOD_RESULT)) {
-		SLOG(LOG_DEBUG, TAG_STTC, "===== Get Result");
-		int uid = 0;
-		DBusMessageIter args;
+			if (dbus_error_is_set(&err)) {
+				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Get arguments error (%s)", err.message);
+				dbus_error_free(&err);
+			}
 
-		dbus_message_iter_init(msg, &args);
+			SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt set volume : uid(%d), volume(%f)", uid, volume); 
+			__stt_cb_set_volume(uid, volume);
 
-		/* Get result */
-		if (DBUS_TYPE_INT32 == dbus_message_iter_get_arg_type(&args)) {
-			dbus_message_iter_get_basic(&args, &uid);
-			dbus_message_iter_next(&args);
-		}
+			/* SLOG(LOG_DEBUG, TAG_STTC, "====="); */
+			/* SLOG(LOG_DEBUG, TAG_STTC, " "); */
+		} /* STTD_METHOD_SET_VOLUME */
 
-		if (uid > 0) {
-			char** temp_result = NULL;
-			char* temp_msg = NULL;
-			char* temp_char = NULL;
-			int temp_event = 0;
-			int temp_count = 0;
+		else if (dbus_message_is_signal(msg, if_name, STTD_METHOD_RESULT)) {
+			SLOG(LOG_DEBUG, TAG_STTC, "===== Get Result : signal");
+			int uid = 0;
+			DBusMessageIter args;
 
-			/* Get recognition type */
+			dbus_message_iter_init(msg, &args);
+
+			/* Get result */
 			if (DBUS_TYPE_INT32 == dbus_message_iter_get_arg_type(&args)) {
-				dbus_message_iter_get_basic(&args, &temp_event);
+				dbus_message_iter_get_basic(&args, &uid);
 				dbus_message_iter_next(&args);
 			}
 
-			if (DBUS_TYPE_STRING == dbus_message_iter_get_arg_type(&args)) {
-				dbus_message_iter_get_basic(&args, &(temp_msg));
-				dbus_message_iter_next(&args);
-			}
+			stt_client_s* client = NULL;
+			client = stt_client_get_by_uid(uid);
+			if (NULL != client) {
+				char** temp_result = NULL;
+				char* temp_msg = NULL;
+				char* temp_char = NULL;
+				int temp_event = 0;
+				int temp_count = 0;
+				int temp_result_id = 0;
 
-			/* Get voice size */
-			if (DBUS_TYPE_INT32 == dbus_message_iter_get_arg_type(&args)) {
-				dbus_message_iter_get_basic(&args, &temp_count);
-				dbus_message_iter_next(&args);
-			}
-
-			SECURE_SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt get result : uid(%d) event(%d) message(%s) count(%d)", 
-				uid, temp_event, temp_msg, temp_count);
-
-			if (temp_count <= 0) {
-				__stt_cb_result(uid, temp_event, NULL, 0, temp_msg);
-			} else {
-				temp_result = (char**)calloc(temp_count, sizeof(char*));
-
-				if (NULL == temp_result)	{
-					SLOG(LOG_ERROR, TAG_STTC, "Fail : memory allocation error");
-				} else {
-					int i = 0;
-					for (i = 0; i < temp_count; i++) {
-						dbus_message_iter_get_basic(&args, &(temp_char));
-						dbus_message_iter_next(&args);
-
-						if (NULL != temp_char) {
-							temp_result[i] = strdup(temp_char);
-							SLOG(LOG_DEBUG, TAG_STTC, "result[%d] : %s", i, temp_result[i]);
-						}
-					}
-
-					__stt_cb_result(uid, temp_event, temp_result, temp_count, temp_msg);
-
-					for (i = 0; i < temp_count; i++) {
-						if (NULL != temp_result[i])
-							free(temp_result[i]);
-					}
-
-					free(temp_result);
+				/* Get recognition type */
+				if (DBUS_TYPE_INT32 == dbus_message_iter_get_arg_type(&args)) {
+					dbus_message_iter_get_basic(&args, &temp_event);
+					dbus_message_iter_next(&args);
 				}
+
+				if (DBUS_TYPE_STRING == dbus_message_iter_get_arg_type(&args)) {
+					dbus_message_iter_get_basic(&args, &(temp_msg));
+					dbus_message_iter_next(&args);
+				}
+
+				/* Get voice size */
+				if (DBUS_TYPE_INT32 == dbus_message_iter_get_arg_type(&args)) {
+					dbus_message_iter_get_basic(&args, &temp_count);
+					dbus_message_iter_next(&args);
+				}
+
+				/* Get result id */
+				if (DBUS_TYPE_INT32 == dbus_message_iter_get_arg_type(&args)) {
+					dbus_message_iter_get_basic(&args, &temp_result_id);
+					dbus_message_iter_next(&args);
+				}
+
+				SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt get result : uid(%d) event(%d) message(%s) count(%d) result id(%d)",
+					uid, temp_event, temp_msg, temp_count, temp_result_id);
+
+				if (temp_count <= 0) {
+					__stt_cb_result(uid, temp_event, NULL, 0, temp_msg);
+				} else {
+					temp_result = (char**)calloc(temp_count, sizeof(char*));
+
+					if (NULL == temp_result)	{
+						SLOG(LOG_ERROR, TAG_STTC, "Fail : memory allocation error");
+					} else {
+						int i = 0;
+						for (i = 0; i < temp_count; i++) {
+							dbus_message_iter_get_basic(&args, &(temp_char));
+							dbus_message_iter_next(&args);
+
+							if (NULL != temp_char) {
+								temp_result[i] = strdup(temp_char);
+								SLOG(LOG_DEBUG, TAG_STTC, "result[%d] : %s", i, temp_result[i]);
+							}
+						}
+
+						__stt_cb_result(uid, temp_event, temp_result, temp_count, temp_msg);
+
+						for (i = 0; i < temp_count; i++) {
+							if (NULL != temp_result[i])
+								free(temp_result[i]);
+						}
+
+						free(temp_result);
+					}
+				}
+			} else {
+				SLOG(LOG_ERROR, TAG_STTC, "<<<< stt get result : invalid uid");
 			}
-		} else {
-			SLOG(LOG_ERROR, TAG_STTC, "<<<< stt get result : invalid uid");
+
+			SLOG(LOG_DEBUG, TAG_STTC, "=====");
+			SLOG(LOG_DEBUG, TAG_STTC, " ");
+		}/* STTD_METHOD_RESULT */
+
+		else if (dbus_message_is_signal(msg, if_name, STTD_METHOD_ERROR)) {
+			SLOG(LOG_DEBUG, TAG_STTC, "===== Get Error");
+			int uid;
+			int reason;
+			char* err_msg;
+
+			dbus_message_get_args(msg, &err,
+				DBUS_TYPE_INT32, &uid,
+				DBUS_TYPE_INT32, &reason,
+				DBUS_TYPE_STRING, &err_msg,
+				DBUS_TYPE_INVALID);
+
+			if (dbus_error_is_set(&err)) {
+				SLOG(LOG_ERROR, TAG_STTC, "<<<< stt Get Error message : Get arguments error (%s)", err.message);
+				dbus_error_free(&err);
+			}
+			else {
+				SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt Get Error message : uid(%d), reason(%d), msg(%s)", uid, reason, err_msg);
+				__stt_cb_error(uid, reason);
+			}
+
+			SLOG(LOG_DEBUG, TAG_STTC, "=====");
+			SLOG(LOG_DEBUG, TAG_STTC, " ");
+		}/* STTD_METHOD_ERROR */
+
+		else {
+			SLOG(LOG_DEBUG, TAG_STTC, "Message is NOT valid");
+			dbus_message_unref(msg);
+			break;
 		}
 
-		SLOG(LOG_DEBUG, TAG_STTC, "=====");
-		SLOG(LOG_DEBUG, TAG_STTC, " ");
-	} /* STTD_METHOD_RESULT */
+		/* free the message */
+		dbus_message_unref(msg);
+	}/* while */
 
-	else if (dbus_message_is_method_call(msg, if_name, STTD_METHOD_ERROR)) {
-		SLOG(LOG_DEBUG, TAG_STTC, "===== Get Error");
-		int uid;
-		int reason;
-		char* err_msg;
-
-		dbus_message_get_args(msg, &err,
-			DBUS_TYPE_INT32, &uid,
-			DBUS_TYPE_INT32, &reason,
-			DBUS_TYPE_STRING, &err_msg,
-			DBUS_TYPE_INVALID);
-
-		if (dbus_error_is_set(&err)) {
-			SLOG(LOG_ERROR, TAG_STTC, "<<<< stt Get Error message : Get arguments error (%s)", err.message);
-			dbus_error_free(&err);
-		} else {
-			SECURE_SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt Get Error message : uid(%d), reason(%d), msg(%s)", uid, reason, err_msg);
-			__stt_cb_error(uid, reason);
-		}
-
-		SLOG(LOG_DEBUG, TAG_STTC, "=====");
-		SLOG(LOG_DEBUG, TAG_STTC, " ");
-	} /* STTD_METHOD_ERROR */
-
-	/* free the message */
-	dbus_message_unref(msg);
-
-	return ECORE_CALLBACK_PASS_ON;
+	return ECORE_CALLBACK_RENEW;
 }
 
 int stt_dbus_open_connection()
@@ -295,7 +297,7 @@ int stt_dbus_open_connection()
 	dbus_error_init(&err);
 
 	/* connect to the DBUS system bus, and check for errors */
-	g_conn_sender = dbus_bus_get_private(DBUS_BUS_SYSTEM, &err);
+	g_conn_sender = dbus_bus_get_private(DBUS_BUS_SESSION, &err);
 	if (dbus_error_is_set(&err)) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Dbus Connection Error (%s)", err.message);
 		dbus_error_free(&err);
@@ -309,10 +311,10 @@ int stt_dbus_open_connection()
 	dbus_connection_set_exit_on_disconnect(g_conn_sender, false);
 
 	/* connect to the DBUS system bus, and check for errors */
-	g_conn_listener = dbus_bus_get_private(DBUS_BUS_SYSTEM, &err);
+	g_conn_listener = dbus_bus_get_private(DBUS_BUS_SESSION, &err);
 
-	if (dbus_error_is_set(&err)) {
-		SLOG(LOG_ERROR, TAG_STTC, "Dbus Connection Error (%s)", err.message);
+	if (dbus_error_is_set(&err)) { 
+		SLOG(LOG_ERROR, TAG_STTC, "Dbus Connection Error (%s)", err.message); 
 		dbus_error_free(&err);
 	}
 
@@ -325,27 +327,27 @@ int stt_dbus_open_connection()
 
 	char service_name[64];
 	memset(service_name, '\0', 64);
-	snprintf(service_name, 64, "%s", STT_CLIENT_SERVICE_NAME);
+	snprintf(service_name, 64, "%s%d", STT_CLIENT_SERVICE_NAME, pid);
 
-	SECURE_SLOG(LOG_DEBUG, TAG_STTC, "service name is %s\n", service_name);
+	SLOG(LOG_DEBUG, TAG_STTC, "service name is %s", service_name);
 
 	/* register our name on the bus, and check for errors */
 	dbus_bus_request_name(g_conn_listener, service_name, DBUS_NAME_FLAG_REPLACE_EXISTING , &err);
 
 	if (dbus_error_is_set(&err)) {
-		SLOG(LOG_ERROR, TAG_STTC, "Name Error (%s)\n", err.message);
-		dbus_error_free(&err);
+		SLOG(LOG_ERROR, TAG_STTC, "Name Error (%s)", err.message); 
+		dbus_error_free(&err); 
 	}
 
-	char rule[128];
-	snprintf(rule, 128, "type='signal',interface='%s'", STT_CLIENT_SERVICE_INTERFACE);
+	char rule[128] = {0, };
+	snprintf(rule, 128, "type='signal',interface='%s%d'", STT_CLIENT_SERVICE_INTERFACE, pid);
 
 	/* add a rule for which messages we want to see */
 	dbus_bus_add_match(g_conn_listener, rule, &err);
 	dbus_connection_flush(g_conn_listener);
 
 	if (dbus_error_is_set(&err)) {
-		SLOG(LOG_ERROR, TAG_STTC, "Match Error (%s)\n", err.message);
+		SLOG(LOG_ERROR, TAG_STTC, "Match Error (%s)", err.message);
 		dbus_error_free(&err);
 		return STT_ERROR_OPERATION_FAILED;
 	}
@@ -381,13 +383,16 @@ int stt_dbus_close_connection()
 
 	char service_name[64];
 	memset(service_name, '\0', 64);
-	snprintf(service_name, 64, "%s", STT_CLIENT_SERVICE_NAME);
+	snprintf(service_name, 64, "%s%d", STT_CLIENT_SERVICE_NAME, pid);
 
 	dbus_bus_release_name(g_conn_listener, service_name, &err);
 	if (dbus_error_is_set(&err)) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Release name Error (%s)", err.message);
 		dbus_error_free(&err);
 	}
+
+	dbus_connection_close(g_conn_sender);
+	dbus_connection_close(g_conn_listener);
 
 	g_conn_sender = NULL;
 	g_conn_listener = NULL;
@@ -437,23 +442,28 @@ int stt_dbus_request_hello()
 	DBusMessage* result_msg = NULL;
 	int result = 0;
 
-	result_msg = dbus_connection_send_with_reply_and_block(g_conn_sender, msg, g_waiting_short_time, &err);
-	dbus_message_unref(msg);
-	if (dbus_error_is_set(&err)) {
-		dbus_error_free(&err);
-	}
-
-	if (NULL != result_msg) {
-		dbus_message_unref(result_msg);
-
+	if(g_conn_sender) {
+		result_msg = dbus_connection_send_with_reply_and_block(g_conn_sender, msg, g_waiting_short_time, &err);
+		dbus_message_unref(msg);
 		if (dbus_error_is_set(&err)) {
-			SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Get arguments error (%s)", err.message);
 			dbus_error_free(&err);
 		}
 
-		SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt hello");
-	} else {
-		result = STT_ERROR_TIMED_OUT;
+		if (NULL != result_msg) {
+			dbus_message_unref(result_msg);
+
+			if (dbus_error_is_set(&err)) {
+				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Get arguments error (%s)", err.message);
+				dbus_error_free(&err);
+			}
+
+			SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt hello");
+		} else {
+			result = STT_ERROR_TIMED_OUT;
+		}
+	}else {
+		SLOG(LOG_WARN, TAG_STTC, "[WARN] dbus connection handle is null (%p)", g_conn_sender);
+		result = STT_ERROR_OPERATION_FAILED;
 	}
 
 	return result;
@@ -474,7 +484,7 @@ int stt_dbus_request_initialize(int uid, bool* silence_supported)
 		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt initialize : Fail to make message");
 		return STT_ERROR_OPERATION_FAILED;
 	} else {
-		SECURE_SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt initialize : uid(%d)", uid);
+		SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt initialize : uid(%d)", uid);
 	}
 
 	int pid = getpid();
@@ -489,37 +499,42 @@ int stt_dbus_request_initialize(int uid, bool* silence_supported)
 	DBusMessage* result_msg;
 	int result = STT_ERROR_OPERATION_FAILED;
 
-	result_msg = dbus_connection_send_with_reply_and_block(g_conn_sender, msg, g_waiting_time, &err);
-	dbus_message_unref(msg);
-	if (dbus_error_is_set(&err)) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Send Error (%s)", err.message);
-		dbus_error_free(&err);
-	}
-
-	if (NULL != result_msg) {
-		dbus_message_get_args(result_msg, &err, 
-			DBUS_TYPE_INT32, &result, 
-			DBUS_TYPE_INT32, silence_supported,
-			DBUS_TYPE_INVALID);
-
+	if(g_conn_sender) {
+		result_msg = dbus_connection_send_with_reply_and_block(g_conn_sender, msg, g_waiting_time, &err);
+		dbus_message_unref(msg);
 		if (dbus_error_is_set(&err)) {
-			SLOG(LOG_ERROR, TAG_STTC, "<<<< Get arguments error (%s)\n", err.message);
+			SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Send Error (%s)", err.message);
 			dbus_error_free(&err);
-			result = STT_ERROR_OPERATION_FAILED;
 		}
 
-		if (0 == result) {
-			SECURE_SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt initialize : result = %d, silence(%d)",
-				result, *silence_supported);
+		if (NULL != result_msg) {
+			dbus_message_get_args(result_msg, &err,
+				DBUS_TYPE_INT32, &result,
+				DBUS_TYPE_INT32, silence_supported,
+				DBUS_TYPE_INVALID);
+
+			if (dbus_error_is_set(&err)) {
+				SLOG(LOG_ERROR, TAG_STTC, "<<<< Get arguments error (%s)", err.message);
+				dbus_error_free(&err);
+				result = STT_ERROR_OPERATION_FAILED;
+			}
+
+			if (0 == result) {
+				SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt initialize : result = %d, silence(%d)",
+					result, *silence_supported);
+			} else {
+				SLOG(LOG_ERROR, TAG_STTC, "<<<< stt initialize : result = %d", result);
+			}
+
+			dbus_message_unref(result_msg);
 		} else {
-			SLOG(LOG_ERROR, TAG_STTC, "<<<< stt initialize : result = %d", result);
+			SLOG(LOG_ERROR, TAG_STTC, "<<<< Result message is NULL");
+			stt_dbus_reconnect();
+			result = STT_ERROR_TIMED_OUT;
 		}
-
-		dbus_message_unref(result_msg);
 	} else {
-		SLOG(LOG_ERROR, TAG_STTC, "<<<< Result message is NULL");
-		stt_dbus_reconnect();
-		result = STT_ERROR_TIMED_OUT;
+		SLOG(LOG_WARN, TAG_STTC, "[WARN] dbus connection handle is null (%p)", g_conn_sender);
+		result = STT_ERROR_OPERATION_FAILED;
 	}
 
 	return result;
@@ -539,7 +554,7 @@ int stt_dbus_request_finalize(int uid)
 		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt finalize : Fail to make message");
 		return STT_ERROR_OPERATION_FAILED;
 	} else {
-		SECURE_SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt finalize : uid(%d)", uid);
+		SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt finalize : uid(%d)", uid);
 	}
 
 	dbus_message_append_args(msg, DBUS_TYPE_INT32, &uid, DBUS_TYPE_INVALID);
@@ -598,7 +613,7 @@ int stt_dbus_request_set_current_engine(int uid, const char* engine_id, bool* si
 		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt set engine : Fail to make message");
 		return STT_ERROR_OPERATION_FAILED;
 	} else {
-		SECURE_SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt set engine : uid(%d)", uid);
+		SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt set engine : uid(%d)", uid);
 	}
 
 	dbus_message_append_args(msg,
@@ -626,15 +641,15 @@ int stt_dbus_request_set_current_engine(int uid, const char* engine_id, bool* si
 			DBUS_TYPE_INVALID);
 
 		if (dbus_error_is_set(&err)) {
-			SLOG(LOG_ERROR, TAG_STTC, "<<<< Get arguments error (%s)\n", err.message);
-			dbus_error_free(&err);
+			SLOG(LOG_ERROR, TAG_STTC, "<<<< Get arguments error (%s)", err.message);
+			dbus_error_free(&err); 
 			result = STT_ERROR_OPERATION_FAILED;
 		}
 
 		dbus_message_unref(result_msg);
 
 		if (0 == result) {
-			SECURE_SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt set engine : result = %d , silence(%d)", 
+			SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt set engine : result = %d , silence(%d)", 
 				result, *silence_supported);
 		} else {
 			SLOG(LOG_ERROR, TAG_STTC, "<<<< stt set engine : result = %d", result);
@@ -667,7 +682,7 @@ int stt_dbus_request_check_app_agreed(int uid, const char* appid, bool* value)
 		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt check app agreed : Fail to make message");
 		return STT_ERROR_OPERATION_FAILED;
 	} else {
-		SECURE_SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt check app agreed : uid(%d) appid(%s)", uid, appid);
+		SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt check app agreed : uid(%d) appid(%s)", uid, appid);
 	}
 
 	dbus_message_append_args(msg,
@@ -704,7 +719,7 @@ int stt_dbus_request_check_app_agreed(int uid, const char* appid, bool* value)
 
 		if (0 == result) {
 			*value = (bool)available;
-			SECURE_SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt check app agreed : result = %d, available = %d", result, *value);
+			SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt check app agreed : result = %d, available = %d", result, *value);
 		} else {
 			SLOG(LOG_ERROR, TAG_STTC, "<<<< stt check app agreed : result = %d", result);
 		}
@@ -736,7 +751,7 @@ int stt_dbus_request_get_support_langs(int uid, stt_h stt, stt_supported_languag
 		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt get supported languages : Fail to make message");
 		return STT_ERROR_OPERATION_FAILED;
 	} else {
-		SECURE_SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt get supported languages : uid(%d)", uid);
+		SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt get supported languages : uid(%d)", uid);
 	}
 
 	dbus_message_append_args(msg, DBUS_TYPE_INT32, &uid, DBUS_TYPE_INVALID);
@@ -821,7 +836,7 @@ int stt_dbus_request_get_default_lang(int uid, char** language)
 		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt get default language : Fail to make message");
 		return STT_ERROR_OPERATION_FAILED;
 	} else {
-		SECURE_SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt get default language  : uid(%d)", uid);
+		SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt get default language  : uid(%d)", uid);
 	}
 
 	dbus_message_append_args(msg,
@@ -857,7 +872,7 @@ int stt_dbus_request_get_default_lang(int uid, char** language)
 
 		if (0 == result) {
 			*language = strdup(temp_lang);
-			SECURE_SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt get default language : result = %d, language = %s", result, *language);
+			SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt get default language : result = %d, language = %s", result, *language);
 		} else {
 			SLOG(LOG_ERROR, TAG_STTC, "<<<< stt get default language : result = %d", result);
 		}
@@ -889,7 +904,7 @@ int stt_dbus_request_is_recognition_type_supported(int uid, const char* type, bo
 		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt is partial result supported : Fail to make message");
 		return STT_ERROR_OPERATION_FAILED;
 	} else {
-		SECURE_SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt is recognition type supported : uid(%d) type(%s)", uid, type);
+		SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt is recognition type supported : uid(%d) type(%s)", uid, type);
 	}
 
 	dbus_message_append_args(msg,
@@ -926,7 +941,7 @@ int stt_dbus_request_is_recognition_type_supported(int uid, const char* type, bo
 
 		if (0 == result) {
 			*support = (bool)result_support;
-			SECURE_SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt is recognition type supported : result = %d, support = %s", result, *support ? "true" : "false");
+			SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt is recognition type supported : result = %d, support = %s", result, *support ? "true" : "false");
 		} else {
 			SLOG(LOG_ERROR, TAG_STTC, "<<<< stt is recognition type supported : result = %d", result);
 		}
@@ -958,7 +973,7 @@ int stt_dbus_request_set_start_sound(int uid, const char* file)
 		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt set start sound : Fail to make message");
 		return STT_ERROR_OPERATION_FAILED;
 	} else {
-		SECURE_SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt set start sound : uid(%d) file(%s)", uid, file);
+		SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt set start sound : uid(%d) file(%s)", uid, file);
 	}
 
 	dbus_message_append_args(msg,
@@ -992,7 +1007,7 @@ int stt_dbus_request_set_start_sound(int uid, const char* file)
 		dbus_message_unref(result_msg);
 
 		if (0 == result) {
-			SECURE_SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt set start sound : result = %d", result);
+			SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt set start sound : result = %d", result);
 		} else {
 			SLOG(LOG_ERROR, TAG_STTC, "<<<< stt set start sound : result = %d", result);
 		}
@@ -1019,7 +1034,7 @@ int stt_dbus_request_unset_start_sound(int uid)
 		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt unset start sound : Fail to make message");
 		return STT_ERROR_OPERATION_FAILED;
 	} else {
-		SECURE_SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt unset start sound : uid(%d)", uid);
+		SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt unset start sound : uid(%d)", uid);
 	}
 
 	dbus_message_append_args(msg,
@@ -1052,7 +1067,7 @@ int stt_dbus_request_unset_start_sound(int uid)
 		dbus_message_unref(result_msg);
 
 		if (0 == result) {
-			SECURE_SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt unset start sound : result = %d", result);
+			SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt unset start sound : result = %d", result);
 		} else {
 			SLOG(LOG_ERROR, TAG_STTC, "<<<< stt unset start sound : result = %d", result);
 		}
@@ -1084,7 +1099,7 @@ int stt_dbus_request_set_stop_sound(int uid, const char* file)
 		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt set stop sound : Fail to make message");
 		return STT_ERROR_OPERATION_FAILED;
 	} else {
-		SECURE_SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt set stop sound : uid(%d) file(%s)", uid, file);
+		SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt set stop sound : uid(%d) file(%s)", uid, file);
 	}
 
 	dbus_message_append_args(msg,
@@ -1118,7 +1133,7 @@ int stt_dbus_request_set_stop_sound(int uid, const char* file)
 		dbus_message_unref(result_msg);
 
 		if (0 == result) {
-			SECURE_SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt set stop sound : result = %d", result);
+			SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt set stop sound : result = %d", result);
 		} else {
 			SLOG(LOG_ERROR, TAG_STTC, "<<<< stt set stop sound : result = %d", result);
 		}
@@ -1145,7 +1160,7 @@ int stt_dbus_request_unset_stop_sound(int uid)
 		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt unset stop sound : Fail to make message");
 		return STT_ERROR_OPERATION_FAILED;
 	} else {
-		SECURE_SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt unset stop sound : uid(%d)", uid);
+		SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt unset stop sound : uid(%d)", uid);
 	}
 
 	dbus_message_append_args(msg,
@@ -1178,7 +1193,7 @@ int stt_dbus_request_unset_stop_sound(int uid)
 		dbus_message_unref(result_msg);
 
 		if (0 == result) {
-			SECURE_SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt unset stop sound : result = %d", result);
+			SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt unset stop sound : result = %d", result);
 		} else {
 			SLOG(LOG_ERROR, TAG_STTC, "<<<< stt unset stop sound : result = %d", result);
 		}
@@ -1211,17 +1226,36 @@ int stt_dbus_request_start(int uid, const char* lang, const char* type, int sile
 		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt start : Fail to make message");
 		return STT_ERROR_OPERATION_FAILED;
 	} else {
-		SECURE_SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt start : uid(%d), language(%s), type(%s)", uid, lang, type);
+		SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt start : uid(%d), language(%s), type(%s)", uid, lang, type);
 	}
 
 	dbus_message_append_args(msg,
-		DBUS_TYPE_INT32, &uid, 
-		DBUS_TYPE_STRING, &lang,   
+		DBUS_TYPE_INT32, &uid,
+		DBUS_TYPE_STRING, &lang,
 		DBUS_TYPE_STRING, &type,
 		DBUS_TYPE_INT32, &silence,
 		DBUS_TYPE_STRING, &appid,
 		DBUS_TYPE_INVALID);
-	
+#if 1
+	if(g_conn_sender) {
+		dbus_message_set_no_reply(msg, TRUE);
+
+		if (!dbus_connection_send(g_conn_sender, msg, NULL)) {
+			SLOG(LOG_ERROR, TAG_STTC, "[Dbus ERROR] <<<< stt start message : Out Of Memory !");
+			return STT_ERROR_OUT_OF_MEMORY;
+		} else {
+			dbus_connection_flush(g_conn_sender);
+		}
+
+		dbus_message_unref(msg);
+
+	} else {
+		SLOG(LOG_WARN, TAG_STTC, "[WARN] dbus connection handle is null (%p)", g_conn_sender);
+		return STT_ERROR_OPERATION_FAILED;
+	}
+
+	return 0;
+#else
 	DBusError err;
 	dbus_error_init(&err);
 
@@ -1259,6 +1293,7 @@ int stt_dbus_request_start(int uid, const char* lang, const char* type, int sile
 	}
 
 	return result;
+#endif
 }
 
 int stt_dbus_request_stop(int uid)
@@ -1276,13 +1311,31 @@ int stt_dbus_request_stop(int uid)
 		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt stop : Fail to make message");
 		return STT_ERROR_OPERATION_FAILED;
 	} else {
-		SECURE_SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt stop : uid(%d)", uid);
+		SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt stop : uid(%d)", uid);
 	}
 
 	dbus_message_append_args(msg, 
 		DBUS_TYPE_INT32, &uid, 
 		DBUS_TYPE_INVALID);
+#if 1
+	if(g_conn_sender) {
+		dbus_message_set_no_reply(msg, TRUE);
 
+		if (!dbus_connection_send(g_conn_sender, msg, NULL)) {
+			SLOG(LOG_ERROR, TAG_STTC, "[Dbus ERROR] <<<< stt stop message : Out Of Memory !");
+			return STT_ERROR_OUT_OF_MEMORY;
+		} else {
+			dbus_connection_flush(g_conn_sender);
+		}
+
+		dbus_message_unref(msg);
+	} else {
+		SLOG(LOG_WARN, TAG_STTC, "[WARN] dbus connection handle is null (%p)", g_conn_sender);
+		return STT_ERROR_OPERATION_FAILED;
+	}
+
+	return 0;
+#else
 	DBusError err;
 	dbus_error_init(&err);
 
@@ -1320,6 +1373,7 @@ int stt_dbus_request_stop(int uid)
 	}
 
 	return result;
+#endif
 }
 
 int stt_dbus_request_cancel(int uid)
@@ -1337,13 +1391,31 @@ int stt_dbus_request_cancel(int uid)
 		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt cancel : Fail to make message");
 		return STT_ERROR_OPERATION_FAILED;
 	} else {
-		SECURE_SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt cancel : uid(%d)", uid);
+		SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt cancel : uid(%d)", uid);
 	}
 
 	dbus_message_append_args(msg, 
 		DBUS_TYPE_INT32, &uid, 
 		DBUS_TYPE_INVALID);
+#if 1
+	if(g_conn_sender) {
+		dbus_message_set_no_reply(msg, TRUE);
 
+		if (!dbus_connection_send(g_conn_sender, msg, NULL)) {
+			SLOG(LOG_ERROR, TAG_STTC, "[Dbus ERROR] <<<< stt stop message : Out Of Memory !");
+			return STT_ERROR_OUT_OF_MEMORY;
+		} else {
+			dbus_connection_flush(g_conn_sender);
+		}
+
+		dbus_message_unref(msg);
+	} else {
+		SLOG(LOG_WARN, TAG_STTC, "[WARN] dbus connection handle is null (%p)", g_conn_sender);
+		return STT_ERROR_OPERATION_FAILED;
+	}
+
+	return 0;
+#else
 	DBusError err;
 	dbus_error_init(&err);
 
@@ -1381,4 +1453,5 @@ int stt_dbus_request_cancel(int uid)
 	}
 
 	return result;
+#endif
 }

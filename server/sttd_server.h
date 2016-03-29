@@ -48,7 +48,7 @@ int sttd_server_set_current_engine(int uid, const char* engine_id, bool* silence
 
 int sttd_server_get_current_engine(int uid, char** engine_id);
 
-int sttd_server_check_agg_agreed(int uid, const char* appid, bool* available);
+int sttd_server_check_app_agreed(int uid, const char* appid, bool* available);
 
 int sttd_server_get_supported_languages(int uid, GSList** lang_list);
 

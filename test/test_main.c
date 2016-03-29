@@ -13,7 +13,7 @@
 
 #include <stdio.h>
 #include <Ecore.h>
-#include <dlog/dlog.h>
+#include <dlog.h>
 
 #include <stt.h>
 #include <stt_file.h>
@@ -138,6 +138,20 @@ static Eina_Bool __file_start(void *data)
 	return EINA_FALSE;
 }
 
+static Eina_Bool __stt_get_volume(void *data)
+{
+	float volume = 0.0;
+	int ret = stt_get_recording_volume(g_stt, &volume);
+	if (STT_ERROR_NONE != ret) {
+		SLOG(LOG_ERROR, TAG_STT_TEST, "[ERROR] Fail to get volume");
+		return EINA_FALSE;
+	}
+
+	SLOG(LOG_DEBUG, TAG_STT_TEST, "Get volume : %f", volume);
+
+	return EINA_TRUE;
+}
+
 static Eina_Bool __stt_start(void *data)
 {
 	int ret;
@@ -152,6 +166,9 @@ static Eina_Bool __stt_start(void *data)
 	if (STT_ERROR_NONE != ret) {
 		SLOG(LOG_ERROR, TAG_STT_TEST, "[ERROR] Fail to start");
 	}
+
+	ecore_timer_add(0.1, __stt_get_volume, NULL);
+
 	return EINA_FALSE;
 }
 
@@ -187,16 +204,16 @@ static void __stt_recognition_result_cb(stt_h stt, stt_result_event_e event, con
 	ecore_timer_add(0, __stt_finalize, NULL);
 }
 
-int main(int argc, char *argv[])
+int main (int argc, char *argv[])
 {
-	if (2 < argc) {
+	if (2 > argc) {
 		SLOG(LOG_DEBUG, TAG_STT_TEST, "Please check parameter");
 		SLOG(LOG_DEBUG, TAG_STT_TEST, "Ex> stt-test -f <file path>");
 		SLOG(LOG_DEBUG, TAG_STT_TEST, "Ex> stt-test -m");
 		return 0;
 	}
 
-	if (strcmp("-f", argv[1]) && strcmp("-m", argv[1])) {
+	if (0 != strcmp("-f", argv[1]) && 0 != strcmp("-m", argv[1])) {
 		SLOG(LOG_DEBUG, TAG_STT_TEST, "Please check parameter");
 		SLOG(LOG_DEBUG, TAG_STT_TEST, "Ex> stt-test -f <file path>");
 		SLOG(LOG_DEBUG, TAG_STT_TEST, "Ex> stt-test -m");

@@ -22,7 +22,6 @@ BuildRequires:  pkgconfig(libtzplatform-config)
 BuildRequires:  pkgconfig(libxml-2.0)
 BuildRequires:  pkgconfig(vconf)
 
-
 BuildRequires:  cmake
 
 %description
@@ -89,17 +88,9 @@ install LICENSE.APLv2 %{buildroot}/usr/share/license/%{name}
 %post 
 /sbin/ldconfig
 
-mkdir -p /usr/lib/voice
+mkdir -p %{_libdir}/voice/
 
-mkdir -p /usr/share/voice
-
-mkdir -p /opt/home/app/.voice
-chown 5000:5000 /opt/home/app/.voice
-
-mkdir -p /opt/usr/data/voice/stt/1.0
-chown 5000:5000 /opt/usr/data/voice
-chown 5000:5000 /opt/usr/data/voice/stt
-chown 5000:5000 /opt/usr/data/voice/stt/1.0
+mkdir -p /usr/share/voice/test
 
 
 %postun -p /sbin/ldconfig
@@ -108,14 +99,12 @@ chown 5000:5000 /opt/usr/data/voice/stt/1.0
 %manifest %{name}.manifest
 %license LICENSE.APLv2
 %defattr(-,root,root,-)
-%{_libdir}/libstt.so
-%{_libdir}/libstt_file.so
-%{_libdir}/libstt_setting.so
-/usr/lib/voice/stt/1.0/stt-config.xml
+%{_libdir}/lib*.so
+%{_libdir}/voice/stt/1.0/stt-config.xml
 %{_bindir}/stt-daemon
-/etc/dbus-1/system.d/stt-server.conf
-/usr/share/dbus-1/system-services/org.tizen.voice.sttserver.service
-/opt/usr/devel/bin/stt-test
+/usr/share/dbus-1/services/org.tizen.voice*
+/etc/dbus-1/session.d/stt-server.conf
+/usr/share/voice/test/stt-test
 /usr/share/license/%{name}
 
 %files devel

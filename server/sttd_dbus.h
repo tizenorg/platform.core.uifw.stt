@@ -26,7 +26,7 @@ int sttd_dbus_close_connection();
 
 int sttdc_send_hello(int uid);
 
-int sttdc_send_get_state(int uid, int* state);
+int sttdc_send_set_volume(int uid, float volume);
 
 int sttdc_send_set_state(int uid, int state);
 

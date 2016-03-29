@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an AS IS BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #ifndef __STT_FILE_H__
@@ -84,7 +84,7 @@ typedef enum {
 }stt_file_result_time_event_e;
 
 /**
-* @brief Recognition type : Continuous free dictation. 
+* @brief Recognition type : Continuous free dictation.
 */
 #define STT_RECOGNITION_TYPE_FREE_PARTIAL	"stt.recognition.type.FREE.PARTIAL"
 
@@ -97,7 +97,7 @@ typedef enum {
 * @param[in] user_data User data passed from the stt_file_setting_foreach_supported_engines().
 *
 * @return @c true to continue with the next iteration of the loop, \n @c false to break out of the loop.
-* @pre stt_file_foreach_supported_engines() will invoke this callback. 
+* @pre stt_file_foreach_supported_engines() will invoke this callback.
 *
 * @see stt_file_foreach_supported_engines()
 */
@@ -120,7 +120,7 @@ typedef bool(*stt_file_supported_engine_cb)(const char* engine_id, const char* e
 * @see stt_file_set_recognition_result_cb()
 * @see stt_file_unset_recognition_result_cb()
 */
-typedef void (*stt_file_recognition_result_cb)(stt_file_result_event_e event, const char** data, int data_count, 
+typedef void (*stt_file_recognition_result_cb)(stt_file_result_event_e event, const char** data, int data_count,
 					  const char* msg, void *user_data);
 
 /**
@@ -139,11 +139,11 @@ typedef void (*stt_file_recognition_result_cb)(stt_file_result_event_e event, co
 *
 * @see stt_file_recognition_result_cb()
 */
-typedef bool (*stt_file_result_time_cb)(int index, stt_file_result_time_event_e event, const char* text, 
+typedef bool (*stt_file_result_time_cb)(int index, stt_file_result_time_event_e event, const char* text,
 				   long start_time, long end_time, void* user_data);
 
 /**
-* @brief Called when the state of STT FILE is changed. 
+* @brief Called when the state of STT FILE is changed.
 *
 * @param[in] previous A previous state
 * @param[in] current A current state
@@ -157,7 +157,7 @@ typedef bool (*stt_file_result_time_cb)(int index, stt_file_result_time_event_e 
 typedef void (*stt_file_state_changed_cb)(stt_file_state_e previous, stt_file_state_e current, void* user_data);
 
 /**
-* @brief Called to retrieve the supported languages. 
+* @brief Called to retrieve the supported languages.
 *
 * @param[in] language A language is specified as an ISO 3166 alpha-2 two letter country-code \n
 *		followed by ISO 639-1 for the two-letter language code. \n
@@ -165,7 +165,7 @@ typedef void (*stt_file_state_changed_cb)(stt_file_state_e previous, stt_file_st
 * @param[in] user_data The user data passed from the foreach function
 *
 * @return @c true to continue with the next iteration of the loop, \n @c false to break out of the loop.
-* @pre stt_file_foreach_supported_languages() will invoke this callback. 
+* @pre stt_file_foreach_supported_languages() will invoke this callback.
 *
 * @see stt_file_foreach_supported_languages()
 */
@@ -184,9 +184,9 @@ typedef bool (*stt_file_supported_language_cb)(const char* language, void* user_
 * @pre The state should be #STT_FILE_STATE_NONE.
 * @post If this function is called, the STT state will be #STT_FILE_STATE_READY.
 *
-* @see stt_file_deinitialize()
+* @see stt_file_deinitialize(void)
 */
-int stt_file_initialize();
+int stt_file_initialize(void);
 
 /**
 * @brief Deinitialize STT FILE.
@@ -198,9 +198,9 @@ int stt_file_initialize();
 * @pre The state should be #STT_FILE_STATE_READY.
 * @post If this function is called, the STT FILE state will be #STT_FILE_STATE_NONE.
 *
-* @see stt_file_initialize()
+* @see stt_file_initialize(void)
 */
-int stt_file_deinitialize();
+int stt_file_deinitialize(void);
 
 /**
 * @brief Gets the current state.
@@ -228,7 +228,7 @@ int stt_file_get_state(stt_file_state_e* state);
 * @retval #STT_FILE_ERROR_OPERATION_FAILED Operation failure.
 *
 * @pre The state should be #STT_FILE_STATE_READY.
-* @post	This function invokes stt_file_supported_engine_cb() repeatedly for getting engine information. 
+* @post	This function invokes stt_file_supported_engine_cb() repeatedly for getting engine information.
 *
 * @see stt_file_supported_engine_cb()
 */
@@ -245,7 +245,7 @@ int stt_file_foreach_supported_engines(stt_file_supported_engine_cb callback, vo
 * @retval #STT_FILE_ERROR_NONE Success.
 * @retval #STT_FILE_ERROR_OUT_OF_MEMORY Out of memory.
 * @retval #STT_FILE_ERROR_INVALID_PARAMETER Invalid parameter.
-* @retval #STT_FILE_ERROR_INVALID_STATE Invalid state. 
+* @retval #STT_FILE_ERROR_INVALID_STATE Invalid state.
 * @retval #STT_FILE_ERROR_OPERATION_FAILED Operation failure.
 *
 * @pre The state should be #STT_FILE_STATE_READY.
@@ -285,7 +285,7 @@ int stt_file_set_engine(const char* engine_id);
 * @retval #STT_FILE_ERROR_INVALID_STATE Invalid state
 *
 * @pre The state should be #STT_FILE_STATE_READY.
-* @post	This function invokes stt_file_supported_language_cb() repeatedly for getting languages. 
+* @post	This function invokes stt_file_supported_language_cb() repeatedly for getting languages.
 *
 * @see stt_file_supported_language_cb()
 * @see stt_file_get_default_language()
@@ -316,7 +316,7 @@ int stt_file_foreach_supported_languages(stt_file_supported_language_cb callback
 *
 * @see stt_file_cancel()
 */
-int stt_file_start(const char* language, const char* type, const char* filepath, 
+int stt_file_start(const char* language, const char* type, const char* filepath,
 			stt_file_audio_type_e audio_type, int sample_rate);
 
 /**
@@ -333,7 +333,7 @@ int stt_file_start(const char* language, const char* type, const char* filepath,
 *
 * @see stt_file_start()
 */
-int stt_file_cancel();
+int stt_file_cancel(void);
 
 
 /**
@@ -349,7 +349,7 @@ int stt_file_cancel();
 * @retval #STT_FILE_ERROR_INVALID_STATE Invalid state
 *
 * @pre This function should be called in stt_file_recognition_result_cb().
-* @post	This function invokes stt_file_result_time_cb() repeatedly for getting time information. 
+* @post	This function invokes stt_file_result_time_cb() repeatedly for getting time information.
 *
 * @see stt_file_result_time_cb()
 * @see stt_file_recognition_result_cb()
@@ -385,7 +385,7 @@ int stt_file_set_recognition_result_cb(stt_file_recognition_result_cb callback, 
 *
 * @see stt_file_set_recognition_result_cb()
 */
-int stt_file_unset_recognition_result_cb();
+int stt_file_unset_recognition_result_cb(void);
 
 /**
 * @brief Registers a callback function to be called when STT FILE state changes.
@@ -417,7 +417,7 @@ int stt_file_set_state_changed_cb(stt_file_state_changed_cb callback, void* user
 *
 * @see stt_file_set_state_changed_cb()
 */
-int stt_file_unset_state_changed_cb();
+int stt_file_unset_state_changed_cb(void);
 
 
 #ifdef __cplusplus

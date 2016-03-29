@@ -90,7 +90,7 @@ bool __stt_config_mgr_check_lang_is_valid(const char* engine_id, const char* lan
 				/*Get handle data from list*/
 				engine_lang = iter_lang->data;
 
-				SECURE_SLOG(LOG_DEBUG, stt_tag(), "  [%dth] %s", i, engine_lang);
+				SLOG(LOG_DEBUG, stt_tag(), "  [%dth] %s", i, engine_lang);
 
 				if (0 == strcmp(language, engine_lang)) {
 					return true;
@@ -150,7 +150,7 @@ int __stt_config_mgr_select_lang(const char* engine_id, char** language)
 					/* Default language is STT_BASE_LANGUAGE */
 					if (0 == strcmp(STT_BASE_LANGUAGE, engine_lang)) {
 						*language = strdup(engine_lang);
-						SECURE_SLOG(LOG_DEBUG, stt_tag(), "Selected language : %s", *language);
+						SLOG(LOG_DEBUG, stt_tag(), "Selected language : %s", *language);
 						return 0;
 					}
 				}
@@ -161,7 +161,7 @@ int __stt_config_mgr_select_lang(const char* engine_id, char** language)
 			/* Not support STT_BASE_LANGUAGE */
 			if (NULL != engine_lang) {
 				*language = strdup(engine_lang);
-				SECURE_SLOG(LOG_DEBUG, stt_tag(), "Selected language : %s", *language);
+				SLOG(LOG_DEBUG, stt_tag(), "Selected language : %s", *language);
 				return 0;
 			}
 		}
@@ -379,7 +379,7 @@ int __stt_config_set_auto_language()
 		free(g_config_info->language);
 		g_config_info->language = strdup(candidate_lang);
 
-		SECURE_SLOG(LOG_DEBUG, stt_tag(), "[Config] Language is auto. Set default language(%s)", g_config_info->language);
+		SLOG(LOG_DEBUG, stt_tag(), "[Config] Language is auto. Set default language(%s)", g_config_info->language);
 
 		/* Call all callbacks of client*/
 		GSList *iter = NULL;
@@ -421,7 +421,7 @@ int __stt_config_set_auto_language()
 			return -1;
 		}
 
-		SECURE_SLOG(LOG_DEBUG, stt_tag(), "[Config] Language is auto but display lang is not supported. Default language change(%s)", tmp_language);
+		SLOG(LOG_DEBUG, stt_tag(), "[Config] Language is auto but display lang is not supported. Default language change(%s)", tmp_language);
 
 		/* Call all callbacks of client*/
 		GSList *iter = NULL;
@@ -490,6 +490,7 @@ void __stt_config_release_client(int uid)
 	if (0 < g_slist_length(g_config_client_list)) {
 		SLOG(LOG_DEBUG, stt_tag(), "Client count (%d)", g_slist_length(g_config_client_list));
 	}
+	return;
 }
 
 void __stt_config_release_engine()
@@ -514,6 +515,7 @@ void __stt_config_release_engine()
 			iter = g_slist_nth(g_engine_list, 0);
 		}
 	}
+	return;
 }
 
 int __stt_config_mgr_check_engine_is_valid(const char* engine_id)
@@ -652,7 +654,7 @@ int stt_config_mgr_initialize(int uid)
 			get_uid = iter->data;
 
 			if (uid == *get_uid) {
-				SECURE_SLOG(LOG_WARN, stt_tag(), "[CONFIG] uid(%d) has already registered", uid);
+				SLOG(LOG_WARN, stt_tag(), "[CONFIG] uid(%d) has already registered", uid);
 				return 0;
 			}
 
@@ -673,7 +675,7 @@ int stt_config_mgr_initialize(int uid)
 		/* Add uid */
 		g_config_client_list = g_slist_append(g_config_client_list, temp_client);
 
-		SECURE_SLOG(LOG_WARN, stt_tag(), "[CONFIG] Add uid(%d) but config has already initialized", uid);
+		SLOG(LOG_WARN, stt_tag(), "[CONFIG] Add uid(%d) but config has already initialized", uid);
 		return STT_CONFIG_ERROR_NONE;
 	}
 
@@ -685,6 +687,7 @@ int stt_config_mgr_initialize(int uid)
 
 	g_engine_list = NULL;
 
+	SLOG(LOG_WARN, stt_tag(), "[CONFIG] default engine info(%s)", STT_DEFAULT_ENGINE_INFO);
 	dp  = opendir(STT_DEFAULT_ENGINE_INFO);
 	if (NULL != dp) {
 		do {
@@ -772,11 +775,11 @@ int stt_config_mgr_initialize(int uid)
 
 	/* print daemon config */
 	SLOG(LOG_DEBUG, stt_tag(), "== Daemon config ==");
-	SECURE_SLOG(LOG_DEBUG, stt_tag(), " engine : %s", g_config_info->engine_id);
-	SECURE_SLOG(LOG_DEBUG, stt_tag(), " setting : %s", g_config_info->setting);
-	SECURE_SLOG(LOG_DEBUG, stt_tag(), " auto language : %s", g_config_info->auto_lang ? "on" : "off");
-	SECURE_SLOG(LOG_DEBUG, stt_tag(), " language : %s", g_config_info->language);
-	SECURE_SLOG(LOG_DEBUG, stt_tag(), " silence detection : %s", g_config_info->silence_detection ? "on" : "off");
+	SLOG(LOG_DEBUG, stt_tag(), " engine : %s", g_config_info->engine_id);
+	SLOG(LOG_DEBUG, stt_tag(), " setting : %s", g_config_info->setting);
+	SLOG(LOG_DEBUG, stt_tag(), " auto language : %s", g_config_info->auto_lang ? "on" : "off");
+	SLOG(LOG_DEBUG, stt_tag(), " language : %s", g_config_info->language);
+	SLOG(LOG_DEBUG, stt_tag(), " silence detection : %s", g_config_info->silence_detection ? "on" : "off");
 	SLOG(LOG_DEBUG, stt_tag(), "===================");
 
 	if (0 != __stt_config_mgr_register_config_event()) {
@@ -1003,7 +1006,7 @@ int stt_config_mgr_set_engine(const char* engine)
 		return 0;
 	}
 
-	SECURE_SLOG(LOG_DEBUG, stt_tag(), "New engine id : %s", engine);
+	SLOG(LOG_DEBUG, stt_tag(), "New engine id : %s", engine);
 
 	GSList *iter = NULL;
 	stt_engine_info_s *engine_info = NULL;
@@ -1054,7 +1057,7 @@ int stt_config_mgr_set_engine(const char* engine)
 			/*Get handle data from list*/
 			lang = iter_lang->data;
 
-			SECURE_SLOG(LOG_DEBUG, stt_tag(), " %s", lang);
+			SLOG(LOG_DEBUG, stt_tag(), " %s", lang);
 			if (NULL != lang) {
 				if (0 == strcmp(lang, g_config_info->language)) {
 					/* language is valid */
@@ -1096,10 +1099,10 @@ int stt_config_mgr_set_engine(const char* engine)
 
 	if (true == is_valid_engine) {
 		SLOG(LOG_DEBUG, stt_tag(), "[Config] Engine changed");
-		SECURE_SLOG(LOG_DEBUG, stt_tag(), "  Engine : %s", g_config_info->engine_id);
-		SECURE_SLOG(LOG_DEBUG, stt_tag(), "  Setting : %s", g_config_info->setting);
-		SECURE_SLOG(LOG_DEBUG, stt_tag(), "  language : %s", g_config_info->language);
-		SECURE_SLOG(LOG_DEBUG, stt_tag(), "  Silence detection : %s", g_config_info->silence_detection ? "on" : "off");
+		SLOG(LOG_DEBUG, stt_tag(), "  Engine : %s", g_config_info->engine_id);
+		SLOG(LOG_DEBUG, stt_tag(), "  Setting : %s", g_config_info->setting);
+		SLOG(LOG_DEBUG, stt_tag(), "  language : %s", g_config_info->language);
+		SLOG(LOG_DEBUG, stt_tag(), "  Silence detection : %s", g_config_info->silence_detection ? "on" : "off");
 
 		if (0 != stt_parser_set_engine(g_config_info->engine_id, g_config_info->setting, g_config_info->language,
 			g_config_info->silence_detection)) {
@@ -1215,7 +1218,7 @@ int stt_config_mgr_get_language_list(const char* engine_id, stt_config_supported
 			/*Get handle data from list*/
 			lang = iter_lang->data;
 
-			SECURE_SLOG(LOG_DEBUG, stt_tag(), " %s", lang);
+			SLOG(LOG_DEBUG, stt_tag(), " %s", lang);
 			if (NULL != lang) {
 				if (false == callback(engine_info->uuid, lang, user_data))
 					break;
@@ -1464,11 +1467,11 @@ int __stt_config_mgr_print_engine_info()
 	while (NULL != iter) {
 		engine_info = iter->data;
 
-		SECURE_SLOG(LOG_DEBUG, stt_tag(), "[%dth]", i);
-		SECURE_SLOG(LOG_DEBUG, stt_tag(), " name : %s", engine_info->name);
-		SECURE_SLOG(LOG_DEBUG, stt_tag(), " id   : %s", engine_info->uuid);
-		SECURE_SLOG(LOG_DEBUG, stt_tag(), " setting : %s", engine_info->setting);
-		SECURE_SLOG(LOG_DEBUG, stt_tag(), " agreement : %s", engine_info->agreement);
+		SLOG(LOG_DEBUG, stt_tag(), "[%dth]", i);
+		SLOG(LOG_DEBUG, stt_tag(), " name : %s", engine_info->name);
+		SLOG(LOG_DEBUG, stt_tag(), " id   : %s", engine_info->uuid);
+		SLOG(LOG_DEBUG, stt_tag(), " setting : %s", engine_info->setting);
+		SLOG(LOG_DEBUG, stt_tag(), " agreement : %s", engine_info->agreement);
 
 		SLOG(LOG_DEBUG, stt_tag(), " languages");
 		GSList *iter_lang = NULL;
@@ -1482,7 +1485,7 @@ int __stt_config_mgr_print_engine_info()
 				/*Get handle data from list*/
 				lang = iter_lang->data;
 
-				SECURE_SLOG(LOG_DEBUG, stt_tag(), "  [%dth] %s", j, lang);
+				SLOG(LOG_DEBUG, stt_tag(), "  [%dth] %s", j, lang);
 
 				/*Get next item*/
 				iter_lang = g_slist_next(iter_lang);
@@ -1491,7 +1494,7 @@ int __stt_config_mgr_print_engine_info()
 		} else {
 			SLOG(LOG_ERROR, stt_tag(), "  language is NONE");
 		}
-		SECURE_SLOG(LOG_DEBUG, stt_tag(), " silence support : %s", 
+		SLOG(LOG_DEBUG, stt_tag(), " silence support : %s", 
 			engine_info->support_silence_detection ? "true" : "false");
 		iter = g_slist_next(iter);
 		i++;
@@ -1521,8 +1524,12 @@ int stt_config_mgr_reset_time_info()
 
 		g_time_list = g_slist_remove(g_time_list, data);
 		if (NULL != data) {
-			if (NULL == data->text)	free(data->text);
+			if (NULL != data->text) {
+				free(data->text);
+				data->text = NULL;
+			}
 			free(data);
+			data = NULL;
 		}
 
 		/*Get next item*/
@@ -1598,8 +1605,12 @@ int stt_config_mgr_foreach_time_info(stt_config_result_time_cb callback, void* u
 		if (NULL != data) {
 			temp_time = g_slist_remove(temp_time, data);
 
-			if (NULL == data->text)	free(data->text);
+			if (NULL != data->text) {
+				free(data->text);
+				data->text = NULL;
+			}
 			free(data);
+			data = NULL;
 		}
 
 		/*Get next item*/

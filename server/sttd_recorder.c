@@ -14,9 +14,11 @@
 #include <audio_io.h>
 #include <Ecore.h>
 #include <math.h>
+#include <pthread.h>
 #include <sound_manager.h>
 
 #include "stt_defs.h"
+#include "sttd_dbus.h"
 #include "sttd_recorder.h"
 #include "sttd_main.h"
 #include "sttp.h"
@@ -24,6 +26,8 @@
 
 #define FRAME_LENGTH 160
 #define BUFFER_LENGTH FRAME_LENGTH * 2
+
+static pthread_mutex_t sttd_audio_in_handle_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 typedef enum {
 	STTD_RECORDER_STATE_NONE = -1,
@@ -33,6 +37,7 @@ typedef enum {
 
 typedef struct {
 	int			engine_id;
+	int			uid;
 	audio_in_h		audio_h;
 	sttp_audio_type_e	audio_type;
 } stt_recorder_s;
@@ -46,8 +51,6 @@ static stt_recorder_audio_cb	g_audio_cb;
 static stt_recorder_interrupt_cb	g_interrupt_cb;
 
 static sttd_recorder_state	g_recorder_state = STTD_RECORDER_STATE_NONE;
-
-static FILE* g_pFile_vol;
 
 static int g_buffer_count;
 
@@ -82,7 +85,7 @@ const char* __stt_get_session_interrupt_code(sound_session_interrupted_code_e co
 void __sttd_recorder_sound_interrupted_cb(sound_session_interrupted_code_e code, void *user_data)
 {
 	SLOG(LOG_DEBUG, TAG_STTD, "[Recorder] Get the interrupt code from sound mgr : %s",
-		 __stt_get_session_interrupt_code(code));
+		__stt_get_session_interrupt_code(code));
 
 	if (SOUND_SESSION_INTERRUPTED_COMPLETED == code || SOUND_SESSION_INTERRUPTED_BY_EARJACK_UNPLUG == code)
 		return;
@@ -105,6 +108,10 @@ int sttd_recorder_initialize(stt_recorder_audio_cb audio_cb, stt_recorder_interr
 		return STTD_ERROR_INVALID_STATE;
 	}
 
+	if( 0 != pthread_mutex_init(&sttd_audio_in_handle_mutex, NULL)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to initialize audio in handle mutex.");
+	}
+
 	g_audio_cb = audio_cb;
 	g_interrupt_cb = interrupt_cb;
 	g_recorder_state = STTD_RECORDER_STATE_NONE;
@@ -123,6 +130,10 @@ int sttd_recorder_initialize(stt_recorder_audio_cb audio_cb, stt_recorder_interr
 
 int sttd_recorder_deinitialize()
 {
+	if( 0 != pthread_mutex_destroy(&sttd_audio_in_handle_mutex)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to destroy audio in handle mutex.");
+	}
+
 	if (0 != sound_manager_unset_session_interrupted_cb()) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to unset sound interrupt callback");
 	}
@@ -144,12 +155,6 @@ int sttd_recorder_deinitialize()
 		}
 
 		iter = g_slist_nth(g_recorder_list, 0);
-	}
-
-	if (0 == access(STT_AUDIO_VOLUME_PATH, R_OK)) {
-		if (0 != remove(STT_AUDIO_VOLUME_PATH)) {
-			SLOG(LOG_WARN, TAG_STTD, "[Recorder WARN] Fail to remove volume file");
-		}
 	}
 
 	g_recorder_state = STTD_RECORDER_STATE_NONE;
@@ -187,7 +192,7 @@ int sttd_recorder_unset_audio_session()
 	return 0;
 }
 
-int sttd_recorder_create(int engine_id, sttp_audio_type_e type, int channel, unsigned int sample_rate)
+int sttd_recorder_create(int engine_id, int uid, sttp_audio_type_e type, int channel, unsigned int sample_rate)
 {
 	/* Check engine id is valid */
 	if (NULL != __get_recorder(engine_id)) {
@@ -211,8 +216,8 @@ int sttd_recorder_create(int engine_id, sttp_audio_type_e type, int channel, uns
 	switch (type) {
 		case STTP_AUDIO_TYPE_PCM_S16_LE:	audio_type = AUDIO_SAMPLE_TYPE_S16_LE;	break;
 		case STTP_AUDIO_TYPE_PCM_U8:		audio_type = AUDIO_SAMPLE_TYPE_U8;	break;
-		default:	
-			SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Invalid Audio Type"); 
+		default:
+			SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Invalid Audio Type");
 			return STTD_ERROR_OPERATION_FAILED;
 			break;
 	}
@@ -233,6 +238,7 @@ int sttd_recorder_create(int engine_id, sttp_audio_type_e type, int channel, uns
 	}
 
 	recorder->engine_id = engine_id;
+	recorder->uid = uid;
 	recorder->audio_h = temp_in_h;
 	recorder->audio_type = type;
 
@@ -245,11 +251,16 @@ int sttd_recorder_create(int engine_id, sttp_audio_type_e type, int channel, uns
 
 int sttd_recorder_destroy(int engine_id)
 {
+	// critical section required because this function can be called from stt engine thread context
+	SLOG(LOG_WARN, TAG_STTD, "[Recorder WARNING] Enter critical section");
+	pthread_mutex_lock(&sttd_audio_in_handle_mutex);
+
 	/* Check engine id is valid */
 	stt_recorder_s* recorder;
 	recorder = __get_recorder(engine_id);
 	if (NULL == recorder) {
 		SLOG(LOG_WARN, TAG_STTD, "[Recorder WARNING] Engine id is not valid");
+		pthread_mutex_unlock(&sttd_audio_in_handle_mutex);
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
@@ -271,6 +282,9 @@ int sttd_recorder_destroy(int engine_id)
 	g_recorder_list = g_slist_remove(g_recorder_list, recorder);
 
 	free(recorder);
+
+	pthread_mutex_unlock(&sttd_audio_in_handle_mutex);
+	SLOG(LOG_WARN, TAG_STTD, "[Recorder WARNING] Leave critical section");
 
 	return 0;
 }
@@ -348,11 +362,12 @@ Eina_Bool __read_audio_func(void *data)
 		return EINA_FALSE;
 	}
 
-	float vol_db = get_volume_decibel(g_buffer, BUFFER_LENGTH, recorder->audio_type);
-
-	rewind(g_pFile_vol);
-
-	fwrite((void*)(&vol_db), sizeof(vol_db), 1, g_pFile_vol);
+	if (0 == g_buffer_count % 30) {
+		float vol_db = get_volume_decibel(g_buffer, BUFFER_LENGTH, recorder->audio_type);
+		if (0 != sttdc_send_set_volume(recorder->uid, vol_db)) {
+			SLOG(LOG_ERROR, TAG_STTD, "[Recorder] Fail to send recording volume(%f)", vol_db);
+		}
+	}
 
 	/* Audio read log */
 	if (0 == g_buffer_count % 50) {
@@ -399,12 +414,6 @@ int sttd_recorder_start(int engine_id)
 	g_recorder_state = STTD_RECORDER_STATE_RECORDING;
 	g_recording_engine_id = engine_id;
 
-	g_pFile_vol = fopen(STT_AUDIO_VOLUME_PATH, "wb+");
-	if (!g_pFile_vol) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to create Volume File");
-		return -1;
-	}
-
 	g_buffer_count = 0;
 
 #ifdef BUF_SAVE_MODE
@@ -445,8 +454,6 @@ int sttd_recorder_stop(int engine_id)
 
 	g_recorder_state = STTD_RECORDER_STATE_READY;
 	g_recording_engine_id = -1;
-
-	fclose(g_pFile_vol);
 
 #ifdef BUF_SAVE_MODE
 	fclose(g_pFile);

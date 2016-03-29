@@ -108,7 +108,7 @@ int stt_parser_get_engine_info(const char* path, stt_engine_info_s** engine_info
 				temp->name = strdup((char*)key);
 				xmlFree(key);
 			} else {
-				SECURE_SLOG(LOG_ERROR, stt_tag(), "[ERROR] <%s> has no content", STT_TAG_ENGINE_NAME);
+				SLOG(LOG_ERROR, stt_tag(), "[ERROR] <%s> has no content", STT_TAG_ENGINE_NAME);
 			}
 		} else if (0 == xmlStrcmp(cur->name, (const xmlChar *)STT_TAG_ENGINE_ID)) {
 			key = xmlNodeGetContent(cur);
@@ -118,7 +118,7 @@ int stt_parser_get_engine_info(const char* path, stt_engine_info_s** engine_info
 				temp->uuid = strdup((char*)key);
 				xmlFree(key);
 			} else {
-				SECURE_SLOG(LOG_ERROR, stt_tag(), "[ERROR] <%s> has no content", STT_TAG_ENGINE_ID);
+				SLOG(LOG_ERROR, stt_tag(), "[ERROR] <%s> has no content", STT_TAG_ENGINE_ID);
 			}
 		} else if (0 == xmlStrcmp(cur->name, (const xmlChar *)STT_TAG_ENGINE_SETTING)) {
 			key = xmlNodeGetContent(cur);
@@ -155,7 +155,7 @@ int stt_parser_get_engine_info(const char* path, stt_engine_info_s** engine_info
 						temp->languages = g_slist_append(temp->languages, temp_lang);
 						xmlFree(key);
 					} else {
-						SECURE_SLOG(LOG_ERROR, stt_tag(), "[ERROR] <%s> has no content", STT_TAG_ENGINE_LANGUAGE);
+						SLOG(LOG_ERROR, stt_tag(), "[ERROR] <%s> has no content", STT_TAG_ENGINE_LANGUAGE);
 					}
 				}
 
@@ -173,7 +173,7 @@ int stt_parser_get_engine_info(const char* path, stt_engine_info_s** engine_info
 
 				xmlFree(key);
 			} else {
-				SECURE_SLOG(LOG_ERROR, stt_tag(), "[ERROR] <%s> has no content", STT_TAG_ENGINE_SILENCE_SUPPORT);
+				SLOG(LOG_ERROR, stt_tag(), "[ERROR] <%s> has no content", STT_TAG_ENGINE_SILENCE_SUPPORT);
 			}
 		} else {
 
@@ -186,7 +186,7 @@ int stt_parser_get_engine_info(const char* path, stt_engine_info_s** engine_info
 
 	if (NULL == temp->name || NULL == temp->uuid) {
 		/* Invalid engine */
-		SECURE_SLOG(LOG_ERROR, stt_tag(), "[ERROR] Invalid engine : %s", path);
+		SLOG(LOG_ERROR, stt_tag(), "[ERROR] Invalid engine : %s", path);
 		stt_parser_free_engine_info(temp);
 		return -1;
 	}
@@ -235,9 +235,9 @@ int stt_parser_print_engine_info(stt_engine_info_s* engine_info)
 		return -1;
 
 	SLOG(LOG_DEBUG, stt_tag(), "== get engine info ==");
-	SECURE_SLOG(LOG_DEBUG, stt_tag(), " name : %s", engine_info->name);
-	SECURE_SLOG(LOG_DEBUG, stt_tag(), " id   : %s", engine_info->uuid);
-	if (NULL != engine_info->setting)	SECURE_SLOG(LOG_DEBUG, stt_tag(), " setting : %s", engine_info->setting);
+	SLOG(LOG_DEBUG, stt_tag(), " name : %s", engine_info->name);
+	SLOG(LOG_DEBUG, stt_tag(), " id   : %s", engine_info->uuid);
+	if (NULL != engine_info->setting)	SLOG(LOG_DEBUG, stt_tag(), " setting : %s", engine_info->setting);
 
 	SLOG(LOG_DEBUG, stt_tag(), " languages");
 	GSList *iter = NULL;
@@ -251,7 +251,7 @@ int stt_parser_print_engine_info(stt_engine_info_s* engine_info)
 			/*Get handle data from list*/
 			lang = iter->data;
 
-			SECURE_SLOG(LOG_DEBUG, stt_tag(), "  [%dth] %s", i, lang);
+			SLOG(LOG_DEBUG, stt_tag(), "  [%dth] %s", i, lang);
 
 			/*Get next item*/
 			iter = g_slist_next(iter);
@@ -260,7 +260,7 @@ int stt_parser_print_engine_info(stt_engine_info_s* engine_info)
 	} else {
 		SLOG(LOG_ERROR, stt_tag(), "  language is NONE");
 	}
-	SECURE_SLOG(LOG_DEBUG, stt_tag(), " silence support : %s", engine_info->support_silence_detection ? "true" : "false");
+	SLOG(LOG_DEBUG, stt_tag(), " silence support : %s", engine_info->support_silence_detection ? "true" : "false");
 	SLOG(LOG_DEBUG, stt_tag(), "=====================");
 
 	return 0;
@@ -282,7 +282,7 @@ int stt_parser_load_config(stt_config_s** config_info)
 	if (doc == NULL) {
 		doc = xmlParseFile(STT_DEFAULT_CONFIG);
 		if (doc == NULL) {
-			SECURE_SLOG(LOG_ERROR, stt_tag(), "[ERROR] Fail to parse file error : %s", STT_DEFAULT_CONFIG);
+			SLOG(LOG_ERROR, stt_tag(), "[ERROR] Fail to parse file error : %s", STT_DEFAULT_CONFIG);
 			return -1;
 		}
 		is_default_open = true;
@@ -296,7 +296,7 @@ int stt_parser_load_config(stt_config_s** config_info)
 	}
 
 	if (xmlStrcmp(cur->name, (const xmlChar *) STT_TAG_CONFIG_BASE_TAG)) {
-		SECURE_SLOG(LOG_ERROR, stt_tag(), "[ERROR] The wrong type, root node is NOT %s", STT_TAG_CONFIG_BASE_TAG);
+		SLOG(LOG_ERROR, stt_tag(), "[ERROR] The wrong type, root node is NOT %s", STT_TAG_CONFIG_BASE_TAG);
 		xmlFreeDoc(doc);
 		return -1;
 	}
@@ -335,7 +335,7 @@ int stt_parser_load_config(stt_config_s** config_info)
 		} else if (0 == xmlStrcmp(cur->name, (const xmlChar *)STT_TAG_CONFIG_ENGINE_SETTING)) {
 			key = xmlNodeGetContent(cur);
 			if (NULL != key) {
-				/*SECURE_SLOG(LOG_DEBUG, stt_tag(), "Setting path : %s", (char *)key); */
+				/*SLOG(LOG_DEBUG, stt_tag(), "Setting path : %s", (char *)key); */
 				if (NULL != temp->setting)	free(temp->setting);
 				temp->setting = strdup((char*)key);
 				xmlFree(key);
@@ -346,7 +346,7 @@ int stt_parser_load_config(stt_config_s** config_info)
 		} else if (0 == xmlStrcmp(cur->name, (const xmlChar *)STT_TAG_CONFIG_AUTO_LANGUAGE)) {
 			key = xmlNodeGetContent(cur);
 			if (NULL != key) {
-				/*SECURE_SLOG(LOG_DEBUG, stt_tag(), "Auto language : %s", (char *)key); */
+				/*SLOG(LOG_DEBUG, stt_tag(), "Auto language : %s", (char *)key); */
 
 				if (0 == xmlStrcmp(key, (const xmlChar *)"on")) {
 					temp->auto_lang = true;
@@ -428,7 +428,7 @@ int stt_parser_set_engine(const char* engine_id, const char* setting, const char
 	}
 
 	if (xmlStrcmp(cur->name, (const xmlChar *) STT_TAG_CONFIG_BASE_TAG)) {
-		SECURE_SLOG(LOG_ERROR, stt_tag(), "[ERROR] The wrong type, root node is NOT %s", STT_TAG_CONFIG_BASE_TAG);
+		SLOG(LOG_ERROR, stt_tag(), "[ERROR] The wrong type, root node is NOT %s", STT_TAG_CONFIG_BASE_TAG);
 		return -1;
 	}
 
@@ -480,7 +480,7 @@ int stt_parser_set_language(const char* language)
 	}
 
 	if (xmlStrcmp(cur->name, (const xmlChar *) STT_TAG_CONFIG_BASE_TAG)) {
-		SECURE_SLOG(LOG_ERROR, stt_tag(), "[ERROR] The wrong type, root node is NOT %s", STT_TAG_CONFIG_BASE_TAG);
+		SLOG(LOG_ERROR, stt_tag(), "[ERROR] The wrong type, root node is NOT %s", STT_TAG_CONFIG_BASE_TAG);
 		return -1;
 	}
 
@@ -562,7 +562,7 @@ int stt_parser_set_silence_detection(bool value)
 	}
 
 	if (xmlStrcmp(cur->name, (const xmlChar *) STT_TAG_CONFIG_BASE_TAG)) {
-		SECURE_SLOG(LOG_ERROR, stt_tag(), "[ERROR] The wrong type, root node is NOT %s", STT_TAG_CONFIG_BASE_TAG);
+		SLOG(LOG_ERROR, stt_tag(), "[ERROR] The wrong type, root node is NOT %s", STT_TAG_CONFIG_BASE_TAG);
 		return -1;
 	}
 
@@ -605,7 +605,7 @@ int stt_parser_find_config_changed(char** engine, char** setting, int* auto_lang
 
 	doc = xmlParseFile(STT_CONFIG);
 	if (doc == NULL) {
-		SECURE_SLOG(LOG_ERROR, stt_tag(), "[ERROR] Fail to parse file error : %s", STT_CONFIG);
+		SLOG(LOG_ERROR, stt_tag(), "[ERROR] Fail to parse file error : %s", STT_CONFIG);
 		return -1;
 	}
 
@@ -618,7 +618,7 @@ int stt_parser_find_config_changed(char** engine, char** setting, int* auto_lang
 	}
 
 	if (xmlStrcmp(cur_new->name, (const xmlChar*)STT_TAG_CONFIG_BASE_TAG) || xmlStrcmp(cur_old->name, (const xmlChar*)STT_TAG_CONFIG_BASE_TAG)) {
-		SECURE_SLOG(LOG_ERROR, stt_tag(), "[ERROR] The wrong type, root node is NOT %s", STT_TAG_CONFIG_BASE_TAG);
+		SLOG(LOG_ERROR, stt_tag(), "[ERROR] The wrong type, root node is NOT %s", STT_TAG_CONFIG_BASE_TAG);
 		xmlFreeDoc(doc);
 		return -1;
 	}
@@ -643,7 +643,7 @@ int stt_parser_find_config_changed(char** engine, char** setting, int* auto_lang
 					key_new = xmlNodeGetContent(cur_new);
 					if (NULL != key_new) {
 						if (0 != xmlStrcmp(key_old, key_new)) {
-							SECURE_SLOG(LOG_DEBUG, stt_tag(), "Old engine id(%s), New engine(%s)", (char*)key_old, (char*)key_new);
+							SLOG(LOG_DEBUG, stt_tag(), "Old engine id(%s), New engine(%s)", (char*)key_old, (char*)key_new);
 							if (NULL != *engine)	free(*engine);
 							*engine = strdup((char*)key_new);
 						}
@@ -701,7 +701,7 @@ int stt_parser_find_config_changed(char** engine, char** setting, int* auto_lang
 					key_new = xmlNodeGetContent(cur_new);
 					if (NULL != key_new) {
 						if (0 != xmlStrcmp(key_old, key_new)) {
-							SECURE_SLOG(LOG_DEBUG, stt_tag(), "Old language(%s), New language(%s)", (char*)key_old, (char*)key_new);
+							SLOG(LOG_DEBUG, stt_tag(), "Old language(%s), New language(%s)", (char*)key_old, (char*)key_new);
 							if (NULL != *language)	free(*language);
 							*language = strdup((char*)key_new);
 						}
@@ -719,7 +719,7 @@ int stt_parser_find_config_changed(char** engine, char** setting, int* auto_lang
 					key_new = xmlNodeGetContent(cur_new);
 					if (NULL != key_new) {
 						if (0 != xmlStrcmp(key_old, key_new)) {
-							SECURE_SLOG(LOG_DEBUG, stt_tag(), "Old silence(%s), New silence(%s)", (char*)key_old, (char*)key_new);
+							SLOG(LOG_DEBUG, stt_tag(), "Old silence(%s), New silence(%s)", (char*)key_old, (char*)key_new);
 							if (0 == xmlStrcmp(key_new, (const xmlChar*)"on")) {
 								*silence = 1;
 							} else {
@@ -760,7 +760,7 @@ int stt_parser_set_time_info(GSList* time_list)
 	}
 
 	if (-1 == remove(STT_TIME_INFO_PATH)) {
-		SECURE_SLOG(LOG_WARN, stt_tag(), "[PLAYER WARNING] Fail to remove file(%s)", STT_TIME_INFO_PATH);
+		SLOG(LOG_WARN, stt_tag(), "[PLAYER WARNING] Fail to remove file(%s)", STT_TIME_INFO_PATH);
 	}
 
 	xmlDocPtr doc = NULL;
@@ -768,7 +768,7 @@ int stt_parser_set_time_info(GSList* time_list)
 
 	doc = xmlNewDoc((const xmlChar*)"1.0");
 	if (doc == NULL) {
-		SECURE_SLOG(LOG_ERROR, stt_tag(), "[ERROR] Fail to make new doc");
+		SLOG(LOG_ERROR, stt_tag(), "[ERROR] Fail to make new doc");
 		return -1;
 	}
 
@@ -791,10 +791,15 @@ int stt_parser_set_time_info(GSList* time_list)
 	while (NULL != iter) {
 		data = iter->data;
 
+		if (NULL == data) {
+			SLOG(LOG_DEBUG, stt_tag(), "data is NULL");
+			continue;
+		}
+
 		xmlNodePtr temp_node = NULL;
 
 		SLOG(LOG_DEBUG, stt_tag(), "[%d] i(%d) t(%s) s(%d) e(%d)",
-			 data->index, data->event, data->text, data->start_time, data->end_time);
+			data->index, data->event, data->text, data->start_time, data->end_time);
 
 		temp_node = xmlNewNode(NULL, (const xmlChar*)STT_TAG_TIME_TEXT);
 		xmlNodeSetContent(temp_node, (const xmlChar*)data->text);
@@ -912,7 +917,7 @@ int stt_parser_get_time_info(GSList** time_list)
 						temp_info->text = strdup((char*)key);
 						xmlFree(key);
 					} else {
-						SECURE_SLOG(LOG_ERROR, stt_tag(), "[ERROR] <%s> has no content", STT_TAG_TIME_TEXT);
+						SLOG(LOG_ERROR, stt_tag(), "[ERROR] <%s> has no content", STT_TAG_TIME_TEXT);
 						free(temp_info);
 						break;
 					}
@@ -929,7 +934,7 @@ int stt_parser_get_time_info(GSList** time_list)
 						temp_info->start_time = atoi((char*)key);
 						xmlFree(key);
 					} else {
-						SECURE_SLOG(LOG_ERROR, stt_tag(), "[ERROR] <%s> has no content", STT_TAG_TIME_START);
+						SLOG(LOG_ERROR, stt_tag(), "[ERROR] <%s> has no content", STT_TAG_TIME_START);
 						if (NULL != temp_info->text)	free(temp_info->text);
 						free(temp_info);
 						break;
@@ -947,7 +952,7 @@ int stt_parser_get_time_info(GSList** time_list)
 						temp_info->end_time = atoi((char*)key);
 						xmlFree(key);
 					} else {
-						SECURE_SLOG(LOG_ERROR, stt_tag(), "[ERROR] <%s> has no content", STT_TAG_TIME_END);
+						SLOG(LOG_ERROR, stt_tag(), "[ERROR] <%s> has no content", STT_TAG_TIME_END);
 						if (NULL != temp_info->text)	free(temp_info->text);
 						free(temp_info);
 						break;
@@ -973,7 +978,7 @@ int stt_parser_get_time_info(GSList** time_list)
 int stt_parser_clear_time_info()
 {
 	if (-1 == remove(STT_TIME_INFO_PATH)) {
-		SECURE_SLOG(LOG_WARN, stt_tag(), "[PLAYER WARNING] Fail to remove file(%s)", STT_TIME_INFO_PATH);
+		/* SLOG(LOG_WARN, stt_tag(), "[PLAYER WARNING] Fail to remove file(%s)", STT_TIME_INFO_PATH); */
 	}
 
 	return 0;

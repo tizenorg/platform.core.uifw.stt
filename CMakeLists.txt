@@ -25,9 +25,7 @@ SET(PREFIX ${CMAKE_INSTALL_PREFIX})
 SET(EXEC_PREFIX "${PREFIX}")
 SET(VERSION 0.2.54)
 
-IF (LIBDIR MATCHES "/usr/lib64")
-SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DLIB64")
-ENDIF (LIBDIR)
+ADD_DEFINITIONS("-DSTT_LIBDIR=\"${LIBDIR}\"")
 
 ## Include common directory ##
 INCLUDE_DIRECTORIES("${CMAKE_SOURCE_DIR}/common")
@@ -57,7 +55,9 @@ ADD_SUBDIRECTORY(server)
 ADD_SUBDIRECTORY(test)
 
 ## config ##
-INSTALL(FILES ${CMAKE_SOURCE_DIR}/stt-config.xml DESTINATION /usr/lib/voice/stt/1.0)
+INSTALL(FILES ${CMAKE_SOURCE_DIR}/stt-config.xml DESTINATION ${LIBDIR}/voice/stt/1.0)
 
-INSTALL(FILES ${CMAKE_SOURCE_DIR}/stt-server.conf DESTINATION /etc/dbus-1/system.d)
-INSTALL(FILES ${CMAKE_SOURCE_DIR}/org.tizen.voice.sttserver.service DESTINATION /usr/share/dbus-1/system-services)
+## Dbus service ##
+INSTALL(FILES ${CMAKE_SOURCE_DIR}/org.tizen.voice.sttserver.service DESTINATION /usr/share/dbus-1/services)
+
+INSTALL(FILES ${CMAKE_SOURCE_DIR}/stt-server.conf DESTINATION /etc/dbus-1/session.d)

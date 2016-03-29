@@ -77,17 +77,17 @@ static silence_dectection_callback g_silence_cb;
 
 
 /** callback functions */
-void __result_cb(sttp_result_event_e event, const char* type, const char** data, int data_count, 
+void __result_cb(sttp_result_event_e event, const char* type, const char** data, int data_count,
 		 const char* msg, void* time_info, void *user_data);
 
-bool __result_time_cb(int index, sttp_result_time_event_e event, const char* text, 
+bool __result_time_cb(int index, sttp_result_time_event_e event, const char* text,
 		      long start_time, long end_time, void* user_data);
 
 void __detect_silence_cb(sttp_silence_type_e type, void* user_data);
 
 bool __supported_language_cb(const char* language, void* user_data);
 
-void __engine_info_cb(const char* engine_uuid, const char* engine_name, const char* setting_ug_name, 
+void __engine_info_cb(const char* engine_uuid, const char* engine_name, const char* setting_ug_name,
 		      bool use_network, void* user_data);
 
 /*
@@ -102,7 +102,7 @@ int __log_enginelist();
 /*
 * STT Engine Agent Interfaces
 */
-int sttd_engine_agent_init(result_callback result_cb, result_time_callback time_cb, 
+int sttd_engine_agent_init(result_callback result_cb, result_time_callback time_cb,
 			   silence_dectection_callback silence_cb)
 {
 	/* initialize static data */
@@ -220,7 +220,7 @@ int sttd_engine_agent_release()
 	return 0;
 }
 
-void __engine_info_cb(const char* engine_uuid, const char* engine_name, const char* setting_ug_name, 
+void __engine_info_cb(const char* engine_uuid, const char* engine_name, const char* setting_ug_name,
 		      bool use_network, void* user_data)
 {
 	sttengine_info_s* temp = (sttengine_info_s*)user_data;
@@ -737,7 +737,7 @@ int sttd_engine_agent_load_current_engine(int uid, const char* engine_uuid)
 		return STTD_ERROR_OPERATION_FAILED;
 	}
 
-	ret = sttd_recorder_create(engine->engine_id, atype, channels, rate);
+	ret = sttd_recorder_create(engine->engine_id, uid, atype, channels, rate);
 	if (0 != ret) {
 		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to create recorder : %d %s", engine->engine_id, engine->engine_name);
 		return STTD_ERROR_OPERATION_FAILED;
@@ -1066,7 +1066,7 @@ int __set_option(sttengine_info_s* engine, int silence)
 	return 0;
 }
 
-int sttd_engine_agent_recognize_start_engine(int uid, const char* lang, const char* recognition_type, 
+int sttd_engine_agent_recognize_start_engine(int uid, const char* lang, const char* recognition_type,
 				      int silence, void* user_param)
 {
 	if (false == g_agent_init) {
@@ -1143,7 +1143,7 @@ int sttd_engine_agent_recognize_start_engine(int uid, const char* lang, const ch
 
 	SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] Create recorder");
 
-	ret = sttd_recorder_create(engine->engine_id, atype, channels, rate);
+	ret = sttd_recorder_create(engine->engine_id, uid, atype, channels, rate);
 	if (0 != ret) {
 		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to create recorder : %d %s", engine->engine_id, engine->engine_name);
 		return STTD_ERROR_OPERATION_FAILED;
@@ -1396,11 +1396,11 @@ int sttd_engine_agent_set_default_engine(const char* engine_uuid)
 			data = iter->data;
 
 			if (true == data->use_default_engine) {
-				SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] uid(%d) change engine from id(%d) to id(%d)", 
+				SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] uid(%d) change engine from id(%d) to id(%d)",
 					data->uid, data->engine_id, engine->engine_id);
 
 				if (0 != sttd_engine_agent_load_current_engine(data->uid, NULL)) {
-					SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to load current engine : uid(%d)", data->uid);
+					SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to load current engine : uid(%d)", data->uid);
 				}
 			}
 
@@ -1446,7 +1446,7 @@ int sttd_engine_agent_set_silence_detection(bool value)
 int sttd_engine_agent_check_app_agreed(int uid, const char* appid, bool* result)
 {
 	if (false == g_agent_init) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized"); 
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized");
 		return STTD_ERROR_OPERATION_FAILED;
 	}
 
@@ -1479,7 +1479,7 @@ int sttd_engine_agent_check_app_agreed(int uid, const char* appid, bool* result)
 * STT Engine Callback Functions											`				  *
 */
 
-void __result_cb(sttp_result_event_e event, const char* type, const char** data, int data_count, 
+void __result_cb(sttp_result_event_e event, const char* type, const char** data, int data_count,
 		 const char* msg, void* time_info, void *user_data)
 {
 	if (false == g_agent_init) {

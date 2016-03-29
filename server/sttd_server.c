@@ -11,6 +11,7 @@
 *  limitations under the License.
 */
 
+#include <pthread.h>
 #include <sound_manager.h>
 #include <wav_player.h>
 
@@ -22,6 +23,9 @@
 #include "sttd_main.h"
 #include "sttd_recorder.h"
 #include "sttd_server.h"
+
+static pthread_mutex_t sttpe_result_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t sttpe_result_time_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
 /*
@@ -36,11 +40,12 @@ Ecore_Timer*	g_processing_timer = NULL;
 
 static int g_recording_log_count = 0;
 
+static GList *g_proc_list = NULL;
+
 /*
 * STT Server Callback Functions
 */
-
-Eina_Bool __stop_by_silence(void *data)
+void __stop_by_silence(void *data)
 {
 	SLOG(LOG_DEBUG, TAG_STTD, "===== Stop by silence detection");
 
@@ -52,7 +57,7 @@ Eina_Bool __stop_by_silence(void *data)
 	if (0 != uid) {
 		ret = sttd_server_stop(uid);
 		if (0 > ret) {
-			return EINA_FALSE;
+			return;
 		}
 
 		if (STTD_RESULT_STATE_DONE == ret) {
@@ -72,7 +77,7 @@ Eina_Bool __stop_by_silence(void *data)
 	SLOG(LOG_DEBUG, TAG_STTD, "=====");
 	SLOG(LOG_DEBUG, TAG_STTD, "  ");
 
-	return EINA_FALSE;
+	return;
 }
 
 static void __cancel_recognition_internal()
@@ -105,7 +110,7 @@ static void __cancel_recognition_internal()
 	}
 }
 
-Eina_Bool __cancel_by_error(void *data)
+static void __cancel_by_error(void *data)
 {
 	SLOG(LOG_DEBUG, TAG_STTD, "===== Cancel by error");
 
@@ -114,7 +119,7 @@ Eina_Bool __cancel_by_error(void *data)
 	SLOG(LOG_DEBUG, TAG_STTD, "=====");
 	SLOG(LOG_DEBUG, TAG_STTD, "  ");
 
-	return EINA_FALSE;
+	return;
 }
 
 int __server_audio_recorder_callback(const void* data, const unsigned int length)
@@ -124,7 +129,7 @@ int __server_audio_recorder_callback(const void* data, const unsigned int length
 
 	if (NULL == data || 0 == length) {
 		SLOG(LOG_WARN, TAG_STTD, "[Server WARNING] Recording data is not valid");
-		ecore_timer_add(0, __cancel_by_error, NULL);
+		ecore_main_loop_thread_safe_call_async(__cancel_by_error, NULL);
 		return -1;
 	}
 
@@ -132,12 +137,12 @@ int __server_audio_recorder_callback(const void* data, const unsigned int length
 	if (0 != uid) {
 		ret = sttd_engine_agent_set_recording_data(uid, data, length);
 		if (ret < 0) {
-			ecore_timer_add(0, __cancel_by_error, NULL);
+			ecore_main_loop_thread_safe_call_async(__cancel_by_error, NULL);
 			return -1;
 		}
 		g_recording_log_count++;
 		if (200 <= g_recording_log_count) {
-			SECURE_SLOG(LOG_DEBUG, TAG_STTD, "=== Set recording data ===");
+			SLOG(LOG_DEBUG, TAG_STTD, "=== Set recording data ===");
 			g_recording_log_count = 0;
 		}
 	} else {
@@ -162,7 +167,7 @@ void __server_audio_interrupt_callback()
 	SLOG(LOG_DEBUG, TAG_STTD, "  ");
 }
 
-Eina_Bool __cancel_by_no_record(void *data)
+void __cancel_by_no_record(void *data)
 {
 	SLOG(LOG_DEBUG, TAG_STTD, "===== Cancel by no record");
 
@@ -171,13 +176,16 @@ Eina_Bool __cancel_by_no_record(void *data)
 	SLOG(LOG_DEBUG, TAG_STTD, "=====");
 	SLOG(LOG_DEBUG, TAG_STTD, "  ");
 
-	return EINA_FALSE;
+	return;
 }
 
 void __server_recognition_result_callback(sttp_result_event_e event, const char* type,
 					const char** data, int data_count, const char* msg, void *user_data)
 {
-	SLOG(LOG_DEBUG, TAG_STTD, "===== Recognition Result Callback");
+	// critical section
+	pthread_mutex_lock(&sttpe_result_mutex);
+
+	SLOG(LOG_DEBUG, TAG_STTD, "===== RESULT event[%d] type[%s] data[%p] data_count[%d]", event, type, data, data_count);
 
 	/* check uid */
 	int uid = stt_client_get_current_recognition();
@@ -187,17 +195,18 @@ void __server_recognition_result_callback(sttp_result_event_e event, const char*
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] uid is NOT valid ");
 		SLOG(LOG_DEBUG, TAG_STTD, "=====");
 		SLOG(LOG_DEBUG, TAG_STTD, "  ");
+		pthread_mutex_unlock(&sttpe_result_mutex);
 		return;
 	}
 
-	SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[Server] uid (%d), event(%d)", uid, event);
+	SLOG(LOG_DEBUG, TAG_STTD, "[Server] uid (%d), event(%d)", uid, event);
 
 	/* send result to client */
 	if (STTP_RESULT_EVENT_FINAL_RESULT == event) {
 		if (APP_STATE_PROCESSING != state) {
 			SLOG(LOG_WARN, TAG_STTD, "[Server WARNING] Current state is NOT 'Processing'.");
 		}
-		SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[Server] the size of result from engine is '%d'", data_count);
+		SLOG(LOG_DEBUG, TAG_STTD, "[Server] the size of result from engine is '%d'", data_count);
 
 		/* Delete timer for processing time out */
 		if (NULL != g_processing_timer)	{
@@ -233,7 +242,7 @@ void __server_recognition_result_callback(sttp_result_event_e event, const char*
 		stt_client_unset_current_recognition();
 
 	} else if (STTP_RESULT_EVENT_PARTIAL_RESULT == event) {
-		SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[Server] The partial result from engine is event[%d] data_count[%d]", event,  data_count);
+		SLOG(LOG_DEBUG, TAG_STTD, "[Server] The partial result from engine is event[%d] data_count[%d]", event,  data_count);
 
 		sttd_config_time_save();
 		sttd_config_time_reset();
@@ -276,25 +285,32 @@ void __server_recognition_result_callback(sttp_result_event_e event, const char*
 
 	SLOG(LOG_DEBUG, TAG_STTD, "=====");
 	SLOG(LOG_DEBUG, TAG_STTD, "  ");
+	pthread_mutex_unlock(&sttpe_result_mutex);
 
 	return;
 }
 
 bool __server_result_time_callback(int index, sttp_result_time_event_e event, const char* text, long start_time, long end_time, void* user_data)
 {
+	pthread_mutex_lock(&sttpe_result_time_mutex);
+
 	SLOG(LOG_DEBUG, TAG_STTD, "[Server] index(%d) event(%d) text(%s) start(%ld) end(%ld)",
-		 index, event, text, start_time, end_time);
+		index, event, text, start_time, end_time);
 
 	if (0 == index) {
 		int ret;
 		ret = sttd_config_time_add(index, (int)event, text, start_time, end_time);
 		if (0 != ret) {
 			SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to add time info");
+			pthread_mutex_unlock(&sttpe_result_time_mutex);
 			return false;
 		}
 	} else {
+		pthread_mutex_unlock(&sttpe_result_time_mutex);
 		return false;
 	}
+
+	pthread_mutex_unlock(&sttpe_result_time_mutex);
 
 	return true;
 }
@@ -317,11 +333,11 @@ void __server_silence_dectection_callback(sttp_silence_type_e type, void *user_p
 		}
 
 		if (STTP_SILENCE_TYPE_NO_RECORD_TIMEOUT == type) {
-			SECURE_SLOG(LOG_DEBUG, TAG_STTD, "Silence Detection type - No Record");
-			ecore_timer_add(0, __cancel_by_no_record, NULL);
+			SLOG(LOG_DEBUG, TAG_STTD, "Silence Detection type - No Record");
+			ecore_main_loop_thread_safe_call_async(__cancel_by_no_record, NULL);
 		} else if (STTP_SILENCE_TYPE_END_OF_SPEECH_DETECTED == type) {
-			SECURE_SLOG(LOG_DEBUG, TAG_STTD, "Silence Detection type - End of Speech");
-			ecore_timer_add(0, __stop_by_silence, NULL);
+			SLOG(LOG_DEBUG, TAG_STTD, "Silence Detection type - End of Speech");
+			ecore_main_loop_thread_safe_call_async(__stop_by_silence, NULL);
 		}
 	} else {
 		SLOG(LOG_WARN, TAG_STTD, "[Server WARNING] Current recogntion uid is not valid ");
@@ -339,7 +355,7 @@ void __sttd_server_engine_changed_cb(const char* engine_id, const char* language
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Engine id is NULL");
 		return;
 	} else {
-		SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[Server] New default engine : %s", engine_id);
+		SLOG(LOG_DEBUG, TAG_STTD, "[Server] New default engine : %s", engine_id);
 	}
 
 	/* need to change state of app to ready */
@@ -347,7 +363,7 @@ void __sttd_server_engine_changed_cb(const char* engine_id, const char* language
 	uid = stt_client_get_current_recognition();
 
 	if (0 != uid) {
-		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Server] Set ready state of uid(%d)", uid);
+		SLOG(LOG_ERROR, TAG_STTD, "[Server] Set ready state of uid(%d)", uid);
 
 		sttd_server_cancel(uid);
 		sttdc_send_set_state(uid, (int)APP_STATE_READY);
@@ -379,7 +395,7 @@ void __sttd_server_language_changed_cb(const char* language, void* user_data)
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] language is NULL");
 		return;
 	} else {
-		SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[Server] Get language changed : %s", language);
+		SLOG(LOG_DEBUG, TAG_STTD, "[Server] Get language changed : %s", language);
 	}
 
 	int ret = sttd_engine_agent_set_default_language(language);
@@ -391,7 +407,7 @@ void __sttd_server_language_changed_cb(const char* language, void* user_data)
 
 void __sttd_server_silence_changed_cb(bool value, void* user_data)
 {
-	SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[Server] Get silence detection changed : %s", value ? "on" : "off");
+	SLOG(LOG_DEBUG, TAG_STTD, "[Server] Get silence detection changed : %s", value ? "on" : "off");
 
 	int ret = 0;
 	ret = sttd_engine_agent_set_silence_detection(value);
@@ -409,7 +425,15 @@ int sttd_initialize()
 {
 	int ret = 0;
 
-	if (sttd_config_initialize(__sttd_server_engine_changed_cb, __sttd_server_language_changed_cb, 
+	if( 0 != pthread_mutex_init(&sttpe_result_mutex, NULL)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to initialize sttpe result mutex.");
+	}
+
+	if( 0 != pthread_mutex_init(&sttpe_result_time_mutex, NULL)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to initialize sttpe sttpe_result_time_mutex.");
+	}
+
+	if (sttd_config_initialize(__sttd_server_engine_changed_cb, __sttd_server_language_changed_cb,
 		__sttd_server_silence_changed_cb, NULL)) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to initialize config.");
 	}
@@ -445,6 +469,23 @@ int sttd_initialize()
 
 int sttd_finalize()
 {
+	if( 0 != pthread_mutex_destroy(&sttpe_result_mutex)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to destroy sttpe result mutex.");
+	}
+
+	if( 0 != pthread_mutex_destroy(&sttpe_result_time_mutex)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to destroy sttpe_result_time_mutex.");
+	}
+
+	GList *iter = NULL;
+	if (0 < g_list_length(g_proc_list)) {
+		iter = g_list_first(g_proc_list);
+		while (NULL != iter) {
+			g_proc_list = g_list_remove_link(g_proc_list, iter);
+			iter = g_list_first(g_proc_list);
+		}
+	}
+
 	sttd_recorder_deinitialize();
 
 	sttd_config_finalize();
@@ -454,12 +495,52 @@ int sttd_finalize()
 	return STTD_ERROR_NONE;
 }
 
+static void __read_proc()
+{
+	DIR *dp = NULL;
+	struct dirent entry;
+	struct dirent *dirp = NULL;
+	int ret = -1;
+	int tmp;
+
+	GList *iter = NULL;
+	if (0 < g_list_length(g_proc_list)) {
+		iter = g_list_first(g_proc_list);
+		while (NULL != iter) {
+			g_proc_list = g_list_remove_link(g_proc_list, iter);
+			iter = g_list_first(g_proc_list);
+		}
+	}
+
+	dp = opendir("/proc");
+	if (NULL == dp) {
+		SLOG(LOG_ERROR, TAG_STTD, "[ERROR] Fail to open proc");
+	} else {
+		do {
+			ret = readdir_r(dp, &entry, &dirp);
+			if (0 != ret) {
+				SLOG(LOG_ERROR, TAG_STTD, "[ERROR] Fail to readdir");
+				break;
+			}
+
+			if (NULL != dirp) {
+				tmp = atoi(dirp->d_name);
+				if (0 >= tmp)	continue;
+				g_proc_list = g_list_append(g_proc_list, GINT_TO_POINTER(tmp));
+			}
+		} while (NULL != dirp);
+		closedir(dp);
+	}
+	return;
+}
+
 Eina_Bool sttd_cleanup_client(void *data)
 {
 	int* client_list = NULL;
 	int client_count = 0;
-	int result;
 	int i = 0;
+	int j = 0;
+	bool exist = false;
 
 	if (0 != sttd_client_get_list(&client_list, &client_count)) {
 		if (NULL != client_list)
@@ -470,16 +551,43 @@ Eina_Bool sttd_cleanup_client(void *data)
 
 	if (NULL != client_list) {
 		SLOG(LOG_DEBUG, TAG_STTD, "===== Clean up client ");
+		
+		__read_proc();
 
-		for (i = 0; i < client_count; i++) {
+		for (i = 0;i < client_count;i++) {
+			int pid = sttd_client_get_pid(client_list[i]);
+			if (0 > pid) {
+				SLOG(LOG_ERROR, TAG_STTD, "[ERROR] Invalid pid");
+				continue;
+			}
+
+			exist = false;
+			GList *iter = NULL;
+			for (j = 0; j < g_list_length(g_proc_list); j++) {
+				iter = g_list_nth(g_proc_list, j);
+				if (NULL != iter) {
+					if (pid == GPOINTER_TO_INT(iter->data)) {
+						SLOG(LOG_DEBUG, TAG_STTD, "uid (%d) is running", client_list[i]);
+						exist = true;
+						break;
+					}
+				}
+			}
+
+			if (false == exist) {
+				SLOG(LOG_ERROR, TAG_STTD, "uid (%d) should be removed", client_list[i]);
+				sttd_server_finalize(client_list[i]);
+			}
+#if 0
 			result = sttdc_send_hello(client_list[i]);
 
 			if (0 == result) {
-				SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[Server] uid(%d) should be removed.", client_list[i]);
+				SLOG(LOG_DEBUG, TAG_STTD, "[Server] uid(%d) should be removed.", client_list[i]);
 				sttd_server_finalize(client_list[i]);
 			} else if (-1 == result) {
 				SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Hello result has error");
 			}
+#endif
 		}
 
 		SLOG(LOG_DEBUG, TAG_STTD, "=====");
@@ -601,7 +709,7 @@ int sttd_server_get_supported_engines(int uid, GSList** engine_list)
 
 	/* Check state of uid */
 	if (APP_STATE_READY != state) {
-		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] The state of uid(%d) is not Ready", uid);
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] The state of uid(%d) is not Ready", uid);
 		return STTD_ERROR_INVALID_STATE;
 	}
 
@@ -626,7 +734,7 @@ int sttd_server_set_current_engine(int uid, const char* engine_id, bool* silence
 
 	/* Check state of uid */
 	if (APP_STATE_READY != state) {
-		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] The state of uid(%d) is not Ready", uid);
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] The state of uid(%d) is not Ready", uid);
 		return STTD_ERROR_INVALID_STATE;
 	}
 
@@ -657,7 +765,7 @@ int sttd_server_get_current_engine(int uid, char** engine_id)
 
 	/* Check state of uid */
 	if (APP_STATE_READY != state) {
-		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] The state of uid(%d) is not Ready", uid);
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] The state of uid(%d) is not Ready", uid);
 		return STTD_ERROR_INVALID_STATE;
 	}
 
@@ -671,7 +779,7 @@ int sttd_server_get_current_engine(int uid, char** engine_id)
 	return STTD_ERROR_NONE;
 }
 
-int sttd_server_check_agg_agreed(int uid, const char* appid, bool* available)
+int sttd_server_check_app_agreed(int uid, const char* appid, bool* available)
 {
 	/* Check if uid is valid */
 	app_state_e state;
@@ -682,7 +790,7 @@ int sttd_server_check_agg_agreed(int uid, const char* appid, bool* available)
 
 	/* Check state of uid */
 	if (APP_STATE_READY != state) {
-		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] The state of uid(%d) is not Ready", uid);
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] The state of uid(%d) is not Ready", uid);
 		return STTD_ERROR_INVALID_STATE;
 	}
 
@@ -776,7 +884,7 @@ int sttd_server_is_recognition_type_supported(int uid, const char* type, int* su
 
 	*support = (int)temp;
 
-	SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[Server SUCCESS] recognition type supporting is %s", *support ? "true" : "false");
+	SLOG(LOG_DEBUG, TAG_STTD, "[Server SUCCESS] recognition type supporting is %s", *support ? "true" : "false");
 
 	return STTD_ERROR_NONE;
 }
@@ -817,6 +925,7 @@ int sttd_server_set_stop_sound(int uid, const char* file)
 	return 0;
 }
 
+#if 0
 Eina_Bool __check_recording_state(void *data)
 {
 	/* current uid */
@@ -827,18 +936,18 @@ Eina_Bool __check_recording_state(void *data)
 	app_state_e state;
 	if (0 != sttdc_send_get_state(uid, (int*)&state)) {
 		/* client is removed */
-		SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[Server] uid(%d) should be removed.", uid);
+		SLOG(LOG_DEBUG, TAG_STTD, "[Server] uid(%d) should be removed.", uid);
 		sttd_server_finalize(uid);
 		return EINA_FALSE;
 	}
 
 	if (APP_STATE_READY == state) {
 		/* Cancel stt */
-		SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[Server] The state of uid(%d) is 'Ready'. The daemon should cancel recording", uid);
+		SLOG(LOG_DEBUG, TAG_STTD, "[Server] The state of uid(%d) is 'Ready'. The daemon should cancel recording", uid);
 		sttd_server_cancel(uid);
 	} else if (APP_STATE_PROCESSING == state) {
 		/* Cancel stt and send change state */
-		SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[Server] The state of uid(%d) is 'Processing'. The daemon should cancel recording", uid);
+		SLOG(LOG_DEBUG, TAG_STTD, "[Server] The state of uid(%d) is 'Processing'. The daemon should cancel recording", uid);
 		sttd_server_cancel(uid);
 		sttdc_send_set_state(uid, (int)APP_STATE_READY);
 	} else {
@@ -849,6 +958,7 @@ Eina_Bool __check_recording_state(void *data)
 
 	return EINA_FALSE;
 }
+#endif
 
 Eina_Bool __stop_by_recording_timeout(void *data)
 {
@@ -872,8 +982,9 @@ Eina_Bool __stop_by_recording_timeout(void *data)
 	return EINA_FALSE;
 }
 
-void __sttd_server_recorder_start(int uid)
+void __sttd_server_recorder_start(void* data)
 {
+	int uid = (int)data;
 	int current_uid = stt_client_get_current_recognition();
 
 	if (uid != current_uid) {
@@ -897,9 +1008,8 @@ void __sttd_start_sound_completed_cb(int id, void *user_data)
 {
 	SLOG(LOG_DEBUG, TAG_STTD, "===== Start sound completed");
 
-	int uid = (int)user_data;
-	/* 4. after wav play callback, recorder start */
-	__sttd_server_recorder_start(uid);
+	/* After wav play callback, recorder start */
+	ecore_main_loop_thread_safe_call_async(__sttd_server_recorder_start, user_data);
 
 	SLOG(LOG_DEBUG, TAG_STTD, "=====");
 	SLOG(LOG_DEBUG, TAG_STTD, "  ");
@@ -964,10 +1074,10 @@ int sttd_server_start(int uid, const char* lang, const char* recognition_type, i
 	}
 
 	/* engine start recognition */
-	SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[Server] start : uid(%d), lang(%s), recog_type(%s)",
-				uid, lang, recognition_type);
+	SLOG(LOG_DEBUG, TAG_STTD, "[Server] start : uid(%d), lang(%s), recog_type(%s)",
+			uid, lang, recognition_type);
 	if (NULL != sound)
-		SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[Server] start sound : %s", sound);
+		SLOG(LOG_DEBUG, TAG_STTD, "[Server] start sound : %s", sound);
 
 	/* 1. Set audio session */
 	ret = sttd_recorder_set_audio_session();
@@ -1028,6 +1138,9 @@ int sttd_server_start(int uid, const char* lang, const char* recognition_type, i
 			return STTD_ERROR_OPERATION_FAILED;
 		}
 
+		/* Notify uid state change */
+		sttdc_send_set_state(uid, APP_STATE_RECORDING);
+
 		SLOG(LOG_DEBUG, TAG_STTD, "[Server SUCCESS] Start recognition");
 		return STTD_RESULT_STATE_DONE;
 	}
@@ -1069,8 +1182,9 @@ Eina_Bool __time_out_for_processing(void *data)
 	return EINA_FALSE;
 }
 
-void __sttd_server_engine_stop(int uid)
+void __sttd_server_engine_stop(void* data)
 {
+	int uid = (int)data;
 	/* change uid state */
 	sttd_client_set_state(uid, APP_STATE_PROCESSING);
 
@@ -1098,9 +1212,8 @@ void __sttd_stop_sound_completed_cb(int id, void *user_data)
 {
 	SLOG(LOG_DEBUG, TAG_STTD, "===== Stop sound completed");
 
-	int uid = (int)user_data;
 	/* After wav play callback, engine stop */
-	__sttd_server_engine_stop(uid);
+	ecore_main_loop_thread_safe_call_async(__sttd_server_engine_stop, user_data);
 
 	SLOG(LOG_DEBUG, TAG_STTD, "=====");
 	SLOG(LOG_DEBUG, TAG_STTD, "  ");
@@ -1183,6 +1296,9 @@ int sttd_server_stop(int uid)
 		/* change uid state */
 		sttd_client_set_state(uid, APP_STATE_PROCESSING);
 
+		/* Notify uid state change */
+		sttdc_send_set_state(uid, APP_STATE_PROCESSING);
+
 		SLOG(LOG_DEBUG, TAG_STTD, "[Server SUCCESS] Stop recognition");
 
 		g_processing_timer = ecore_timer_add(g_processing_timeout, __time_out_for_processing, NULL);
@@ -1238,6 +1354,9 @@ int sttd_server_cancel(int uid)
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to cancel : result(%d)", ret);
 		return STTD_ERROR_OPERATION_FAILED;
 	}
+
+	/* Notify uid state change */
+	sttdc_send_set_state(uid, APP_STATE_READY);
 
 	return STTD_ERROR_NONE;
 }

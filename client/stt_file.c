@@ -51,7 +51,7 @@ static int	g_engine_id_count = 0;
 #define STT_FILE_CONFIG_HANDLE	100000
 
 
-const char* stt_tag()
+const char* stt_tag(void)
 {
 	return TAG_STTFC;
 }
@@ -125,7 +125,7 @@ static int __stt_file_get_engine_info(const char* filepath, sttengine_info_s** i
 	if ((error = dlerror()) != NULL || NULL == get_engine_info) {
 		SLOG(LOG_WARN, TAG_STTFC, "[Engine Agent WARNING] Invalid engine. Fail to open sttp_get_engine_info : %s", error);
 		dlclose(handle);
-		return -1;
+		return STT_FILE_ERROR_ENGINE_NOT_FOUND;
 	}
 
 	sttengine_info_s* temp;
@@ -192,7 +192,7 @@ static bool __stt_file_is_engine(const char* filepath)
 	return false;
 }
 
-void __stt_file_relseae_engine_info()
+void __stt_file_relseae_engine_info(void)
 {
 	GSList *iter = NULL;
 
@@ -255,7 +255,7 @@ static sttengine_info_s* __stt_file_get_engine_by_id(int engine_id)
 	return NULL;
 }
 
-void __stt_file_result_cb(sttp_result_event_e event, const char* type, const char** data, int data_count, 
+void __stt_file_result_cb(sttp_result_event_e event, const char* type, const char** data, int data_count,
 		 const char* msg, void* time_info, void *user_data)
 {
 
@@ -343,7 +343,7 @@ static int __stt_file_load_engine(sttengine_info_s* engine)
 	return STT_FILE_ERROR_NONE;
 }
 
-int stt_file_initialize()
+int stt_file_initialize(void)
 {
 	SLOG(LOG_DEBUG, TAG_STTFC, "===== Initialize STT FILE");
 
@@ -498,7 +498,7 @@ int stt_file_initialize()
 	return STT_FILE_ERROR_NONE;
 }
 
-int stt_file_deinitialize()
+int stt_file_deinitialize(void)
 {
 	SLOG(LOG_DEBUG, TAG_STTFC, "===== Deinitialize STT FILE");
 
@@ -594,7 +594,7 @@ int stt_file_foreach_supported_engines(stt_file_supported_engine_cb callback, vo
 	}
 
 	if (client->current_state != STT_FILE_STATE_READY) {
-		SLOG(LOG_ERROR, TAG_STTFC, "[ERROR] Invalid State: Current state is not 'Ready'");
+		SLOG(LOG_ERROR, TAG_STTFC, "[ERROR] Invalid State: Current state(%d) is not 'Ready'", client->current_state);
 		SLOG(LOG_DEBUG, TAG_STTFC, "=====");
 		SLOG(LOG_DEBUG, TAG_STTFC, " ");
 		return STT_FILE_ERROR_INVALID_STATE;
@@ -646,7 +646,7 @@ int stt_file_get_engine(char** engine_id)
 	}
 
 	if (client->current_state != STT_FILE_STATE_READY) {
-		SLOG(LOG_ERROR, TAG_STTFC, "[ERROR] Invalid State: Current state is not 'Ready'");
+		SLOG(LOG_ERROR, TAG_STTFC, "[ERROR] Invalid State: Current state(%d) is not 'Ready'", client->current_state);
 		SLOG(LOG_DEBUG, TAG_STTFC, "=====");
 		SLOG(LOG_DEBUG, TAG_STTFC, " ");
 		return STT_FILE_ERROR_INVALID_STATE;
@@ -690,7 +690,7 @@ int stt_file_set_engine(const char* engine_id)
 
 	/* check state */
 	if (client->current_state != STT_FILE_STATE_READY) {
-		SLOG(LOG_ERROR, TAG_STTFC, "[ERROR] Invalid State: Current state is not 'Ready'");
+		SLOG(LOG_ERROR, TAG_STTFC, "[ERROR] Invalid State: Current state(%d) is not 'Ready'", client->current_state);
 		SLOG(LOG_DEBUG, TAG_STTFC, "=====");
 		SLOG(LOG_DEBUG, TAG_STTFC, " ");
 		return STT_FILE_ERROR_INVALID_STATE;
@@ -811,7 +811,7 @@ int stt_file_foreach_supported_languages(stt_file_supported_language_cb callback
 	return STT_FILE_ERROR_NONE;
 }
 
-int stt_file_start(const char* language, const char* type, const char* filepath, 
+int stt_file_start(const char* language, const char* type, const char* filepath,
 		stt_file_audio_type_e audio_type, int sample_rate)
 {
 	SLOG(LOG_DEBUG, TAG_STTFC, "===== STT FILE START");
@@ -828,7 +828,7 @@ int stt_file_start(const char* language, const char* type, const char* filepath,
 
 	/* check state */
 	if (client->current_state != STT_FILE_STATE_READY) {
-		SLOG(LOG_ERROR, TAG_STTFC, "[ERROR] Invalid State: Current state is not READY");
+		SLOG(LOG_ERROR, TAG_STTFC, "[ERROR] Invalid State: Current state(%d) is not READY", client->current_state);
 		SLOG(LOG_DEBUG, TAG_STTFC, "=====");
 		SLOG(LOG_DEBUG, TAG_STTFC, " ");
 		return STT_FILE_ERROR_INVALID_STATE;
@@ -886,7 +886,7 @@ int stt_file_start(const char* language, const char* type, const char* filepath,
 	return STT_FILE_ERROR_NONE;
 }
 
-int stt_file_cancel()
+int stt_file_cancel(void)
 {
 	SLOG(LOG_DEBUG, TAG_STTFC, "===== STT FILE CANCEL");
 
@@ -902,7 +902,7 @@ int stt_file_cancel()
 
 	/* check state */
 	if (STT_FILE_STATE_PROCESSING != client->current_state) {
-		SLOG(LOG_ERROR, TAG_STTFC, "[ERROR] Invalid state : Current state is NOT 'Processing'");
+		SLOG(LOG_ERROR, TAG_STTFC, "[ERROR] Invalid state : Current state(%d) is NOT 'Processing'", client->current_state);
 		SLOG(LOG_DEBUG, TAG_STTFC, "=====");
 		SLOG(LOG_DEBUG, TAG_STTFC, " ");
 		return STT_FILE_ERROR_INVALID_STATE;
@@ -938,7 +938,7 @@ int stt_file_cancel()
 bool __stt_file_result_time_cb(int index, sttp_result_time_event_e event, const char* text, long start_time, long end_time, void* user_data)
 {
 	SLOG(LOG_DEBUG, TAG_STTFC, "(%d) event(%d) text(%s) start(%ld) end(%ld)",
-		 index, event, text, start_time, end_time);
+		index, event, text, start_time, end_time);
 
 	stt_file_client_s* client = stt_file_client_get();
 
@@ -949,7 +949,7 @@ bool __stt_file_result_time_cb(int index, sttp_result_time_event_e event, const 
 	}
 
 	if (NULL != client->result_time_cb) {
-		client->result_time_cb(index, (stt_file_result_time_event_e)event, 
+		client->result_time_cb(index, (stt_file_result_time_event_e)event,
 			text, start_time, end_time, client->result_time_user_data);
 	} else {
 		SLOG(LOG_ERROR, TAG_STTFC, "[ERROR] Callback is NULL");
@@ -1004,7 +1004,7 @@ int stt_file_set_recognition_result_cb(stt_file_recognition_result_cb callback, 
 	}
 
 	if (STT_FILE_STATE_READY != client->current_state) {
-		SLOG(LOG_ERROR, TAG_STTFC, "[ERROR] Current state is not 'ready'");
+		SLOG(LOG_ERROR, TAG_STTFC, "[ERROR] Current state(%d) is not 'ready'", client->current_state);
 		return STT_FILE_ERROR_INVALID_STATE;
 	}
 
@@ -1014,7 +1014,7 @@ int stt_file_set_recognition_result_cb(stt_file_recognition_result_cb callback, 
 	return 0;
 }
 
-int stt_file_unset_recognition_result_cb()
+int stt_file_unset_recognition_result_cb(void)
 {
 	stt_file_client_s* client = stt_file_client_get();
 
@@ -1025,7 +1025,7 @@ int stt_file_unset_recognition_result_cb()
 	}
 
 	if (STT_FILE_STATE_READY != client->current_state) {
-		SLOG(LOG_ERROR, TAG_STTFC, "[ERROR] Current state is not 'ready'");
+		SLOG(LOG_ERROR, TAG_STTFC, "[ERROR] Current state(%d) is not 'ready'", client->current_state);
 		return STT_FILE_ERROR_INVALID_STATE;
 	}
 
@@ -1049,7 +1049,7 @@ int stt_file_set_state_changed_cb(stt_file_state_changed_cb callback, void* user
 	}
 
 	if (STT_FILE_STATE_READY != client->current_state) {
-		SLOG(LOG_ERROR, TAG_STTFC, "[ERROR] Current state is not 'ready'");
+		SLOG(LOG_ERROR, TAG_STTFC, "[ERROR] Current state(%d) is not 'ready'", client->current_state);
 		return STT_FILE_ERROR_INVALID_STATE;
 	}
 
@@ -1059,7 +1059,7 @@ int stt_file_set_state_changed_cb(stt_file_state_changed_cb callback, void* user
 	return 0;
 }
 
-int stt_file_unset_state_changed_cb()
+int stt_file_unset_state_changed_cb(void)
 {
 	stt_file_client_s* client = stt_file_client_get();
 
@@ -1070,7 +1070,7 @@ int stt_file_unset_state_changed_cb()
 	}
 
 	if (STT_FILE_STATE_READY != client->current_state) {
-		SLOG(LOG_ERROR, TAG_STTFC, "[ERROR] Current state is not 'ready'");
+		SLOG(LOG_ERROR, TAG_STTFC, "[ERROR] Current state(%d) is not 'ready'", client->current_state);
 		return STT_FILE_ERROR_INVALID_STATE;
 	}
 

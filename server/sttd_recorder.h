@@ -34,7 +34,7 @@ int sttd_recorder_set_audio_session();
 
 int sttd_recorder_unset_audio_session();
 
-int sttd_recorder_create(int engine_id, sttp_audio_type_e type, int channel, unsigned int sample_rate);
+int sttd_recorder_create(int engine_id, int uid, sttp_audio_type_e type, int channel, unsigned int sample_rate);
 
 int sttd_recorder_destroy(int engine_id);
 

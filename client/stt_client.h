@@ -26,7 +26,8 @@ extern "C" {
 typedef enum {
 	STT_INTERNAL_STATE_NONE		= 0,
 	STT_INTERNAL_STATE_STARTING	= 1,
-	STT_INTERNAL_STATE_STOPING	= 2
+	STT_INTERNAL_STATE_STOPING	= 2,
+	STT_INTERNAL_STATE_CANCELING	= 3
 }stt_internal_state_e;
 
 typedef struct {

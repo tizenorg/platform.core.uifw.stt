@@ -206,7 +206,7 @@ int stt_engine_load(int engine_id, const char* filepath)
 		return STTP_ERROR_OPERATION_FAILED;
 	}
 
-	SECURE_SLOG(LOG_DEBUG, stt_tag(), "[Engine Success] Load engine : version(%d), size(%d)", engine->pefuncs->version, engine->pefuncs->size);
+	SLOG(LOG_DEBUG, stt_tag(), "[Engine Success] Load engine : version(%d), size(%d)", engine->pefuncs->version, engine->pefuncs->size);
 
 	g_engine_list = g_slist_append(g_engine_list, engine);
 

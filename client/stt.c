@@ -29,16 +29,47 @@
 #include "stt_main.h"
 
 
-static Ecore_Timer* g_connect_timer = NULL;
-
 static void __stt_notify_state_changed(void *data);
 static Eina_Bool __stt_notify_error(void *data);
 
-static int g_count_check_daemon = 0;
+static Ecore_Timer* g_connect_timer = NULL;
+static float g_volume_db = 0;
+
+static int g_feature_enabled = -1;
 
 const char* stt_tag()
 {
 	return "sttc";
+}
+
+static int __stt_get_feature_enabled()
+{
+	if (0 == g_feature_enabled) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] STT NOT supported");
+		return STT_ERROR_NOT_SUPPORTED;
+	} else if (-1 == g_feature_enabled) {
+		bool stt_supported = false;
+		bool mic_supported = false;
+		if (0 == system_info_get_platform_bool(STT_FEATURE_PATH, &stt_supported)) {
+			if (0 == system_info_get_platform_bool(STT_MIC_FEATURE_PATH, &mic_supported)) {
+				if (false == stt_supported || false == mic_supported) {
+					SLOG(LOG_ERROR, TAG_STTC, "[ERROR] STT NOT supported");
+					g_feature_enabled = 0;
+					return STT_ERROR_NOT_SUPPORTED;
+				}
+
+				g_feature_enabled = 1;
+			} else {
+				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to get feature value");
+				return STT_ERROR_NOT_SUPPORTED;
+			}
+		} else {
+			SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to get feature value");
+			return STT_ERROR_NOT_SUPPORTED;
+		}
+	}
+
+	return 0;
 }
 
 static const char* __stt_get_error_code(stt_error_e err)
@@ -81,7 +112,7 @@ static int __stt_convert_config_error_code(stt_config_error_e code)
 
 void __stt_config_lang_changed_cb(const char* before_language, const char* current_language, void* user_data)
 {
-	SECURE_SLOG(LOG_DEBUG, TAG_STTC, "Language changed : Before lang(%s) Current lang(%s)", 
+	SLOG(LOG_DEBUG, TAG_STTC, "Language changed : Before lang(%s) Current lang(%s)",
 		before_language, current_language);
 
 	if (0 == strcmp(before_language, current_language)) {
@@ -101,8 +132,8 @@ void __stt_config_lang_changed_cb(const char* before_language, const char* curre
 		while (NULL != iter) {
 			data = iter->data;
 			if (NULL != data->default_lang_changed_cb) {
-				SECURE_SLOG(LOG_DEBUG, TAG_STTC, "Call default language changed callback : uid(%d)", data->uid);
-				data->default_lang_changed_cb(data->stt, before_language, current_language, 
+				SLOG(LOG_DEBUG, TAG_STTC, "Call default language changed callback : uid(%d)", data->uid);
+				data->default_lang_changed_cb(data->stt, before_language, current_language,
 					data->default_lang_changed_user_data);
 			}
 
@@ -116,15 +147,8 @@ void __stt_config_lang_changed_cb(const char* before_language, const char* curre
 
 int stt_create(stt_h* stt)
 {
-	bool stt_supported = false;
-	bool mic_supported = false;
-	if (0 == system_info_get_platform_bool(STT_FEATURE_PATH, &stt_supported)) {
-		if (0 == system_info_get_platform_bool(STT_MIC_FEATURE_PATH, &mic_supported)) {
-			if (false == stt_supported || false == mic_supported) {
-				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] STT NOT supported");
-				return STT_ERROR_NOT_SUPPORTED;
-			}
-		}
+	if (0 != __stt_get_feature_enabled()) {
+		return STT_ERROR_NOT_SUPPORTED;
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== Create STT");
@@ -169,7 +193,7 @@ int stt_create(stt_h* stt)
 		return ret;
 	}
 
-	SECURE_SLOG(LOG_DEBUG, TAG_STTC, "[Success] uid(%d)", (*stt)->handle);
+	SLOG(LOG_DEBUG, TAG_STTC, "[Success] uid(%d)", (*stt)->handle);
 
 	SLOG(LOG_DEBUG, TAG_STTC, "=====");
 	SLOG(LOG_DEBUG, TAG_STTC, " ");
@@ -179,23 +203,14 @@ int stt_create(stt_h* stt)
 
 int stt_destroy(stt_h stt)
 {
-	bool stt_supported = false;
-	bool mic_supported = false;
-	if (0 == system_info_get_platform_bool(STT_FEATURE_PATH, &stt_supported)) {
-		if (0 == system_info_get_platform_bool(STT_MIC_FEATURE_PATH, &mic_supported)) {
-			if (false == stt_supported || false == mic_supported) {
-				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] STT NOT supported");
-				return STT_ERROR_NOT_SUPPORTED;
-			}
-		}
+	if (0 != __stt_get_feature_enabled()) {
+		return STT_ERROR_NOT_SUPPORTED;
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== Destroy STT");
 
 	if (NULL == stt) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input handle is null");
-		SLOG(LOG_DEBUG, TAG_STTC, "=====");
-		SLOG(LOG_DEBUG, TAG_STTC, " ");
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
@@ -254,7 +269,7 @@ int stt_destroy(stt_h stt)
 	return STT_ERROR_NONE;
 }
 
-bool __stt_config_supported_engine_cb(const char* engine_id, const char* engine_name, 
+bool __stt_config_supported_engine_cb(const char* engine_id, const char* engine_name,
 				      const char* setting, bool support_silence, void* user_data)
 {
 	stt_h stt = (stt_h)user_data;
@@ -277,23 +292,14 @@ bool __stt_config_supported_engine_cb(const char* engine_id, const char* engine_
 
 int stt_foreach_supported_engines(stt_h stt, stt_supported_engine_cb callback, void* user_data)
 {
-	bool stt_supported = false;
-	bool mic_supported = false;
-	if (0 == system_info_get_platform_bool(STT_FEATURE_PATH, &stt_supported)) {
-		if (0 == system_info_get_platform_bool(STT_MIC_FEATURE_PATH, &mic_supported)) {
-			if (false == stt_supported || false == mic_supported) {
-				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] STT NOT supported");
-				return STT_ERROR_NOT_SUPPORTED;
-			}
-		}
+	if (0 != __stt_get_feature_enabled()) {
+		return STT_ERROR_NOT_SUPPORTED;
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== Foreach Supported engine");
 
 	if (NULL == stt || NULL == callback) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL");
-		SLOG(LOG_DEBUG, TAG_STTC, "=====");
-		SLOG(LOG_DEBUG, TAG_STTC, " ");
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
@@ -302,15 +308,11 @@ int stt_foreach_supported_engines(stt_h stt, stt_supported_engine_cb callback, v
 	/* check handle */
 	if (NULL == client) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not available");
-		SLOG(LOG_DEBUG, TAG_STTC, "=====");
-		SLOG(LOG_DEBUG, TAG_STTC, " ");
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
 	if (client->current_state != STT_STATE_CREATED) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State: Current state is not CREATE");
-		SLOG(LOG_DEBUG, TAG_STTC, "=====");
-		SLOG(LOG_DEBUG, TAG_STTC, " ");
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State: Current state(%d) is not CREATED", client->current_state);
 		return STT_ERROR_INVALID_STATE;
 	}
 
@@ -335,23 +337,14 @@ int stt_foreach_supported_engines(stt_h stt, stt_supported_engine_cb callback, v
 
 int stt_get_engine(stt_h stt, char** engine_id)
 {
-	bool stt_supported = false;
-	bool mic_supported = false;
-	if (0 == system_info_get_platform_bool(STT_FEATURE_PATH, &stt_supported)) {
-		if (0 == system_info_get_platform_bool(STT_MIC_FEATURE_PATH, &mic_supported)) {
-			if (false == stt_supported || false == mic_supported) {
-				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] STT NOT supported");
-				return STT_ERROR_NOT_SUPPORTED;
-			}
-		}
+	if (0 != __stt_get_feature_enabled()) {
+		return STT_ERROR_NOT_SUPPORTED;
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== Get current engine");
 
 	if (NULL == stt || NULL == engine_id) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL");
-		SLOG(LOG_DEBUG, TAG_STTC, "=====");
-		SLOG(LOG_DEBUG, TAG_STTC, " ");
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
@@ -360,25 +353,28 @@ int stt_get_engine(stt_h stt, char** engine_id)
 	/* check handle */
 	if (NULL == client) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not available");
-		SLOG(LOG_DEBUG, TAG_STTC, "=====");
-		SLOG(LOG_DEBUG, TAG_STTC, " ");
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
 	if (client->current_state != STT_STATE_CREATED) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State: Current state is not CREATE");
-		SLOG(LOG_DEBUG, TAG_STTC, "=====");
-		SLOG(LOG_DEBUG, TAG_STTC, " ");
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State: Current state(%d) is not CREATED", client->current_state);
 		return STT_ERROR_INVALID_STATE;
 	}
 
 	int ret = 0;
-	ret = stt_config_mgr_get_engine(engine_id);
-	ret = __stt_convert_config_error_code(ret);
-	if (0 != ret) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to request get current engine : %s", __stt_get_error_code(ret));
+
+	if (NULL != client->current_engine_id) {
+		*engine_id = strdup(client->current_engine_id);
+		SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] Current engine uuid = %s", *engine_id);
 	} else {
-		SECURE_SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] Current engine uuid = %s", *engine_id);
+
+		ret = stt_config_mgr_get_engine(engine_id);
+		ret = __stt_convert_config_error_code(ret);
+		if (0 != ret) {
+			SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to request get current engine : %s", __stt_get_error_code(ret));
+		} else {
+			SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] Current engine uuid = %s", *engine_id);
+		}
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "=====");
@@ -389,23 +385,14 @@ int stt_get_engine(stt_h stt, char** engine_id)
 
 int stt_set_engine(stt_h stt, const char* engine_id)
 {
-	bool stt_supported = false;
-	bool mic_supported = false;
-	if (0 == system_info_get_platform_bool(STT_FEATURE_PATH, &stt_supported)) {
-		if (0 == system_info_get_platform_bool(STT_MIC_FEATURE_PATH, &mic_supported)) {
-			if (false == stt_supported || false == mic_supported) {
-				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] STT NOT supported");
-				return STT_ERROR_NOT_SUPPORTED;
-			}
-		}
+	if (0 != __stt_get_feature_enabled()) {
+		return STT_ERROR_NOT_SUPPORTED;
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== Set current engine");
 
 	if (NULL == stt || NULL == engine_id) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL");
-		SLOG(LOG_DEBUG, TAG_STTC, "=====");
-		SLOG(LOG_DEBUG, TAG_STTC, " ");
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
@@ -414,16 +401,12 @@ int stt_set_engine(stt_h stt, const char* engine_id)
 	/* check handle */
 	if (NULL == client) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not available");
-		SLOG(LOG_DEBUG, TAG_STTC, "=====");
-		SLOG(LOG_DEBUG, TAG_STTC, " ");
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
 	/* check state */
 	if (client->current_state != STT_STATE_CREATED) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State: Current state is not CREATE");
-		SLOG(LOG_DEBUG, TAG_STTC, "=====");
-		SLOG(LOG_DEBUG, TAG_STTC, " ");
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State: Current state(%d) is not CREATED", client->current_state);
 		return STT_ERROR_INVALID_STATE;
 	}
 
@@ -445,14 +428,17 @@ static Eina_Bool __stt_connect_daemon(void *data)
 
 	if (NULL == client) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not available");
+		g_connect_timer = NULL;
 		return EINA_FALSE;
 	}
 
 	/* Send hello */
 	int ret = -1;
 	ret = stt_dbus_request_hello();
+
 	if (0 != ret) {
 		if (STT_ERROR_INVALID_STATE == ret) {
+			g_connect_timer = NULL;
 			return EINA_FALSE;
 		}
 		return EINA_TRUE;
@@ -462,7 +448,6 @@ static Eina_Bool __stt_connect_daemon(void *data)
 	SLOG(LOG_DEBUG, TAG_STTC, "===== Connect daemon");
 
 	/* request initialization */
-
 	bool silence_supported = false;
 
 	ret = stt_dbus_request_initialize(client->uid, &silence_supported);
@@ -481,7 +466,7 @@ static Eina_Bool __stt_connect_daemon(void *data)
 	} else {
 		/* success to connect stt-daemon */
 		client->silence_supported = silence_supported;
-		SECURE_SLOG(LOG_DEBUG, TAG_STTC, "Supported options : silence(%s)", silence_supported ? "true" : "false");
+		SLOG(LOG_DEBUG, TAG_STTC, "Supported options : silence(%s)", silence_supported ? "true" : "false");
 	}
 
 	if (NULL != client->current_engine_id) {
@@ -513,15 +498,15 @@ static Eina_Bool __stt_connect_daemon(void *data)
 		}
 	}
 
-	SECURE_SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] uid(%d)", client->uid);
+	SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] uid(%d)", client->uid);
 
 	client->before_state = client->current_state;
 	client->current_state = STT_STATE_READY;
 
 	if (NULL != client->state_changed_cb) {
 		stt_client_use_callback(client);
-		client->state_changed_cb(client->stt, client->before_state, 
-			client->current_state, client->state_changed_user_data); 
+		client->state_changed_cb(client->stt, client->before_state,
+			client->current_state, client->state_changed_user_data);
 		stt_client_not_use_callback(client);
 		SLOG(LOG_DEBUG, TAG_STTC, "State changed callback is called");
 	} else {
@@ -536,15 +521,8 @@ static Eina_Bool __stt_connect_daemon(void *data)
 
 int stt_prepare(stt_h stt)
 {
-	bool stt_supported = false;
-	bool mic_supported = false;
-	if (0 == system_info_get_platform_bool(STT_FEATURE_PATH, &stt_supported)) {
-		if (0 == system_info_get_platform_bool(STT_MIC_FEATURE_PATH, &mic_supported)) {
-			if (false == stt_supported || false == mic_supported) {
-				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] STT NOT supported");
-				return STT_ERROR_NOT_SUPPORTED;
-			}
-		}
+	if (0 != __stt_get_feature_enabled()) {
+		return STT_ERROR_NOT_SUPPORTED;
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== Prepare STT");
@@ -554,20 +532,15 @@ int stt_prepare(stt_h stt)
 	/* check handle */
 	if (NULL == client) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not available");
-		SLOG(LOG_DEBUG, TAG_STTC, "=====");
-		SLOG(LOG_DEBUG, TAG_STTC, " ");
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
 	/* check state */
 	if (client->current_state != STT_STATE_CREATED) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State: Current state is not 'CREATED'");
-		SLOG(LOG_DEBUG, TAG_STTC, "=====");
-		SLOG(LOG_DEBUG, TAG_STTC, " ");
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State: Current state(%d) is not 'CREATED'", client->current_state);
 		return STT_ERROR_INVALID_STATE;
 	}
 
-	g_count_check_daemon = 0;
 	g_connect_timer = ecore_timer_add(0, __stt_connect_daemon, (void*)client);
 
 	SLOG(LOG_DEBUG, TAG_STTC, "=====");
@@ -578,15 +551,8 @@ int stt_prepare(stt_h stt)
 
 int stt_unprepare(stt_h stt)
 {
-	bool stt_supported = false;
-	bool mic_supported = false;
-	if (0 == system_info_get_platform_bool(STT_FEATURE_PATH, &stt_supported)) {
-		if (0 == system_info_get_platform_bool(STT_MIC_FEATURE_PATH, &mic_supported)) {
-			if (false == stt_supported || false == mic_supported) {
-				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] STT NOT supported");
-				return STT_ERROR_NOT_SUPPORTED;
-			}
-		}
+	if (0 != __stt_get_feature_enabled()) {
+		return STT_ERROR_NOT_SUPPORTED;
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== Unprepare STT");
@@ -601,9 +567,7 @@ int stt_unprepare(stt_h stt)
 
 	/* check state */
 	if (client->current_state != STT_STATE_READY) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State: Current state is not 'READY'");
-		SLOG(LOG_DEBUG, TAG_STTC, "=====");
-		SLOG(LOG_DEBUG, TAG_STTC, " ");
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State: Current state(%d) is not 'READY'", client->current_state);
 		return STT_ERROR_INVALID_STATE;
 	}
 
@@ -634,11 +598,16 @@ int stt_unprepare(stt_h stt)
 
 	if (NULL != client->state_changed_cb) {
 		stt_client_use_callback(client);
-		client->state_changed_cb(client->stt, client->before_state, 
-			client->current_state, client->state_changed_user_data); 
+		client->state_changed_cb(client->stt, client->before_state,
+			client->current_state, client->state_changed_user_data);
 		stt_client_not_use_callback(client);
 	} else {
 		SLOG(LOG_WARN, TAG_STTC, "[WARNING] State changed callback is null");
+	}
+
+	if(g_connect_timer) {
+		ecore_timer_del(g_connect_timer);
+		g_connect_timer = NULL;
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "=====");
@@ -669,23 +638,14 @@ bool __stt_config_supported_language_cb(const char* engine_id, const char* langu
 
 int stt_foreach_supported_languages(stt_h stt, stt_supported_language_cb callback, void* user_data)
 {
-	bool stt_supported = false;
-	bool mic_supported = false;
-	if (0 == system_info_get_platform_bool(STT_FEATURE_PATH, &stt_supported)) {
-		if (0 == system_info_get_platform_bool(STT_MIC_FEATURE_PATH, &mic_supported)) {
-			if (false == stt_supported || false == mic_supported) {
-				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] STT NOT supported");
-				return STT_ERROR_NOT_SUPPORTED;
-			}
-		}
+	if (0 != __stt_get_feature_enabled()) {
+		return STT_ERROR_NOT_SUPPORTED;
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== Foreach Supported Language");
 
 	if (NULL == stt || NULL == callback) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL");
-		SLOG(LOG_DEBUG, TAG_STTC, "=====");
-		SLOG(LOG_DEBUG, TAG_STTC, " ");
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
@@ -694,8 +654,6 @@ int stt_foreach_supported_languages(stt_h stt, stt_supported_language_cb callbac
 	/* check handle */
 	if (NULL == client) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not available");
-		SLOG(LOG_DEBUG, TAG_STTC, "=====");
-		SLOG(LOG_DEBUG, TAG_STTC, " ");
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
@@ -741,33 +699,20 @@ int stt_foreach_supported_languages(stt_h stt, stt_supported_language_cb callbac
 
 int stt_get_default_language(stt_h stt, char** language)
 {
-	bool stt_supported = false;
-	bool mic_supported = false;
-	if (0 == system_info_get_platform_bool(STT_FEATURE_PATH, &stt_supported)) {
-		if (0 == system_info_get_platform_bool(STT_MIC_FEATURE_PATH, &mic_supported)) {
-			if (false == stt_supported || false == mic_supported) {
-				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] STT NOT supported");
-				return STT_ERROR_NOT_SUPPORTED;
-			}
-		}
+	if (0 != __stt_get_feature_enabled()) {
+		return STT_ERROR_NOT_SUPPORTED;
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== Get Default Language");
 
 	if (NULL == stt || NULL == language) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL");
-		SLOG(LOG_DEBUG, TAG_STTC, "=====");
-		SLOG(LOG_DEBUG, TAG_STTC, " ");
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
 	stt_client_s* client = stt_client_get(stt);
-
-	/* check handle */
 	if (NULL == client) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not available");
-		SLOG(LOG_DEBUG, TAG_STTC, "=====");
-		SLOG(LOG_DEBUG, TAG_STTC, " ");
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
@@ -788,15 +733,8 @@ int stt_get_default_language(stt_h stt, char** language)
 
 int stt_get_state(stt_h stt, stt_state_e* state)
 {
-	bool stt_supported = false;
-	bool mic_supported = false;
-	if (0 == system_info_get_platform_bool(STT_FEATURE_PATH, &stt_supported)) {
-		if (0 == system_info_get_platform_bool(STT_MIC_FEATURE_PATH, &mic_supported)) {
-			if (false == stt_supported || false == mic_supported) {
-				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] STT NOT supported");
-				return STT_ERROR_NOT_SUPPORTED;
-			}
-		}
+	if (0 != __stt_get_feature_enabled()) {
+		return STT_ERROR_NOT_SUPPORTED;
 	}
 
 	if (NULL == stt || NULL == state) {
@@ -805,7 +743,6 @@ int stt_get_state(stt_h stt, stt_state_e* state)
 	}
 
 	stt_client_s* client = stt_client_get(stt);
-
 	if (NULL == client) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Get state : A handle is not valid");
 		return STT_ERROR_INVALID_PARAMETER;
@@ -826,15 +763,8 @@ int stt_get_state(stt_h stt, stt_state_e* state)
 
 int stt_is_recognition_type_supported(stt_h stt, const char* type, bool* support)
 {
-	bool stt_supported = false;
-	bool mic_supported = false;
-	if (0 == system_info_get_platform_bool(STT_FEATURE_PATH, &stt_supported)) {
-		if (0 == system_info_get_platform_bool(STT_MIC_FEATURE_PATH, &mic_supported)) {
-			if (false == stt_supported || false == mic_supported) {
-				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] STT NOT supported");
-				return STT_ERROR_NOT_SUPPORTED;
-			}
-		}
+	if (0 != __stt_get_feature_enabled()) {
+		return STT_ERROR_NOT_SUPPORTED;
 	}
 
 	if (NULL == stt || NULL == type || NULL == support) {
@@ -843,7 +773,6 @@ int stt_is_recognition_type_supported(stt_h stt, const char* type, bool* support
 	}
 
 	stt_client_s* client = stt_client_get(stt);
-
 	if (NULL == client) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not valid");
 		return STT_ERROR_INVALID_PARAMETER;
@@ -851,7 +780,7 @@ int stt_is_recognition_type_supported(stt_h stt, const char* type, bool* support
 
 	/* check state */
 	if (client->current_state != STT_STATE_READY) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State: Current state is not READY");
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State: Current state(%d) is not READY", client->current_state);
 		return STT_ERROR_INVALID_STATE;
 	}
 
@@ -873,7 +802,7 @@ int stt_is_recognition_type_supported(stt_h stt, const char* type, bool* support
 				}
 			}
 		} else {
-			SECURE_SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] recognition type is %s", *support ? "true " : "false");
+			SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] recognition type is %s", *support ? "true " : "false");
 			break;
 		}
 	}
@@ -883,15 +812,8 @@ int stt_is_recognition_type_supported(stt_h stt, const char* type, bool* support
 
 int stt_set_silence_detection(stt_h stt, stt_option_silence_detection_e type)
 {
-	bool stt_supported = false;
-	bool mic_supported = false;
-	if (0 == system_info_get_platform_bool(STT_FEATURE_PATH, &stt_supported)) {
-		if (0 == system_info_get_platform_bool(STT_MIC_FEATURE_PATH, &mic_supported)) {
-			if (false == stt_supported || false == mic_supported) {
-				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] STT NOT supported");
-				return STT_ERROR_NOT_SUPPORTED;
-			}
-		}
+	if (0 != __stt_get_feature_enabled()) {
+		return STT_ERROR_NOT_SUPPORTED;
 	}
 
 	if (NULL == stt) {
@@ -900,7 +822,6 @@ int stt_set_silence_detection(stt_h stt, stt_option_silence_detection_e type)
 	}
 
 	stt_client_s* client = stt_client_get(stt);
-
 	if (NULL == client) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Get state : A handle is not valid");
 		return STT_ERROR_INVALID_PARAMETER;
@@ -908,7 +829,7 @@ int stt_set_silence_detection(stt_h stt, stt_option_silence_detection_e type)
 
 	/* check state */
 	if (client->current_state != STT_STATE_READY) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State: Current state is not READY");
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State: Current state(%d) is not READY", client->current_state);
 		return STT_ERROR_INVALID_STATE;
 	}
 
@@ -928,15 +849,8 @@ int stt_set_silence_detection(stt_h stt, stt_option_silence_detection_e type)
 
 int stt_set_start_sound(stt_h stt, const char* filename)
 {
-	bool stt_supported = false;
-	bool mic_supported = false;
-	if (0 == system_info_get_platform_bool(STT_FEATURE_PATH, &stt_supported)) {
-		if (0 == system_info_get_platform_bool(STT_MIC_FEATURE_PATH, &mic_supported)) {
-			if (false == stt_supported || false == mic_supported) {
-				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] STT NOT supported");
-				return STT_ERROR_NOT_SUPPORTED;
-			}
-		}
+	if (0 != __stt_get_feature_enabled()) {
+		return STT_ERROR_NOT_SUPPORTED;
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== STT SET START SOUND");
@@ -959,7 +873,7 @@ int stt_set_start_sound(stt_h stt, const char* filename)
 
 	/* check state */
 	if (client->current_state != STT_STATE_READY) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State: Current state is not READY");
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State: Current state(%d) is not READY", client->current_state);
 		return STT_ERROR_INVALID_STATE;
 	}
 
@@ -981,7 +895,7 @@ int stt_set_start_sound(stt_h stt, const char* filename)
 				}
 			}
 		} else {
-			SECURE_SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] Set start sound : %s", filename);
+			SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] Set start sound : %s", filename);
 			break;
 		}
 	}
@@ -991,15 +905,8 @@ int stt_set_start_sound(stt_h stt, const char* filename)
 
 int stt_unset_start_sound(stt_h stt)
 {
-	bool stt_supported = false;
-	bool mic_supported = false;
-	if (0 == system_info_get_platform_bool(STT_FEATURE_PATH, &stt_supported)) {
-		if (0 == system_info_get_platform_bool(STT_MIC_FEATURE_PATH, &mic_supported)) {
-			if (false == stt_supported || false == mic_supported) {
-				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] STT NOT supported");
-				return STT_ERROR_NOT_SUPPORTED;
-			}
-		}
+	if (0 != __stt_get_feature_enabled()) {
+		return STT_ERROR_NOT_SUPPORTED;
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== STT UNSET START SOUND");
@@ -1018,7 +925,7 @@ int stt_unset_start_sound(stt_h stt)
 
 	/* check state */
 	if (client->current_state != STT_STATE_READY) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State: Current state is not READY");
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State: Current state(%d) is not READY", client->current_state);
 		return STT_ERROR_INVALID_STATE;
 	}
 
@@ -1040,7 +947,7 @@ int stt_unset_start_sound(stt_h stt)
 				}
 			}
 		} else {
-			SECURE_SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] Unset start sound");
+			SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] Unset start sound");
 			break;
 		}
 	}
@@ -1050,15 +957,8 @@ int stt_unset_start_sound(stt_h stt)
 
 int stt_set_stop_sound(stt_h stt, const char* filename)
 {
-	bool stt_supported = false;
-	bool mic_supported = false;
-	if (0 == system_info_get_platform_bool(STT_FEATURE_PATH, &stt_supported)) {
-		if (0 == system_info_get_platform_bool(STT_MIC_FEATURE_PATH, &mic_supported)) {
-			if (false == stt_supported || false == mic_supported) {
-				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] STT NOT supported");
-				return STT_ERROR_NOT_SUPPORTED;
-			}
-		}
+	if (0 != __stt_get_feature_enabled()) {
+		return STT_ERROR_NOT_SUPPORTED;
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== STT SET STOP SOUND");
@@ -1082,7 +982,7 @@ int stt_set_stop_sound(stt_h stt, const char* filename)
 
 	/* check state */
 	if (client->current_state != STT_STATE_READY) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State: Current state is not READY");
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State: Current state(%d) is not READY", client->current_state);
 		return STT_ERROR_INVALID_STATE;
 	}
 
@@ -1104,7 +1004,7 @@ int stt_set_stop_sound(stt_h stt, const char* filename)
 				}
 			}
 		} else {
-			SECURE_SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] Set stop sound : %s", filename);
+			SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] Set stop sound : %s", filename);
 			break;
 		}
 	}
@@ -1114,15 +1014,8 @@ int stt_set_stop_sound(stt_h stt, const char* filename)
 
 int stt_unset_stop_sound(stt_h stt)
 {
-	bool stt_supported = false;
-	bool mic_supported = false;
-	if (0 == system_info_get_platform_bool(STT_FEATURE_PATH, &stt_supported)) {
-		if (0 == system_info_get_platform_bool(STT_MIC_FEATURE_PATH, &mic_supported)) {
-			if (false == stt_supported || false == mic_supported) {
-				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] STT NOT supported");
-				return STT_ERROR_NOT_SUPPORTED;
-			}
-		}
+	if (0 != __stt_get_feature_enabled()) {
+		return STT_ERROR_NOT_SUPPORTED;
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== STT UNSET STOP SOUND");
@@ -1141,7 +1034,7 @@ int stt_unset_stop_sound(stt_h stt)
 
 	/* check state */
 	if (client->current_state != STT_STATE_READY) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State: Current state is not READY");
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State: Current state(%d) is not READY", client->current_state);
 		return STT_ERROR_INVALID_STATE;
 	}
 
@@ -1163,7 +1056,7 @@ int stt_unset_stop_sound(stt_h stt)
 				}
 			}
 		} else {
-			SECURE_SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] Unset stop sound");
+			SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] Unset stop sound");
 			break;
 		}
 	}
@@ -1173,48 +1066,31 @@ int stt_unset_stop_sound(stt_h stt)
 
 int stt_start(stt_h stt, const char* language, const char* type)
 {
-	bool stt_supported = false;
-	bool mic_supported = false;
-	if (0 == system_info_get_platform_bool(STT_FEATURE_PATH, &stt_supported)) {
-		if (0 == system_info_get_platform_bool(STT_MIC_FEATURE_PATH, &mic_supported)) {
-			if (false == stt_supported || false == mic_supported) {
-				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] STT NOT supported");
-				return STT_ERROR_NOT_SUPPORTED;
-			}
-		}
+	if (0 != __stt_get_feature_enabled()) {
+		return STT_ERROR_NOT_SUPPORTED;
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== STT START");
 
 	if (NULL == stt) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL");
-		SLOG(LOG_DEBUG, TAG_STTC, "=====");
-		SLOG(LOG_DEBUG, TAG_STTC, " ");
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
 	stt_client_s* client = stt_client_get(stt);
-
-	/* check handle */
 	if (NULL == client) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not available");
-		SLOG(LOG_DEBUG, TAG_STTC, "=====");
-		SLOG(LOG_DEBUG, TAG_STTC, " ");
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
 	/* check state */
 	if (client->current_state != STT_STATE_READY) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State: Current state is not READY");
-		SLOG(LOG_DEBUG, TAG_STTC, "=====");
-		SLOG(LOG_DEBUG, TAG_STTC, " ");
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State: Current state(%d) is not READY", client->current_state);
 		return STT_ERROR_INVALID_STATE;
 	}
 
 	if (STT_INTERNAL_STATE_NONE != client->internal_state) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State : Internal state is NOT none : %d", client->internal_state);
-		SLOG(LOG_DEBUG, TAG_STTC, "=====");
-		SLOG(LOG_DEBUG, TAG_STTC, " ");
 		return STT_ERROR_INVALID_STATE;
 	}
 
@@ -1235,6 +1111,7 @@ int stt_start(stt_h stt, const char* language, const char* type)
 		temp = strdup(language);
 	}
 
+#if 0
 	ret = -1;
 	/* do request */
 	int count = 0;
@@ -1281,7 +1158,17 @@ int stt_start(stt_h stt, const char* language, const char* type)
 			break;
 		}
 	}
+#else
+	ret = stt_dbus_request_start(client->uid, temp, type, client->silence, appid);
+	if (0 != ret) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to start : %s", __stt_get_error_code(ret));
+	} else {
+		SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] Start is successful but not done");
+		client->internal_state = STT_INTERNAL_STATE_STARTING;
+	}
 
+	if (NULL != temp)	free(temp);
+#endif
 	SLOG(LOG_DEBUG, TAG_STTC, "=====");
 	SLOG(LOG_DEBUG, TAG_STTC, " ");
 
@@ -1290,51 +1177,34 @@ int stt_start(stt_h stt, const char* language, const char* type)
 
 int stt_stop(stt_h stt)
 {
-	bool stt_supported = false;
-	bool mic_supported = false;
-	if (0 == system_info_get_platform_bool(STT_FEATURE_PATH, &stt_supported)) {
-		if (0 == system_info_get_platform_bool(STT_MIC_FEATURE_PATH, &mic_supported)) {
-			if (false == stt_supported || false == mic_supported) {
-				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] STT NOT supported");
-				return STT_ERROR_NOT_SUPPORTED;
-			}
-		}
+	if (0 != __stt_get_feature_enabled()) {
+		return STT_ERROR_NOT_SUPPORTED;
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== STT STOP");
 
 	if (NULL == stt) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL");
-		SLOG(LOG_DEBUG, TAG_STTC, "=====");
-		SLOG(LOG_DEBUG, TAG_STTC, " ");
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
 	stt_client_s* client = stt_client_get(stt);
-
-	/* check handle */
 	if (NULL == client) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not available");
-		SLOG(LOG_DEBUG, TAG_STTC, "=====");
-		SLOG(LOG_DEBUG, TAG_STTC, " ");
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
 	/* check state */
 	if (client->current_state != STT_STATE_RECORDING) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State : Current state is NOT RECORDING");
-		SLOG(LOG_DEBUG, TAG_STTC, "=====");
-		SLOG(LOG_DEBUG, TAG_STTC, " ");
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State : Current state(%d) is NOT RECORDING", client->current_state);
 		return STT_ERROR_INVALID_STATE;
 	}
 
 	if (STT_INTERNAL_STATE_NONE != client->internal_state) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State : Internal state is NOT none : %d", client->internal_state);
-		SLOG(LOG_DEBUG, TAG_STTC, "=====");
-		SLOG(LOG_DEBUG, TAG_STTC, " ");
 		return STT_ERROR_INVALID_STATE;
 	}
-
+#if 0
 	int ret = -1;
 	/* do request */
 	int count = 0;
@@ -1376,7 +1246,16 @@ int stt_stop(stt_h stt)
 			break;
 		}
 	}
+#else
+	int ret = stt_dbus_request_stop(client->uid);
 
+	if (0 != ret) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to stop : %s", __stt_get_error_code(ret));
+	} else {
+		SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] Stop is successful but not done");
+		client->internal_state = STT_INTERNAL_STATE_STOPING;
+	}
+#endif
 	SLOG(LOG_DEBUG, TAG_STTC, "=====");
 	SLOG(LOG_DEBUG, TAG_STTC, " ");
 
@@ -1386,23 +1265,14 @@ int stt_stop(stt_h stt)
 
 int stt_cancel(stt_h stt)
 {
-	bool stt_supported = false;
-	bool mic_supported = false;
-	if (0 == system_info_get_platform_bool(STT_FEATURE_PATH, &stt_supported)) {
-		if (0 == system_info_get_platform_bool(STT_MIC_FEATURE_PATH, &mic_supported)) {
-			if (false == stt_supported || false == mic_supported) {
-				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] STT NOT supported");
-				return STT_ERROR_NOT_SUPPORTED;
-			}
-		}
+	if (0 != __stt_get_feature_enabled()) {
+		return STT_ERROR_NOT_SUPPORTED;
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== STT CANCEL");
 
 	if (NULL == stt) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input handle is null");
-		SLOG(LOG_DEBUG, TAG_STTC, "=====");
-		SLOG(LOG_DEBUG, TAG_STTC, " ");
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
@@ -1411,26 +1281,20 @@ int stt_cancel(stt_h stt)
 	/* check handle */
 	if (NULL == client) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not available");
-		SLOG(LOG_DEBUG, TAG_STTC, "=====");
-		SLOG(LOG_DEBUG, TAG_STTC, " ");
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
 	/* check state */
 	if (STT_STATE_RECORDING != client->current_state && STT_STATE_PROCESSING != client->current_state) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid state : Current state is 'Ready'");
-		SLOG(LOG_DEBUG, TAG_STTC, "=====");
-		SLOG(LOG_DEBUG, TAG_STTC, " ");
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid state : Current state(%d) is 'Ready'", client->current_state);
 		return STT_ERROR_INVALID_STATE;
 	}
 
 	if (STT_INTERNAL_STATE_NONE != client->internal_state) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State : Internal state is NOT none : %d", client->internal_state);
-		SLOG(LOG_DEBUG, TAG_STTC, "=====");
-		SLOG(LOG_DEBUG, TAG_STTC, " ");
 		return STT_ERROR_INVALID_STATE;
 	}
-
+#if 0
 	int ret = -1;
 	/* do request */
 	int count = 0;
@@ -1466,41 +1330,46 @@ int stt_cancel(stt_h stt)
 			break;
 		}
 	}
-
+#else
+	int ret = stt_dbus_request_cancel(client->uid);
+	if (0 != ret) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to cancel : %s", __stt_get_error_code(ret));
+	} else {
+		SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] Cancel is successful but not done");
+		client->internal_state = STT_INTERNAL_STATE_CANCELING;
+	}
+#endif
 	SLOG(LOG_DEBUG, TAG_STTC, "=====");
 	SLOG(LOG_DEBUG, TAG_STTC, " ");
 
 	return ret;
 }
 
-static int __stt_get_audio_volume(float* volume)
+int __stt_cb_set_volume(int uid, float volume)
 {
-	FILE* fp = fopen(STT_AUDIO_VOLUME_PATH, "rb");
-	if (!fp) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to open Volume File");
-		return STT_ERROR_OPERATION_FAILED;
+	stt_client_s* client = NULL;
+
+	client = stt_client_get_by_uid(uid);
+	if (NULL == client) {
+		SLOG(LOG_ERROR, TAG_STTC, "Handle is NOT valid");
+		return STT_ERROR_INVALID_PARAMETER;
 	}
 
-	int readlen = fread((void*)volume, sizeof(*volume), 1, fp);
-	fclose(fp);
+	if (STT_STATE_RECORDING != client->current_state) {
+		SLOG(LOG_DEBUG, TAG_STTC, "[ERROR] Invalid state : NO 'Recording' state, cur(%d)", client->current_state);
+		return STT_ERROR_INVALID_STATE;
+	}
 
-	if (0 == readlen)
-		*volume = 0.0f;
+	g_volume_db = volume;
+	SLOG(LOG_DEBUG, TAG_STTC, "Set volume (%f)", g_volume_db);
 
 	return 0;
 }
 
 int stt_get_recording_volume(stt_h stt, float* volume)
 {
-	bool stt_supported = false;
-	bool mic_supported = false;
-	if (0 == system_info_get_platform_bool(STT_FEATURE_PATH, &stt_supported)) {
-		if (0 == system_info_get_platform_bool(STT_MIC_FEATURE_PATH, &mic_supported)) {
-			if (false == stt_supported || false == mic_supported) {
-				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] STT NOT supported");
-				return STT_ERROR_NOT_SUPPORTED;
-			}
-		}
+	if (0 != __stt_get_feature_enabled()) {
+		return STT_ERROR_NOT_SUPPORTED;
 	}
 
 	if (NULL == stt || NULL == volume) {
@@ -1517,16 +1386,11 @@ int stt_get_recording_volume(stt_h stt, float* volume)
 	}
 
 	if (STT_STATE_RECORDING != client->current_state) {
-		SLOG(LOG_DEBUG, TAG_STTC, "[ERROR] Invalid state : NO 'Recording' state");
+		SLOG(LOG_DEBUG, TAG_STTC, "[ERROR] Invalid state : NO 'Recording' state, cur(%d)", client->current_state);
 		return STT_ERROR_INVALID_STATE;
 	}
 
-	int ret = 0;
-	ret = __stt_get_audio_volume(volume);
-	if (0 != ret) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to get audio volume : %s", __stt_get_error_code(ret));
-		return STT_ERROR_OPERATION_FAILED;
-	}
+	*volume = g_volume_db;
 
 	return STT_ERROR_NONE;
 }
@@ -1544,7 +1408,7 @@ bool __stt_result_time_cb(int index, int event, const char* text, long start_tim
 	if (NULL != client->result_time_cb) {
 		SLOG(LOG_DEBUG, TAG_STTC, "(%d) event(%d) text(%s) start(%ld) end(%ld)",
 			index, event, text, start_time, end_time);
-		client->result_time_cb(client->stt, index, (stt_result_time_event_e)event, 
+		client->result_time_cb(client->stt, index, (stt_result_time_event_e)event,
 			text, start_time, end_time, client->result_time_user_data);
 	} else {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Callback is NULL");
@@ -1556,15 +1420,8 @@ bool __stt_result_time_cb(int index, int event, const char* text, long start_tim
 
 int stt_foreach_detailed_result(stt_h stt, stt_result_time_cb callback, void* user_data)
 {
-	bool stt_supported = false;
-	bool mic_supported = false;
-	if (0 == system_info_get_platform_bool(STT_FEATURE_PATH, &stt_supported)) {
-		if (0 == system_info_get_platform_bool(STT_MIC_FEATURE_PATH, &mic_supported)) {
-			if (false == stt_supported || false == mic_supported) {
-				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] STT NOT supported");
-				return STT_ERROR_NOT_SUPPORTED;
-			}
-		}
+	if (0 != __stt_get_feature_enabled()) {
+		return STT_ERROR_NOT_SUPPORTED;
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== STT FOREACH DETAILED RESULT");
@@ -1605,6 +1462,8 @@ static Eina_Bool __stt_notify_error(void *data)
 {
 	stt_client_s* client = (stt_client_s*)data;
 
+	SLOG(LOG_WARN, TAG_STTC, "[WARNING] Error from sttd");
+
 	/* check handle */
 	if (NULL == client) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to notify error : A handle is not valid");
@@ -1618,7 +1477,7 @@ static Eina_Bool __stt_notify_error(void *data)
 		stt_client_use_callback(client);
 		client->error_cb(client->stt, client->reason, client->error_user_data);
 		stt_client_not_use_callback(client);
-		SLOG(LOG_DEBUG, TAG_STTC, "Error callback is called");
+		SLOG(LOG_WARN, TAG_STTC, "[WARNING] Error callback is called : reason [%d]", client->reason);
 	} else {
 		SLOG(LOG_WARN, TAG_STTC, "[WARNING] Error callback is null");
 	}
@@ -1629,12 +1488,14 @@ static Eina_Bool __stt_notify_error(void *data)
 int __stt_cb_error(int uid, int reason)
 {
 	stt_client_s* client = stt_client_get_by_uid(uid);
-	if (NULL == client) {
-		SLOG(LOG_ERROR, TAG_STTC, "Handle not found\n");
+	if( NULL == client ) {
+		SLOG(LOG_ERROR, TAG_STTC, "Handle not found");
 		return -1;
 	}
 
 	client->reason = reason;
+	client->internal_state = STT_INTERNAL_STATE_NONE;
+	SLOG(LOG_INFO, TAG_STTC, "internal state is initialized to 0");
 
 	if (NULL != client->error_cb) {
 		ecore_timer_add(0, __stt_notify_error, client);
@@ -1661,16 +1522,19 @@ static void __stt_notify_state_changed(void *data)
 
 	if (STT_INTERNAL_STATE_STARTING == client->internal_state && STT_STATE_RECORDING == client->current_state) {
 		client->internal_state = STT_INTERNAL_STATE_NONE;
-		SLOG(LOG_DEBUG, TAG_STTC, "Internal state change NULL");
+		SLOG(LOG_DEBUG, TAG_STTC, "Internal state change to NONE");
 	} else if (STT_INTERNAL_STATE_STOPING == client->internal_state && STT_STATE_PROCESSING == client->current_state) {
 		client->internal_state = STT_INTERNAL_STATE_NONE;
-		SLOG(LOG_DEBUG, TAG_STTC, "Internal state change NULL");
+		SLOG(LOG_DEBUG, TAG_STTC, "Internal state change to NONE");
+	} else if (STT_INTERNAL_STATE_CANCELING == client->internal_state && STT_STATE_READY == client->current_state) {
+		client->internal_state = STT_INTERNAL_STATE_NONE;
+		SLOG(LOG_DEBUG, TAG_STTC, "Internal state change to NONE");
 	}
 
 	if (NULL != client->state_changed_cb) {
 		stt_client_use_callback(client);
-		client->state_changed_cb(client->stt, client->before_state, 
-			client->current_state, client->state_changed_user_data); 
+		client->state_changed_cb(client->stt, client->before_state,
+			client->current_state, client->state_changed_user_data);
 		stt_client_not_use_callback(client);
 		SLOG(LOG_DEBUG, TAG_STTC, "State changed callback is called");
 	} else {
@@ -1696,7 +1560,7 @@ static Eina_Bool __stt_notify_result(void *data)
 
 	if (NULL != client->recognition_result_cb) {
 		stt_client_use_callback(client);
-		client->recognition_result_cb(client->stt, client->event, (const char**)client->data_list, client->data_count, 
+		client->recognition_result_cb(client->stt, client->event, (const char**)client->data_list, client->data_count,
 			client->msg, client->recognition_result_user_data);
 		stt_client_not_use_callback(client);
 		SLOG(LOG_DEBUG, TAG_STTC, "client recognition result callback called");
@@ -1754,11 +1618,13 @@ int __stt_cb_result(int uid, int event, char** data, int data_count, const char*
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
-	if (NULL != msg)	SLOG(LOG_DEBUG, TAG_STTC, "Recognition Result Message = %s", msg);
+	if (NULL != msg)
+		SLOG(LOG_DEBUG, TAG_STTC, "Recognition Result Message = %s", msg);
 
 	int i = 0;
 	for (i = 0; i < data_count; i++) {
-		if (NULL != data[i])	SECURE_SLOG(LOG_DEBUG, TAG_STTC, "Recognition Result[%d] = %s", i, data[i]);
+		if (NULL != data[i])
+			SLOG(LOG_DEBUG, TAG_STTC, "Recognition Result[%d] = %s", i, data[i]);
 	}
 
 	if (NULL != client->recognition_result_cb) {
@@ -1819,15 +1685,8 @@ int __stt_cb_set_state(int uid, int state)
 
 int stt_set_recognition_result_cb(stt_h stt, stt_recognition_result_cb callback, void* user_data)
 {
-	bool stt_supported = false;
-	bool mic_supported = false;
-	if (0 == system_info_get_platform_bool(STT_FEATURE_PATH, &stt_supported)) {
-		if (0 == system_info_get_platform_bool(STT_MIC_FEATURE_PATH, &mic_supported)) {
-			if (false == stt_supported || false == mic_supported) {
-				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] STT NOT supported");
-				return STT_ERROR_NOT_SUPPORTED;
-			}
-		}
+	if (0 != __stt_get_feature_enabled()) {
+		return STT_ERROR_NOT_SUPPORTED;
 	}
 
 	if (stt == NULL || callback == NULL)
@@ -1842,7 +1701,7 @@ int stt_set_recognition_result_cb(stt_h stt, stt_recognition_result_cb callback,
 	}
 
 	if (STT_STATE_CREATED != client->current_state) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Current state is not 'ready'");
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Current state(%d) is not 'Created'", client->current_state);
 		return STT_ERROR_INVALID_STATE;
 	}
 
@@ -1854,15 +1713,8 @@ int stt_set_recognition_result_cb(stt_h stt, stt_recognition_result_cb callback,
 
 int stt_unset_recognition_result_cb(stt_h stt)
 {
-	bool stt_supported = false;
-	bool mic_supported = false;
-	if (0 == system_info_get_platform_bool(STT_FEATURE_PATH, &stt_supported)) {
-		if (0 == system_info_get_platform_bool(STT_MIC_FEATURE_PATH, &mic_supported)) {
-			if (false == stt_supported || false == mic_supported) {
-				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] STT NOT supported");
-				return STT_ERROR_NOT_SUPPORTED;
-			}
-		}
+	if (0 != __stt_get_feature_enabled()) {
+		return STT_ERROR_NOT_SUPPORTED;
 	}
 
 	if (NULL == stt)
@@ -1877,7 +1729,7 @@ int stt_unset_recognition_result_cb(stt_h stt)
 	}
 
 	if (STT_STATE_CREATED != client->current_state) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Current state is not 'ready'");
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Current state(%d) is not 'Created'", client->current_state);
 		return STT_ERROR_INVALID_STATE;
 	}
 
@@ -1889,15 +1741,8 @@ int stt_unset_recognition_result_cb(stt_h stt)
 
 int stt_set_state_changed_cb(stt_h stt, stt_state_changed_cb callback, void* user_data)
 {
-	bool stt_supported = false;
-	bool mic_supported = false;
-	if (0 == system_info_get_platform_bool(STT_FEATURE_PATH, &stt_supported)) {
-		if (0 == system_info_get_platform_bool(STT_MIC_FEATURE_PATH, &mic_supported)) {
-			if (false == stt_supported || false == mic_supported) {
-				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] STT NOT supported");
-				return STT_ERROR_NOT_SUPPORTED;
-			}
-		}
+	if (0 != __stt_get_feature_enabled()) {
+		return STT_ERROR_NOT_SUPPORTED;
 	}
 
 	if (NULL == stt || NULL == callback)
@@ -1912,7 +1757,7 @@ int stt_set_state_changed_cb(stt_h stt, stt_state_changed_cb callback, void* use
 	}
 
 	if (STT_STATE_CREATED != client->current_state) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Current state is not 'ready'");
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Current state(%d) is not 'Created'", client->current_state);
 		return STT_ERROR_INVALID_STATE;
 	}
 
@@ -1924,15 +1769,8 @@ int stt_set_state_changed_cb(stt_h stt, stt_state_changed_cb callback, void* use
 
 int stt_unset_state_changed_cb(stt_h stt)
 {
-	bool stt_supported = false;
-	bool mic_supported = false;
-	if (0 == system_info_get_platform_bool(STT_FEATURE_PATH, &stt_supported)) {
-		if (0 == system_info_get_platform_bool(STT_MIC_FEATURE_PATH, &mic_supported)) {
-			if (false == stt_supported || false == mic_supported) {
-				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] STT NOT supported");
-				return STT_ERROR_NOT_SUPPORTED;
-			}
-		}
+	if (0 != __stt_get_feature_enabled()) {
+		return STT_ERROR_NOT_SUPPORTED;
 	}
 
 	if (NULL == stt)
@@ -1947,7 +1785,7 @@ int stt_unset_state_changed_cb(stt_h stt)
 	}
 
 	if (STT_STATE_CREATED != client->current_state) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Current state is not 'ready'");
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Current state(%d) is not 'Created'", client->current_state);
 		return STT_ERROR_INVALID_STATE;
 	}
 
@@ -1959,15 +1797,8 @@ int stt_unset_state_changed_cb(stt_h stt)
 
 int stt_set_error_cb(stt_h stt, stt_error_cb callback, void* user_data)
 {
-	bool stt_supported = false;
-	bool mic_supported = false;
-	if (0 == system_info_get_platform_bool(STT_FEATURE_PATH, &stt_supported)) {
-		if (0 == system_info_get_platform_bool(STT_MIC_FEATURE_PATH, &mic_supported)) {
-			if (false == stt_supported || false == mic_supported) {
-				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] STT NOT supported");
-				return STT_ERROR_NOT_SUPPORTED;
-			}
-		}
+	if (0 != __stt_get_feature_enabled()) {
+		return STT_ERROR_NOT_SUPPORTED;
 	}
 
 	if (NULL == stt || NULL == callback)
@@ -1982,7 +1813,7 @@ int stt_set_error_cb(stt_h stt, stt_error_cb callback, void* user_data)
 	}
 
 	if (STT_STATE_CREATED != client->current_state) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Current state is not 'ready'");
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Current state(%d) is not 'Created'", client->current_state);
 		return STT_ERROR_INVALID_STATE;
 	}
 
@@ -1994,15 +1825,8 @@ int stt_set_error_cb(stt_h stt, stt_error_cb callback, void* user_data)
 
 int stt_unset_error_cb(stt_h stt)
 {
-	bool stt_supported = false;
-	bool mic_supported = false;
-	if (0 == system_info_get_platform_bool(STT_FEATURE_PATH, &stt_supported)) {
-		if (0 == system_info_get_platform_bool(STT_MIC_FEATURE_PATH, &mic_supported)) {
-			if (false == stt_supported || false == mic_supported) {
-				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] STT NOT supported");
-				return STT_ERROR_NOT_SUPPORTED;
-			}
-		}
+	if (0 != __stt_get_feature_enabled()) {
+		return STT_ERROR_NOT_SUPPORTED;
 	}
 
 	if (NULL == stt)
@@ -2017,7 +1841,7 @@ int stt_unset_error_cb(stt_h stt)
 	}
 
 	if (STT_STATE_CREATED != client->current_state) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Current state is not 'ready'");
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Current state(%d) is not 'Created'", client->current_state);
 		return STT_ERROR_INVALID_STATE;
 	}
 
@@ -2029,15 +1853,8 @@ int stt_unset_error_cb(stt_h stt)
 
 int stt_set_default_language_changed_cb(stt_h stt, stt_default_language_changed_cb callback, void* user_data)
 {
-	bool stt_supported = false;
-	bool mic_supported = false;
-	if (0 == system_info_get_platform_bool(STT_FEATURE_PATH, &stt_supported)) {
-		if (0 == system_info_get_platform_bool(STT_MIC_FEATURE_PATH, &mic_supported)) {
-			if (false == stt_supported || false == mic_supported) {
-				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] STT NOT supported");
-				return STT_ERROR_NOT_SUPPORTED;
-			}
-		}
+	if (0 != __stt_get_feature_enabled()) {
+		return STT_ERROR_NOT_SUPPORTED;
 	}
 
 	if (NULL == stt || NULL == callback)
@@ -2052,7 +1869,7 @@ int stt_set_default_language_changed_cb(stt_h stt, stt_default_language_changed_
 	}
 
 	if (STT_STATE_CREATED != client->current_state) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Current state is not 'ready'");
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Current state(%d) is not 'Created'", client->current_state);
 		return STT_ERROR_INVALID_STATE;
 	}
 
@@ -2064,15 +1881,8 @@ int stt_set_default_language_changed_cb(stt_h stt, stt_default_language_changed_
 
 int stt_unset_default_language_changed_cb(stt_h stt)
 {
-	bool stt_supported = false;
-	bool mic_supported = false;
-	if (0 == system_info_get_platform_bool(STT_FEATURE_PATH, &stt_supported)) {
-		if (0 == system_info_get_platform_bool(STT_MIC_FEATURE_PATH, &mic_supported)) {
-			if (false == stt_supported || false == mic_supported) {
-				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] STT NOT supported");
-				return STT_ERROR_NOT_SUPPORTED;
-			}
-		}
+	if (0 != __stt_get_feature_enabled()) {
+		return STT_ERROR_NOT_SUPPORTED;
 	}
 
 	if (NULL == stt)
@@ -2087,7 +1897,7 @@ int stt_unset_default_language_changed_cb(stt_h stt)
 	}
 
 	if (STT_STATE_CREATED != client->current_state) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Current state is not 'ready'");
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Current state(%d) is not 'Created'", client->current_state);
 		return STT_ERROR_INVALID_STATE;
 	}
 

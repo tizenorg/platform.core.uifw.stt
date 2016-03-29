@@ -28,6 +28,7 @@ static Ecore_Fd_Handler* g_dbus_fd_handler = NULL;
 
 static int g_waiting_time = 3000;
 
+static int g_internal_result_id = 0;
 
 int sttdc_send_hello(int uid)
 {
@@ -39,19 +40,19 @@ int sttdc_send_hello(int uid)
 
 	char service_name[64];
 	memset(service_name, 0, 64);
-	snprintf(service_name, 64, "%s", STT_CLIENT_SERVICE_NAME);
+	snprintf(service_name, 64, "%s%d", STT_CLIENT_SERVICE_NAME, pid);
 
 	char target_if_name[128];
-	snprintf(target_if_name, sizeof(target_if_name), "%s", STT_CLIENT_SERVICE_INTERFACE);
+	snprintf(target_if_name, sizeof(target_if_name), "%s%d", STT_CLIENT_SERVICE_INTERFACE, pid);
 
 	DBusMessage* msg = NULL;
 
-	SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[Dbus] Send hello message : uid(%d)", uid);
+	SLOG(LOG_DEBUG, TAG_STTD, "[Dbus] Send hello message : uid(%d)", uid);
 
 	msg = dbus_message_new_method_call(
-		service_name, 
-		STT_CLIENT_SERVICE_OBJECT_PATH, 
-		target_if_name, 
+		service_name,
+		STT_CLIENT_SERVICE_OBJECT_PATH,
+		target_if_name,
 		STTD_METHOD_HELLO);
 
 	if (NULL == msg) {
@@ -70,6 +71,13 @@ int sttdc_send_hello(int uid)
 	dbus_message_unref(msg);
 	if (dbus_error_is_set(&err)) {
 		SLOG(LOG_ERROR, TAG_STTD, "[ERROR] Send error (%s)", err.message);
+		if (NULL != err.name) {
+			if (!strcmp(err.name, DBUS_ERROR_SERVICE_UNKNOWN)) {
+				SLOG(LOG_ERROR, TAG_STTD, "[ERROR] Unknown service. Client is not available");
+				dbus_error_free(&err);
+				return 0;
+			}
+		}
 		dbus_error_free(&err);
 	}
 
@@ -77,9 +85,8 @@ int sttdc_send_hello(int uid)
 		dbus_message_get_args(result_msg, &err, DBUS_TYPE_INT32, &result, DBUS_TYPE_INVALID);
 
 		if (dbus_error_is_set(&err)) {
-			SLOG(LOG_ERROR, TAG_STTD, "[Dbus] Get arguments error (%s)\n", err.message);
+			SLOG(LOG_ERROR, TAG_STTD, "[Dbus] Get arguments error (%s)", err.message);
 			dbus_error_free(&err);
-			result = -1;
 		}
 
 		dbus_message_unref(result_msg);
@@ -88,6 +95,53 @@ int sttdc_send_hello(int uid)
 	}
 
 	return result;
+}
+
+int sttdc_send_set_volume(int uid, float volume)
+{
+	int pid = sttd_client_get_pid(uid);
+
+	if (0 > pid) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] pid is NOT valid");
+		return -1;
+	}
+
+	char service_name[64];
+	memset(service_name, 0, 64);
+	snprintf(service_name, 64, "%s%d", STT_CLIENT_SERVICE_NAME, pid);
+
+	char target_if_name[128];
+	snprintf(target_if_name, sizeof(target_if_name), "%s%d", STT_CLIENT_SERVICE_INTERFACE, pid);
+
+	DBusMessage* msg;
+
+	/* SLOG(LOG_DEBUG, TAG_STTD, "[Dbus] Send set volume : uid(%d), volume(%f) volume size(%d)", uid, volume, sizeof(float)); */
+
+	msg = dbus_message_new_signal(
+		STT_CLIENT_SERVICE_OBJECT_PATH,	/* object name of the signal */
+		target_if_name,			/* interface name of the signal */
+		STTD_METHOD_SET_VOLUME);	/* name of the signal */
+
+	if (NULL == msg) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] Fail to create message");
+		return -1;
+	}
+
+	dbus_message_append_args(msg,
+		DBUS_TYPE_INT32, &uid,
+		DBUS_TYPE_INT32, &volume,
+		DBUS_TYPE_INVALID);
+
+	if (!dbus_connection_send(g_conn_sender, msg, NULL)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] Fail to send message : Out Of Memory !");
+	} else {
+		SLOG(LOG_DEBUG, TAG_STTD, "<<<< Send set volume : uid(%d), volume(%f)", uid, volume);
+		dbus_connection_flush(g_conn_sender);
+	}
+
+	dbus_message_unref(msg);
+
+	return 0;
 }
 
 int sttdc_send_set_state(int uid, int state)
@@ -101,20 +155,16 @@ int sttdc_send_set_state(int uid, int state)
 
 	char service_name[64];
 	memset(service_name, 0, 64);
-	snprintf(service_name, 64, "%s", STT_CLIENT_SERVICE_NAME);
+	snprintf(service_name, 64, "%s%d", STT_CLIENT_SERVICE_NAME, pid);
 
 	char target_if_name[128];
-	snprintf(target_if_name, sizeof(target_if_name), "%s", STT_CLIENT_SERVICE_INTERFACE);
+	snprintf(target_if_name, sizeof(target_if_name), "%s%d", STT_CLIENT_SERVICE_INTERFACE, pid);
 
-	DBusMessage* msg;
-
-	SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[Dbus] Send change state message : uid(%d), state(%d)", uid, state);
-
-	msg = dbus_message_new_method_call(
-		service_name,
-		STT_CLIENT_SERVICE_OBJECT_PATH,
-		target_if_name,
-		STTD_METHOD_SET_STATE);
+	DBusMessage* msg = NULL;
+	msg = dbus_message_new_signal(
+		STT_CLIENT_SERVICE_OBJECT_PATH,	/* object name of the signal */
+		target_if_name,			/* interface name of the signal */
+		STTD_METHOD_SET_STATE);		/* name of the signal */
 
 	if (NULL == msg) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] Fail to create message");
@@ -126,86 +176,16 @@ int sttdc_send_set_state(int uid, int state)
 		DBUS_TYPE_INT32, &state,
 		DBUS_TYPE_INVALID);
 
-	dbus_message_set_no_reply(msg, TRUE);
-
 	if (!dbus_connection_send(g_conn_sender, msg, NULL)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] Fail to send message : Out Of Memory !");
+		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] Fail to send change state message : Out Of Memory !");
 	} else {
-		SLOG(LOG_DEBUG, TAG_STTD, "<<<< Send error message : uid(%d), state(%d)", uid, state);
+		SLOG(LOG_DEBUG, TAG_STTD, "<<<< Send change state message : uid(%d), state(%d)", uid, state);
 		dbus_connection_flush(g_conn_sender);
 	}
 
-	dbus_connection_flush(g_conn_sender);
 	dbus_message_unref(msg);
 
 	return 0;
-}
-int sttdc_send_get_state(int uid, int* state)
-{
-	int pid = sttd_client_get_pid(uid);
-
-	if (0 > pid) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] pid is NOT valid");
-		return -1;
-	}
-
-	char service_name[64];
-	memset(service_name, 0, 64);
-	snprintf(service_name, 64, "%s", STT_CLIENT_SERVICE_NAME);
-
-	char target_if_name[128];
-	snprintf(target_if_name, sizeof(target_if_name), "%s", STT_CLIENT_SERVICE_INTERFACE);
-
-	DBusMessage* msg;
-
-	SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[Dbus] Send get state message : uid(%d)", uid);
-
-	msg = dbus_message_new_method_call(
-		service_name, 
-		STT_CLIENT_SERVICE_OBJECT_PATH, 
-		target_if_name, 
-		STTD_METHOD_GET_STATE);
-
-	if (NULL == msg) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] Fail to create message");
-		return -1;
-	}
-
-	dbus_message_append_args(msg, DBUS_TYPE_INT32, &uid, DBUS_TYPE_INVALID);
-
-	DBusError err;
-	dbus_error_init(&err);
-
-	DBusMessage* result_msg;
-	int tmp = -1;
-	int result = 0;
-
-	result_msg = dbus_connection_send_with_reply_and_block(g_conn_sender, msg, g_waiting_time, &err);
-	dbus_message_unref(msg);
-	if (dbus_error_is_set(&err)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[ERROR] Send error (%s)", err.message);
-		dbus_error_free(&err);
-	}
-
-	if (NULL != result_msg) {
-		dbus_message_get_args(result_msg, &err, DBUS_TYPE_INT32, &tmp, DBUS_TYPE_INVALID);
-
-		if (dbus_error_is_set(&err)) {
-			SLOG(LOG_ERROR, TAG_STTD, "[Dbus] Get arguments error (%s)\n", err.message);
-			dbus_error_free(&err);
-			result = -1;
-		} else {
-			*state = tmp;
-			result = 0;
-		}
-
-		dbus_message_unref(result_msg);
-	} else {
-		SLOG(LOG_ERROR, TAG_STTD, "[Dbus] Result message is NULL. Client is not available");
-		result = -1;
-	}
-
-	return result;
 }
 
 int sttdc_send_result(int uid, int event, const char** data, int data_count, const char* result_msg)
@@ -218,20 +198,20 @@ int sttdc_send_result(int uid, int event, const char** data, int data_count, con
 
 	char service_name[64];
 	memset(service_name, 0, 64);
-	snprintf(service_name, 64, "%s", STT_CLIENT_SERVICE_NAME);
+	snprintf(service_name, 64, "%s%d", STT_CLIENT_SERVICE_NAME, pid);
 
 	char target_if_name[128];
 	memset(target_if_name, 0, 128);
-	snprintf(target_if_name, sizeof(target_if_name), "%s", STT_CLIENT_SERVICE_INTERFACE);
+	snprintf(target_if_name, sizeof(target_if_name), "%s%d", STT_CLIENT_SERVICE_INTERFACE, pid);
 
 	DBusMessage* msg = NULL;
-	SLOG(LOG_DEBUG, TAG_STTD, "[Dbus] send result signal : uid(%d), event(%d), result count(%d)", uid, event, data_count);
+	SLOG(LOG_DEBUG, TAG_STTD, "[Dbus] send result signal : uid(%d), event(%d), result count(%d) result id(%d)", 
+		uid, event, data_count, g_internal_result_id);
 
-	msg = dbus_message_new_method_call(
-		service_name, 
-		STT_CLIENT_SERVICE_OBJECT_PATH, 
-		target_if_name, 
-		STTD_METHOD_RESULT);
+	msg = dbus_message_new_signal(
+		STT_CLIENT_SERVICE_OBJECT_PATH,	/* object name of the signal */
+		target_if_name,			/* interface name of the signal */
+		STTD_METHOD_RESULT);		/* name of the signal */
 
 	if (NULL == msg) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] Fail to create message");
@@ -261,14 +241,27 @@ int sttdc_send_result(int uid, int event, const char** data, int data_count, con
 	/* Append result size */
 	if (!dbus_message_iter_append_basic(&args, DBUS_TYPE_INT32, &(data_count))) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Dbus] response message : Fail to append result size");
+		dbus_message_unref(msg);
 		return -1;
 	}
 
+	if (!dbus_message_iter_append_basic(&args, DBUS_TYPE_INT32, &(g_internal_result_id))) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Dbus] response message : Fail to append internal result id");
+		dbus_message_unref(msg);
+		return -1;
+	}
+
+	g_internal_result_id++;
+
+	if (10000 == g_internal_result_id) {
+		g_internal_result_id = 1;
+	}
+
 	int i;
-	SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[Dbus] result size (%d)", data_count);
+	SLOG(LOG_DEBUG, TAG_STTD, "[Dbus] result size (%d)", data_count);
 	for (i = 0; i < data_count; i++) {
 		if (NULL != data[i]) {
-			SECURE_SLOG(LOG_DEBUG, TAG_STTD, "[Dbus] result (%d, %s)", i, data[i]);
+			SLOG(LOG_DEBUG, TAG_STTD, "[Dbus] result (%d, %s)", i, data[i] );
 
 			if (!dbus_message_iter_append_basic(&args, DBUS_TYPE_STRING, &data[i])) {
 				SLOG(LOG_ERROR, TAG_STTD, "[Dbus] response message : Fail to append result data");
@@ -290,8 +283,6 @@ int sttdc_send_result(int uid, int event, const char** data, int data_count, con
 			return STTD_ERROR_OPERATION_FAILED;
 		}
 	}
-
-	dbus_message_set_no_reply(msg, TRUE);
 
 	if (!dbus_connection_send(g_conn_sender, msg, NULL)) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] Fail to send message : Out Of Memory !");
@@ -318,26 +309,25 @@ int sttdc_send_error_signal(int uid, int reason, const char *err_msg)
 
 	char service_name[64];
 	memset(service_name, 0, 64);
-	snprintf(service_name, 64, "%s", STT_CLIENT_SERVICE_NAME);
+	snprintf(service_name, 64, "%s%d", STT_CLIENT_SERVICE_NAME, pid);
 
 	char target_if_name[128];
-	snprintf(target_if_name, sizeof(target_if_name), "%s", STT_CLIENT_SERVICE_INTERFACE);
+	snprintf(target_if_name, sizeof(target_if_name), "%s%d", STT_CLIENT_SERVICE_INTERFACE, pid);
 
 	DBusMessage* msg = NULL;
-	msg = dbus_message_new_method_call(
-		service_name, 
-		STT_CLIENT_SERVICE_OBJECT_PATH, 
-		target_if_name, 
-		STTD_METHOD_ERROR);
+	msg = dbus_message_new_signal(
+		STT_CLIENT_SERVICE_OBJECT_PATH,	/* object name of the signal */
+		target_if_name,			/* interface name of the signal */
+		STTD_METHOD_ERROR);		/* name of the signal */
 
 	if (NULL == msg) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] Fail to create message");
 		return STTD_ERROR_OUT_OF_MEMORY;
 	}
 
-	dbus_message_append_args(msg, 
-		DBUS_TYPE_INT32, &uid, 
-		DBUS_TYPE_INT32, &reason, 
+	dbus_message_append_args(msg,
+		DBUS_TYPE_INT32, &uid,
+		DBUS_TYPE_INT32, &reason,
 		DBUS_TYPE_STRING, &err_msg,
 		DBUS_TYPE_INVALID);
 
@@ -435,7 +425,7 @@ int sttd_dbus_open_connection()
 	int ret;
 
 	/* Create connection for sender */
-	g_conn_sender = dbus_bus_get(DBUS_BUS_SYSTEM, &err);
+	g_conn_sender = dbus_bus_get_private(DBUS_BUS_SESSION, &err);
 	if (dbus_error_is_set(&err)) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] Fail dbus_bus_get : %s", err.message);
 		dbus_error_free(&err);
@@ -447,7 +437,7 @@ int sttd_dbus_open_connection()
 	}
 
 	/* connect to the bus and check for errors */
-	g_conn_listener = dbus_bus_get(DBUS_BUS_SYSTEM, &err);
+	g_conn_listener = dbus_bus_get_private(DBUS_BUS_SESSION, &err);
 
 	if (dbus_error_is_set(&err)) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] Fail dbus_bus_get : %s", err.message);
@@ -483,6 +473,7 @@ int sttd_dbus_open_connection()
 
 	if (dbus_error_is_set(&err)) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] dbus_bus_add_match() : %s", err.message);
+		dbus_error_free(&err);
 		return STTD_ERROR_OPERATION_FAILED;
 	}
 
@@ -514,6 +505,9 @@ int sttd_dbus_close_connection()
 		SLOG(LOG_ERROR, TAG_STTD, "[Dbus ERROR] dbus_bus_release_name() : %s", err.message);
 		dbus_error_free(&err);
 	}
+
+	dbus_connection_close(g_conn_listener);
+	dbus_connection_close(g_conn_sender);
 
 	g_conn_listener = NULL;
 	g_conn_sender = NULL;

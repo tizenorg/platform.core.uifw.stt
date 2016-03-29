@@ -443,7 +443,7 @@ int stt_client_set_app_agreed(int uid)
 
 	tmp = __client_get_item(uid);
 	if (NULL == tmp) {
-		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Client Data ERROR] uid(%d) is NOT valid", uid);
+		SLOG(LOG_ERROR, TAG_STTD, "[Client Data ERROR] uid(%d) is NOT valid", uid);
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
@@ -460,7 +460,7 @@ bool stt_client_get_app_agreed(int uid)
 
 	tmp = __client_get_item(uid);
 	if (NULL == tmp) {
-		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Client Data ERROR] uid(%d) is NOT valid", uid);
+		SLOG(LOG_ERROR, TAG_STTD, "[Client Data ERROR] uid(%d) is NOT valid", uid);
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 

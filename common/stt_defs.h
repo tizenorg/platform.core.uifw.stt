@@ -1,5 +1,5 @@
 /*
-*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved 
+*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -25,9 +25,9 @@ extern "C" {
 * Definition for Dbus
 *******************************************************************************************/
 
-#define STT_CLIENT_SERVICE_NAME         "org.tizen.stt.client"
-#define STT_CLIENT_SERVICE_OBJECT_PATH  "/org/tizen/stt/client"
-#define STT_CLIENT_SERVICE_INTERFACE    "org.tizen.stt.client"
+#define STT_CLIENT_SERVICE_NAME         "org.tizen.voice.sttclient"
+#define STT_CLIENT_SERVICE_OBJECT_PATH  "/org/tizen/voice/sttclient"
+#define STT_CLIENT_SERVICE_INTERFACE    "org.tizen.voice.sttclient"
 
 #define STT_SERVER_SERVICE_NAME         "org.tizen.voice.sttserver"
 #define STT_SERVER_SERVICE_OBJECT_PATH  "/org/tizen/voice/sttserver"
@@ -61,34 +61,26 @@ extern "C" {
 #define STTD_METHOD_ERROR		"sttd_method_error"
 #define STTD_METHOD_HELLO		"sttd_method_hello"
 #define STTD_METHOD_SET_STATE		"sttd_method_set_state"
-#define STTD_METHOD_GET_STATE		"sttd_method_get_state"
+#define STTD_METHOD_SET_VOLUME		"sttd_method_set_volume"
+
 
 /******************************************************************************************
 * Defines for configuration
 *******************************************************************************************/
 
-#define STT_AUDIO_VOLUME_PATH		"/tmp/stt_vol"
-
 #define STT_TIME_INFO_PATH		tzplatform_mkpath(TZ_USER_HOME, "share/.voice/stt-time.xml")
 
-#ifdef LIB64
-#define STT_USR_BASE			"/usr/lib64/voice"
-#else
-#define STT_USR_BASE			"/usr/lib/voice"
-#endif
-#define STT_OPT_BASE			"/opt/usr/data/voice"
-
-#define STT_DEFAULT_CONFIG		STT_USR_BASE"/stt/1.0/stt-config.xml"
+#define STT_DEFAULT_CONFIG		STT_LIBDIR"/voice/stt/1.0/stt-config.xml"
 #define STT_CONFIG			tzplatform_mkpath(TZ_USER_HOME, "share/.voice/stt-config.xml")
 
-#define STT_DEFAULT_ENGINE		STT_USR_BASE"/stt/1.0/engine"
-#define STT_DOWNLOAD_ENGINE		STT_OPT_BASE"/stt/1.0/engine"
+#define STT_DEFAULT_ENGINE		STT_LIBDIR"/voice/stt/1.0/engine"
+#define STT_DOWNLOAD_ENGINE		tzplatform_mkpath(TZ_USER_HOME, "share/.voice/stt/1.0/engine")
 
-#define STT_DEFAULT_ENGINE_INFO		STT_USR_BASE"/stt/1.0/engine-info"
-#define STT_DOWNLOAD_ENGINE_INFO	STT_OPT_BASE"/stt/1.0/engine-info"
+#define STT_DEFAULT_ENGINE_INFO		STT_LIBDIR"/voice/stt/1.0/engine-info"
+#define STT_DOWNLOAD_ENGINE_INFO	tzplatform_mkpath(TZ_USER_HOME, "share/.voice/stt/1.0/engine-info")
 
-#define STT_DEFAULT_ENGINE_SETTING	STT_USR_BASE"/stt/1.0/engine-setting"
-#define STT_DOWNLOAD_ENGINE_SETTING	STT_OPT_BASE"/stt/1.0/engine-setting"
+#define STT_DEFAULT_ENGINE_SETTING	STT_LIBDIR"/voice/stt/1.0/engine-setting"
+#define STT_DOWNLOAD_ENGINE_SETTING	tzplatform_mkpath(TZ_USER_HOME, "share/.voice/stt/1.0/engine-setting")
 
 #define STT_BASE_LANGUAGE		"en_US"
 
