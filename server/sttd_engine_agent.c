@@ -387,47 +387,6 @@ int sttd_engine_agent_initialize_engine_list()
 		SLOG(LOG_WARN, TAG_STTD, "[Engine Agent WARNING] Fail to open default directory");
 	}
 
-	/* Get file name from downloadable engine directory */
-	dp  = opendir(STT_DOWNLOAD_ENGINE);
-	if (NULL != dp) {
-		do {
-			ret = readdir_r(dp, &entry, &dirp);
-			if (0 != ret) {
-				SLOG(LOG_ERROR, TAG_STTD, "[File ERROR] Fail to read directory");
-				break;
-			}
-
-			if (NULL != dirp) {
-				sttengine_info_s* info;
-				char* filepath;
-				int filesize;
-
-				filesize = strlen(STT_DOWNLOAD_ENGINE) + strlen(dirp->d_name) + 5;
-				filepath = (char*)calloc(filesize, sizeof(char));
-
-				if (NULL != filepath) {
-					snprintf(filepath, filesize, "%s/%s", STT_DOWNLOAD_ENGINE, dirp->d_name);
-				} else {
-					SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Memory not enouth!!");
-					continue;
-				}
-
-				/* get its info and update engine list */
-				if (0 == __internal_get_engine_info(filepath, &info)) {
-					/* add engine info to g_engine_list */
-					g_engine_list = g_slist_append(g_engine_list, info);
-				}
-
-				if (NULL != filepath)
-					free(filepath);
-			}
-		} while (NULL != dirp);
-
-		closedir(dp);
-	} else {
-		SLOG(LOG_WARN, TAG_STTD, "[Engine Agent WARNING] Fail to open downloadable directory");
-	}
-
 	if (0 >= g_slist_length(g_engine_list)) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] No Engine");
 		return STTD_ERROR_ENGINE_NOT_FOUND;

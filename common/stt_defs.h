@@ -70,17 +70,12 @@ extern "C" {
 
 #define STT_TIME_INFO_PATH		tzplatform_mkpath(TZ_USER_HOME, "share/.voice/stt-time.xml")
 
-#define STT_DEFAULT_CONFIG		STT_LIBDIR"/voice/stt/1.0/stt-config.xml"
 #define STT_CONFIG			tzplatform_mkpath(TZ_USER_HOME, "share/.voice/stt-config.xml")
+#define STT_DEFAULT_CONFIG		tzplatform_mkpath(TZ_SYS_RO_SHARE, "/voice/stt/1.0/stt-config.xml")
 
-#define STT_DEFAULT_ENGINE		STT_LIBDIR"/voice/stt/1.0/engine"
-#define STT_DOWNLOAD_ENGINE		tzplatform_mkpath(TZ_USER_HOME, "share/.voice/stt/1.0/engine")
-
-#define STT_DEFAULT_ENGINE_INFO		STT_LIBDIR"/voice/stt/1.0/engine-info"
-#define STT_DOWNLOAD_ENGINE_INFO	tzplatform_mkpath(TZ_USER_HOME, "share/.voice/stt/1.0/engine-info")
-
-#define STT_DEFAULT_ENGINE_SETTING	STT_LIBDIR"/voice/stt/1.0/engine-setting"
-#define STT_DOWNLOAD_ENGINE_SETTING	tzplatform_mkpath(TZ_USER_HOME, "share/.voice/stt/1.0/engine-setting")
+#define STT_DEFAULT_ENGINE		tzplatform_mkpath(TZ_SYS_RO_SHARE, "/voice/stt/1.0/engine")
+#define STT_DEFAULT_ENGINE_INFO		tzplatform_mkpath(TZ_SYS_RO_SHARE, "/voice/stt/1.0/engine-info")
+#define STT_DEFAULT_ENGINE_SETTING	tzplatform_mkpath(TZ_SYS_RO_SHARE, "/voice/stt/1.0/engine-setting")
 
 #define STT_BASE_LANGUAGE		"en_US"
 

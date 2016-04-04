@@ -55,9 +55,9 @@ ADD_SUBDIRECTORY(server)
 ADD_SUBDIRECTORY(test)
 
 ## config ##
-INSTALL(FILES ${CMAKE_SOURCE_DIR}/stt-config.xml DESTINATION ${LIBDIR}/voice/stt/1.0)
+INSTALL(FILES ${CMAKE_SOURCE_DIR}/stt-config.xml DESTINATION ${TZ_SYS_RO_SHARE}/voice/stt/1.0)
 
 ## Dbus service ##
-INSTALL(FILES ${CMAKE_SOURCE_DIR}/org.tizen.voice.sttserver.service DESTINATION /usr/share/dbus-1/services)
+INSTALL(FILES ${CMAKE_SOURCE_DIR}/org.tizen.voice.sttserver.service DESTINATION ${TZ_SYS_RO_SHARE}/dbus-1/services)
 
 INSTALL(FILES ${CMAKE_SOURCE_DIR}/stt-server.conf DESTINATION /etc/dbus-1/session.d)

@@ -75,13 +75,14 @@ export CXXFLAGS="$CXXFLAGS -DTIZEN_DEBUG_ENABLE"
 export FFLAGS="$FFLAGS -DTIZEN_DEBUG_ENABLE"
 
 
-cmake . -DCMAKE_INSTALL_PREFIX=/usr -DLIBDIR=%{_libdir} -DINCLUDEDIR=%{_includedir}
+cmake . -DCMAKE_INSTALL_PREFIX=/usr -DLIBDIR=%{_libdir} -DINCLUDEDIR=%{_includedir} \
+        -DTZ_SYS_RO_SHARE=%TZ_SYS_RO_SHARE -DTZ_SYS_BIN=%TZ_SYS_BIN
 make %{?jobs:-j%jobs}
 
 %install
 rm -rf %{buildroot}
-mkdir -p %{buildroot}/usr/share/license
-install LICENSE.APLv2 %{buildroot}/usr/share/license/%{name}
+mkdir -p %{buildroot}%{TZ_SYS_RO_SHARE}/license
+install LICENSE.APLv2 %{buildroot}%{TZ_SYS_RO_SHARE}/license/%{name}
 
 %make_install
 
@@ -90,7 +91,7 @@ install LICENSE.APLv2 %{buildroot}/usr/share/license/%{name}
 
 mkdir -p %{_libdir}/voice/
 
-mkdir -p /usr/share/voice/test
+mkdir -p %{TZ_SYS_RO_SHARE}/voice/test
 
 
 %postun -p /sbin/ldconfig
@@ -100,12 +101,12 @@ mkdir -p /usr/share/voice/test
 %license LICENSE.APLv2
 %defattr(-,root,root,-)
 %{_libdir}/lib*.so
-%{_libdir}/voice/stt/1.0/stt-config.xml
 %{_bindir}/stt-daemon
-/usr/share/dbus-1/services/org.tizen.voice*
 /etc/dbus-1/session.d/stt-server.conf
-/usr/share/voice/test/stt-test
-/usr/share/license/%{name}
+%{TZ_SYS_RO_SHARE}/voice/stt/1.0/stt-config.xml
+%{TZ_SYS_RO_SHARE}/dbus-1/services/org.tizen.voice*
+%{TZ_SYS_RO_SHARE}/voice/test/stt-test
+%{TZ_SYS_RO_SHARE}/license/%{name}
 
 %files devel
 %manifest %{name}-devel.manifest
