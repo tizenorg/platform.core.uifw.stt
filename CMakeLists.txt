@@ -27,6 +27,9 @@ SET(VERSION 0.2.54)
 
 ADD_DEFINITIONS("-DSTT_LIBDIR=\"${LIBDIR}\"")
 ADD_DEFINITIONS("-flto")
+ADD_DEFINITIONS("-fvisibility=hidden")
+ADD_DEFINITIONS("-DLIBSCL_EXPORT_API=__attribute__((visibility(\"default\")))")
+
 
 ## Include common directory ##
 INCLUDE_DIRECTORIES("${CMAKE_SOURCE_DIR}/common")

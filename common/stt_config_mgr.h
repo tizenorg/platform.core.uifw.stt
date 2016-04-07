@@ -21,6 +21,11 @@
 extern "C" {
 #endif
 
+#ifndef LIBSCL_EXPORT_API
+#define LIBSCL_EXPORT_API
+#endif // LIBSCL_EXPORT_API
+
+
 typedef enum {
 	STT_CONFIG_ERROR_NONE			= TIZEN_ERROR_NONE,		/**< Successful */
 	STT_CONFIG_ERROR_OUT_OF_MEMORY		= TIZEN_ERROR_OUT_OF_MEMORY,	/**< Out of Memory */
@@ -51,53 +56,53 @@ typedef void (*stt_config_bool_changed_cb)(stt_config_type_e type, bool bool_val
 typedef bool (*stt_config_result_time_cb)(int index, int event, const char* text, long start_time, long end_time, void* user_data);
 
 
-int stt_config_mgr_initialize(int uid);
+LIBSCL_EXPORT_API int stt_config_mgr_initialize(int uid);
 
-int stt_config_mgr_finalize(int uid);
-
-
-int stt_config_mgr_set_callback(int uid, stt_config_engine_changed_cb engine_cb, stt_config_lang_changed_cb lang_cb, stt_config_bool_changed_cb bool_cb, void* user_data);
-
-int stt_config_mgr_unset_callback(int uid);
+LIBSCL_EXPORT_API int stt_config_mgr_finalize(int uid);
 
 
-int stt_config_mgr_get_engine_list(stt_config_supported_engine_cb callback, void* user_data);
+LIBSCL_EXPORT_API int stt_config_mgr_set_callback(int uid, stt_config_engine_changed_cb engine_cb, stt_config_lang_changed_cb lang_cb, stt_config_bool_changed_cb bool_cb, void* user_data);
 
-int stt_config_mgr_get_engine(char** engine);
-
-int stt_config_mgr_set_engine(const char* engine);
-
-int stt_config_mgr_get_engine_agreement(const char* engine, char** agreement);
-
-int stt_config_mgr_get_language_list(const char* engine_id, stt_config_supported_langauge_cb callback, void* user_data);
-
-int stt_config_mgr_get_default_language(char** language);
-
-int stt_config_mgr_set_default_language(const char* language);
-
-int stt_config_mgr_get_auto_language(bool* value);
-
-int stt_config_mgr_set_auto_language(bool value);
-
-int stt_config_mgr_get_silence_detection(bool* value);
-
-int stt_config_mgr_set_silence_detection(bool value);
-
-bool stt_config_check_default_engine_is_valid(const char* engine);
-
-bool stt_config_check_default_language_is_valid(const char* language);
+LIBSCL_EXPORT_API int stt_config_mgr_unset_callback(int uid);
 
 
-int stt_config_mgr_reset_time_info();
+LIBSCL_EXPORT_API int stt_config_mgr_get_engine_list(stt_config_supported_engine_cb callback, void* user_data);
 
-int stt_config_mgr_add_time_info(int index, int event, const char* text, long start_time, long end_time);
+LIBSCL_EXPORT_API int stt_config_mgr_get_engine(char** engine);
 
-int stt_config_mgr_foreach_time_info(stt_config_result_time_cb callback, void* user_data);
+LIBSCL_EXPORT_API int stt_config_mgr_set_engine(const char* engine);
+
+LIBSCL_EXPORT_API int stt_config_mgr_get_engine_agreement(const char* engine, char** agreement);
+
+LIBSCL_EXPORT_API int stt_config_mgr_get_language_list(const char* engine_id, stt_config_supported_langauge_cb callback, void* user_data);
+
+LIBSCL_EXPORT_API int stt_config_mgr_get_default_language(char** language);
+
+LIBSCL_EXPORT_API int stt_config_mgr_set_default_language(const char* language);
+
+LIBSCL_EXPORT_API int stt_config_mgr_get_auto_language(bool* value);
+
+LIBSCL_EXPORT_API int stt_config_mgr_set_auto_language(bool value);
+
+LIBSCL_EXPORT_API int stt_config_mgr_get_silence_detection(bool* value);
+
+LIBSCL_EXPORT_API int stt_config_mgr_set_silence_detection(bool value);
+
+LIBSCL_EXPORT_API bool stt_config_check_default_engine_is_valid(const char* engine);
+
+LIBSCL_EXPORT_API bool stt_config_check_default_language_is_valid(const char* language);
 
 
-int stt_config_mgr_save_time_info_file();
+LIBSCL_EXPORT_API int stt_config_mgr_reset_time_info();
 
-int stt_config_mgr_remove_time_info_file();
+LIBSCL_EXPORT_API int stt_config_mgr_add_time_info(int index, int event, const char* text, long start_time, long end_time);
+
+LIBSCL_EXPORT_API int stt_config_mgr_foreach_time_info(stt_config_result_time_cb callback, void* user_data);
+
+
+LIBSCL_EXPORT_API int stt_config_mgr_save_time_info_file();
+
+LIBSCL_EXPORT_API int stt_config_mgr_remove_time_info_file();
 
 
 #ifdef __cplusplus

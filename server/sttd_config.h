@@ -19,6 +19,11 @@
 extern "C" {
 #endif
 
+#ifndef LIBSCL_EXPORT_API
+#define LIBSCL_EXPORT_API
+#endif // LIBSCL_EXPORT_API
+
+
 typedef void (*sttd_config_engine_changed_cb)(const char* engine_id, const char* language, bool support_silence, void* user_data);
 
 typedef void (*sttd_config_language_changed_cb)(const char* language, void* user_data);
@@ -26,27 +31,27 @@ typedef void (*sttd_config_language_changed_cb)(const char* language, void* user
 typedef void (*sttd_config_silence_changed_cb)(bool value, void* user_data);
 
 
-int sttd_config_initialize(sttd_config_engine_changed_cb engine_cb, 
+LIBSCL_EXPORT_API int sttd_config_initialize(sttd_config_engine_changed_cb engine_cb, 
 			sttd_config_language_changed_cb lang_cb, 
 			sttd_config_silence_changed_cb silence_cb, 
 			void* user_data);
 
-int sttd_config_finalize();
+LIBSCL_EXPORT_API int sttd_config_finalize();
 
-int sttd_config_set_default_engine(const char* engine_id);
+LIBSCL_EXPORT_API int sttd_config_set_default_engine(const char* engine_id);
 
-int sttd_config_get_default_engine(char** engine_id);
+LIBSCL_EXPORT_API int sttd_config_get_default_engine(char** engine_id);
 
-int sttd_config_get_default_language(char** language);
+LIBSCL_EXPORT_API int sttd_config_get_default_language(char** language);
 
-int sttd_config_get_default_silence_detection(int* silence);
+LIBSCL_EXPORT_API int sttd_config_get_default_silence_detection(int* silence);
 
 
-int sttd_config_time_add(int index, int event, const char* text, long start_time, long end_time);
+LIBSCL_EXPORT_API int sttd_config_time_add(int index, int event, const char* text, long start_time, long end_time);
 
-int sttd_config_time_save();
+LIBSCL_EXPORT_API int sttd_config_time_save();
 
-int sttd_config_time_reset();
+LIBSCL_EXPORT_API int sttd_config_time_reset();
 
 #ifdef __cplusplus
 }

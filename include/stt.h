@@ -37,6 +37,11 @@ extern "C"
  * @brief Enumerations for error codes.
  * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
 */
+
+#ifndef LIBSCL_EXPORT_API
+#define LIBSCL_EXPORT_API
+#endif // LIBSCL_EXPORT_API
+
 typedef enum {
 	STT_ERROR_NONE			= TIZEN_ERROR_NONE,		/**< Successful */
 	STT_ERROR_OUT_OF_MEMORY		= TIZEN_ERROR_OUT_OF_MEMORY,	/**< Out of Memory */
@@ -316,7 +321,7 @@ typedef void (*stt_default_language_changed_cb)(stt_h stt, const char* previous_
  *
  * @see stt_destroy()
 */
-int stt_create(stt_h* stt);
+LIBSCL_EXPORT_API int stt_create(stt_h* stt);
 
 /**
  * @brief Destroys a STT handle.
@@ -334,7 +339,7 @@ int stt_create(stt_h* stt);
  *
  * @see stt_create()
 */
-int stt_destroy(stt_h stt);
+LIBSCL_EXPORT_API int stt_destroy(stt_h stt);
 
 /**
  * @brief Retrieves supported engine information using a callback function.
@@ -358,7 +363,7 @@ int stt_destroy(stt_h stt);
  *
  * @see stt_supported_engine_cb()
 */
-int stt_foreach_supported_engines(stt_h stt, stt_supported_engine_cb callback, void* user_data);
+LIBSCL_EXPORT_API int stt_foreach_supported_engines(stt_h stt, stt_supported_engine_cb callback, void* user_data);
 
 /**
  * @brief Gets the current engine id.
@@ -382,7 +387,7 @@ int stt_foreach_supported_engines(stt_h stt, stt_supported_engine_cb callback, v
  *
  * @see stt_set_engine()
 */
-int stt_get_engine(stt_h stt, char** engine_id);
+LIBSCL_EXPORT_API int stt_get_engine(stt_h stt, char** engine_id);
 
 /**
  * @brief Sets the engine id.
@@ -404,7 +409,7 @@ int stt_get_engine(stt_h stt, char** engine_id);
  *
  * @see stt_get_engine()
 */
-int stt_set_engine(stt_h stt, const char* engine_id);
+LIBSCL_EXPORT_API int stt_set_engine(stt_h stt, const char* engine_id);
 
 /**
  * @brief Connects the daemon asynchronously.
@@ -426,7 +431,7 @@ int stt_set_engine(stt_h stt, const char* engine_id);
  *
  * @see stt_unprepare()
 */
-int stt_prepare(stt_h stt);
+LIBSCL_EXPORT_API int stt_prepare(stt_h stt);
 
 /**
  * @brief Disconnects the daemon.
@@ -447,7 +452,7 @@ int stt_prepare(stt_h stt);
  *
  * @see stt_prepare()
 */
-int stt_unprepare(stt_h stt);
+LIBSCL_EXPORT_API int stt_unprepare(stt_h stt);
 
 /**
  * @brief Retrieves all supported languages of current engine using callback function.
@@ -471,7 +476,7 @@ int stt_unprepare(stt_h stt);
  * @see stt_supported_language_cb()
  * @see stt_get_default_language()
 */
-int stt_foreach_supported_languages(stt_h stt, stt_supported_language_cb callback, void* user_data);
+LIBSCL_EXPORT_API int stt_foreach_supported_languages(stt_h stt, stt_supported_language_cb callback, void* user_data);
 
 /**
  * @brief Gets the default language set by the user.
@@ -493,7 +498,7 @@ int stt_foreach_supported_languages(stt_h stt, stt_supported_language_cb callbac
  *
  * @see stt_foreach_supported_languages()
 */
-int stt_get_default_language(stt_h stt, char** language);
+LIBSCL_EXPORT_API int stt_get_default_language(stt_h stt, char** language);
 
 /**
  * @brief Gets the current STT state.
@@ -514,7 +519,7 @@ int stt_get_default_language(stt_h stt, char** language);
  * @see stt_cancel()
  * @see stt_state_changed_cb()
 */
-int stt_get_state(stt_h stt, stt_state_e* state);
+LIBSCL_EXPORT_API int stt_get_state(stt_h stt, stt_state_e* state);
 
 /**
  * @brief Checks whether the recognition type is supported.
@@ -535,7 +540,7 @@ int stt_get_state(stt_h stt, stt_state_e* state);
  *
  * @pre The state should be #STT_STATE_READY.
 */
-int stt_is_recognition_type_supported(stt_h stt, const char* type, bool* support);
+LIBSCL_EXPORT_API int stt_is_recognition_type_supported(stt_h stt, const char* type, bool* support);
 
 /**
  * @brief Sets the silence detection.
@@ -555,7 +560,7 @@ int stt_is_recognition_type_supported(stt_h stt, const char* type, bool* support
  *
  * @pre The state should be #STT_STATE_READY.
 */
-int stt_set_silence_detection(stt_h stt, stt_option_silence_detection_e type);
+LIBSCL_EXPORT_API int stt_set_silence_detection(stt_h stt, stt_option_silence_detection_e type);
 
 /**
  * @brief Sets the sound to start recording.
@@ -577,7 +582,7 @@ int stt_set_silence_detection(stt_h stt, stt_option_silence_detection_e type);
  *
  * @pre The state should be #STT_STATE_READY.
 */
-int stt_set_start_sound(stt_h stt, const char* filename);
+LIBSCL_EXPORT_API int stt_set_start_sound(stt_h stt, const char* filename);
 
 /**
  * @brief Unsets the sound to start recording.
@@ -596,7 +601,7 @@ int stt_set_start_sound(stt_h stt, const char* filename);
  *
  * @pre The state should be #STT_STATE_READY.
 */
-int stt_unset_start_sound(stt_h stt);
+LIBSCL_EXPORT_API int stt_unset_start_sound(stt_h stt);
 
 /**
  * @brief Sets the sound to stop recording.
@@ -618,7 +623,7 @@ int stt_unset_start_sound(stt_h stt);
  *
  * @pre The state should be #STT_STATE_READY.
 */
-int stt_set_stop_sound(stt_h stt, const char* filename);
+LIBSCL_EXPORT_API int stt_set_stop_sound(stt_h stt, const char* filename);
 
 /**
  * @brief Unsets the sound to stop recording.
@@ -637,7 +642,7 @@ int stt_set_stop_sound(stt_h stt, const char* filename);
  *
  * @pre The state should be #STT_STATE_READY.
 */
-int stt_unset_stop_sound(stt_h stt);
+LIBSCL_EXPORT_API int stt_unset_stop_sound(stt_h stt);
 
 /**
  * @brief Starts recording and recognition asynchronously.
@@ -669,7 +674,7 @@ int stt_unset_stop_sound(stt_h stt);
  * @see stt_cancel()
  * @see stt_state_changed_cb()
 */
-int stt_start(stt_h stt, const char* language, const char* type);
+LIBSCL_EXPORT_API int stt_start(stt_h stt, const char* language, const char* type);
 
 /**
  * @brief Finishes the recording and starts recognition processing in engine asynchronously.
@@ -695,7 +700,7 @@ int stt_start(stt_h stt, const char* language, const char* type);
  * @see stt_cancel()
  * @see stt_state_changed_cb()
 */
-int stt_stop(stt_h stt);
+LIBSCL_EXPORT_API int stt_stop(stt_h stt);
 
 /**
  * @brief Cancels processing recognition and recording asynchronously.
@@ -723,7 +728,7 @@ int stt_stop(stt_h stt);
  * @see stt_stop()
  * @see stt_state_changed_cb()
 */
-int stt_cancel(stt_h stt);
+LIBSCL_EXPORT_API int stt_cancel(stt_h stt);
 
 /**
  * @brief Gets the microphone volume during recording.
@@ -745,7 +750,7 @@ int stt_cancel(stt_h stt);
  *
  * @see stt_start()
 */
-int stt_get_recording_volume(stt_h stt, float* volume);
+LIBSCL_EXPORT_API int stt_get_recording_volume(stt_h stt, float* volume);
 
 /**
  * @brief Retrieves the time stamp of the current recognition result using the callback function.
@@ -772,7 +777,7 @@ int stt_get_recording_volume(stt_h stt, float* volume);
  * @see stt_result_time_cb()
  * @see stt_recognition_result_cb()
 */
-int stt_foreach_detailed_result(stt_h stt, stt_result_time_cb callback, void* user_data);
+LIBSCL_EXPORT_API int stt_foreach_detailed_result(stt_h stt, stt_result_time_cb callback, void* user_data);
 
 /**
  * @brief Registers a callback function to get the recognition result.
@@ -795,7 +800,7 @@ int stt_foreach_detailed_result(stt_h stt, stt_result_time_cb callback, void* us
  * @see stt_recognition_result_cb()
  * @see stt_unset_recognition_result_cb()
 */
-int stt_set_recognition_result_cb(stt_h stt, stt_recognition_result_cb callback, void* user_data);
+LIBSCL_EXPORT_API int stt_set_recognition_result_cb(stt_h stt, stt_recognition_result_cb callback, void* user_data);
 
 /**
  * @brief Unregisters the callback function.
@@ -815,7 +820,7 @@ int stt_set_recognition_result_cb(stt_h stt, stt_recognition_result_cb callback,
  *
  * @see stt_set_recognition_result_cb()
 */
-int stt_unset_recognition_result_cb(stt_h stt);
+LIBSCL_EXPORT_API int stt_unset_recognition_result_cb(stt_h stt);
 
 /**
  * @brief Registers a callback function to be called when STT state changes.
@@ -838,7 +843,7 @@ int stt_unset_recognition_result_cb(stt_h stt);
  * @see stt_state_changed_cb()
  * @see stt_unset_state_changed_cb()
 */
-int stt_set_state_changed_cb(stt_h stt, stt_state_changed_cb callback, void* user_data);
+LIBSCL_EXPORT_API int stt_set_state_changed_cb(stt_h stt, stt_state_changed_cb callback, void* user_data);
 
 /**
  * @brief Unregisters the callback function.
@@ -858,7 +863,7 @@ int stt_set_state_changed_cb(stt_h stt, stt_state_changed_cb callback, void* use
  *
  * @see stt_set_state_changed_cb()
 */
-int stt_unset_state_changed_cb(stt_h stt);
+LIBSCL_EXPORT_API int stt_unset_state_changed_cb(stt_h stt);
 
 /**
  * @brief Registers a callback function to be called when an error occurred.
@@ -881,7 +886,7 @@ int stt_unset_state_changed_cb(stt_h stt);
  * @see stt_error_cb()
  * @see stt_unset_error_cb()
 */
-int stt_set_error_cb(stt_h stt, stt_error_cb callback, void* user_data);
+LIBSCL_EXPORT_API int stt_set_error_cb(stt_h stt, stt_error_cb callback, void* user_data);
 
 /**
  * @brief Unregisters the callback function.
@@ -901,7 +906,7 @@ int stt_set_error_cb(stt_h stt, stt_error_cb callback, void* user_data);
  *
  * @see stt_set_error_cb()
 */
-int stt_unset_error_cb(stt_h stt);
+LIBSCL_EXPORT_API int stt_unset_error_cb(stt_h stt);
 
 /**
  * @brief Registers a callback function to detect the default language change.
@@ -924,7 +929,7 @@ int stt_unset_error_cb(stt_h stt);
  * @see stt_default_language_changed_cb()
  * @see stt_unset_default_language_changed_cb()
 */
-int stt_set_default_language_changed_cb(stt_h stt, stt_default_language_changed_cb callback, void* user_data);
+LIBSCL_EXPORT_API int stt_set_default_language_changed_cb(stt_h stt, stt_default_language_changed_cb callback, void* user_data);
 
 /**
  * @brief Unregisters the callback function.
@@ -944,7 +949,7 @@ int stt_set_default_language_changed_cb(stt_h stt, stt_default_language_changed_
  *
  * @see stt_set_default_language_changed_cb()
 */
-int stt_unset_default_language_changed_cb(stt_h stt);
+LIBSCL_EXPORT_API int stt_unset_default_language_changed_cb(stt_h stt);
 
 #ifdef __cplusplus
 }

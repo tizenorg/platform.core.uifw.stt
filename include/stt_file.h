@@ -33,6 +33,11 @@ extern "C"
 /**
 * @brief Enumerations of error codes.
 */
+
+#ifndef LIBSCL_EXPORT_API
+#define LIBSCL_EXPORT_API
+#endif // LIBSCL_EXPORT_API
+
 typedef enum {
 	STT_FILE_ERROR_NONE			= 0,			/**< Successful */
 	STT_FILE_ERROR_OUT_OF_MEMORY		= -ENOMEM,		/**< Out of Memory */
@@ -186,7 +191,7 @@ typedef bool (*stt_file_supported_language_cb)(const char* language, void* user_
 *
 * @see stt_file_deinitialize(void)
 */
-int stt_file_initialize(void);
+LIBSCL_EXPORT_API int stt_file_initialize(void);
 
 /**
 * @brief Deinitialize STT FILE.
@@ -200,7 +205,7 @@ int stt_file_initialize(void);
 *
 * @see stt_file_initialize(void)
 */
-int stt_file_deinitialize(void);
+LIBSCL_EXPORT_API int stt_file_deinitialize(void);
 
 /**
 * @brief Gets the current state.
@@ -213,7 +218,7 @@ int stt_file_deinitialize(void);
 *
 * @see stt_file_state_changed_cb()
 */
-int stt_file_get_state(stt_file_state_e* state);
+LIBSCL_EXPORT_API int stt_file_get_state(stt_file_state_e* state);
 
 /**
 * @brief Retrieve supported engine informations using callback function.
@@ -232,7 +237,7 @@ int stt_file_get_state(stt_file_state_e* state);
 *
 * @see stt_file_supported_engine_cb()
 */
-int stt_file_foreach_supported_engines(stt_file_supported_engine_cb callback, void* user_data);
+LIBSCL_EXPORT_API int stt_file_foreach_supported_engines(stt_file_supported_engine_cb callback, void* user_data);
 
 /**
 * @brief Get current engine id.
@@ -253,7 +258,7 @@ int stt_file_foreach_supported_engines(stt_file_supported_engine_cb callback, vo
 * @see stt_file_foreach_supported_engines()
 * @see stt_file_set_engine()
 */
-int stt_file_get_engine(char** engine_id);
+LIBSCL_EXPORT_API int stt_file_get_engine(char** engine_id);
 
 /**
 * @brief Set engine id.
@@ -270,7 +275,7 @@ int stt_file_get_engine(char** engine_id);
 *
 * @see stt_file_get_engine()
 */
-int stt_file_set_engine(const char* engine_id);
+LIBSCL_EXPORT_API int stt_file_set_engine(const char* engine_id);
 
 /**
 * @brief Retrieves all supported languages of current engine using callback function.
@@ -290,7 +295,7 @@ int stt_file_set_engine(const char* engine_id);
 * @see stt_file_supported_language_cb()
 * @see stt_file_get_default_language()
 */
-int stt_file_foreach_supported_languages(stt_file_supported_language_cb callback, void* user_data);
+LIBSCL_EXPORT_API int stt_file_foreach_supported_languages(stt_file_supported_language_cb callback, void* user_data);
 
 
 /**
@@ -316,7 +321,7 @@ int stt_file_foreach_supported_languages(stt_file_supported_language_cb callback
 *
 * @see stt_file_cancel()
 */
-int stt_file_start(const char* language, const char* type, const char* filepath,
+LIBSCL_EXPORT_API int stt_file_start(const char* language, const char* type, const char* filepath,
 			stt_file_audio_type_e audio_type, int sample_rate);
 
 /**
@@ -333,7 +338,7 @@ int stt_file_start(const char* language, const char* type, const char* filepath,
 *
 * @see stt_file_start()
 */
-int stt_file_cancel(void);
+LIBSCL_EXPORT_API int stt_file_cancel(void);
 
 
 /**
@@ -354,7 +359,7 @@ int stt_file_cancel(void);
 * @see stt_file_result_time_cb()
 * @see stt_file_recognition_result_cb()
 */
-int stt_file_foreach_detailed_result(stt_file_result_time_cb callback, void* user_data);
+LIBSCL_EXPORT_API int stt_file_foreach_detailed_result(stt_file_result_time_cb callback, void* user_data);
 
 /**
 * @brief Registers a callback function for getting recognition result.
@@ -372,7 +377,7 @@ int stt_file_foreach_detailed_result(stt_file_result_time_cb callback, void* use
 * @see stt_file_recognition_result_cb()
 * @see stt_file_unset_recognition_result_cb()
 */
-int stt_file_set_recognition_result_cb(stt_file_recognition_result_cb callback, void* user_data);
+LIBSCL_EXPORT_API int stt_file_set_recognition_result_cb(stt_file_recognition_result_cb callback, void* user_data);
 
 /**
 * @brief Unregisters the callback function.
@@ -385,7 +390,7 @@ int stt_file_set_recognition_result_cb(stt_file_recognition_result_cb callback, 
 *
 * @see stt_file_set_recognition_result_cb()
 */
-int stt_file_unset_recognition_result_cb(void);
+LIBSCL_EXPORT_API int stt_file_unset_recognition_result_cb(void);
 
 /**
 * @brief Registers a callback function to be called when STT FILE state changes.
@@ -403,7 +408,7 @@ int stt_file_unset_recognition_result_cb(void);
 * @see stt_file_state_changed_cb()
 * @see stt_file_unset_state_changed_cb()
 */
-int stt_file_set_state_changed_cb(stt_file_state_changed_cb callback, void* user_data);
+LIBSCL_EXPORT_API int stt_file_set_state_changed_cb(stt_file_state_changed_cb callback, void* user_data);
 
 /**
 * @brief Unregisters the callback function.
@@ -417,7 +422,7 @@ int stt_file_set_state_changed_cb(stt_file_state_changed_cb callback, void* user
 *
 * @see stt_file_set_state_changed_cb()
 */
-int stt_file_unset_state_changed_cb(void);
+LIBSCL_EXPORT_API int stt_file_unset_state_changed_cb(void);
 
 
 #ifdef __cplusplus

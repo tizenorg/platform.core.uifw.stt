@@ -26,50 +26,55 @@ extern "C" {
 /*
 * Daemon functions
 */
-int sttd_initialize();
 
-int sttd_finalize();
+#ifndef LIBSCL_EXPORT_API
+#define LIBSCL_EXPORT_API
+#endif // LIBSCL_EXPORT_API
 
-Eina_Bool sttd_cleanup_client(void *data);
+LIBSCL_EXPORT_API int sttd_initialize();
 
-Eina_Bool sttd_get_daemon_exist();
+LIBSCL_EXPORT_API int sttd_finalize();
+
+LIBSCL_EXPORT_API Eina_Bool sttd_cleanup_client(void *data);
+
+LIBSCL_EXPORT_API Eina_Bool sttd_get_daemon_exist();
 
 /*
 * API for client
 */
 
-int sttd_server_initialize(int pid, int uid, bool* silence);
+LIBSCL_EXPORT_API int sttd_server_initialize(int pid, int uid, bool* silence);
 
-int sttd_server_finalize(int uid);
+LIBSCL_EXPORT_API int sttd_server_finalize(int uid);
 
-int sttd_server_get_supported_engines(int uid, GSList** engine_list);
+LIBSCL_EXPORT_API int sttd_server_get_supported_engines(int uid, GSList** engine_list);
 
-int sttd_server_set_current_engine(int uid, const char* engine_id, bool* silence);
+LIBSCL_EXPORT_API int sttd_server_set_current_engine(int uid, const char* engine_id, bool* silence);
 
-int sttd_server_get_current_engine(int uid, char** engine_id);
+LIBSCL_EXPORT_API int sttd_server_get_current_engine(int uid, char** engine_id);
 
-int sttd_server_check_app_agreed(int uid, const char* appid, bool* available);
+LIBSCL_EXPORT_API int sttd_server_check_app_agreed(int uid, const char* appid, bool* available);
 
-int sttd_server_get_supported_languages(int uid, GSList** lang_list);
+LIBSCL_EXPORT_API int sttd_server_get_supported_languages(int uid, GSList** lang_list);
 
-int sttd_server_get_current_langauage(int uid, char** current_lang);
+LIBSCL_EXPORT_API int sttd_server_get_current_langauage(int uid, char** current_lang);
 
-int sttd_server_set_engine_data(int uid, const char* key, const char* value);
+LIBSCL_EXPORT_API int sttd_server_set_engine_data(int uid, const char* key, const char* value);
 
-int sttd_server_is_recognition_type_supported(int uid, const char* type, int* support);
+LIBSCL_EXPORT_API int sttd_server_is_recognition_type_supported(int uid, const char* type, int* support);
 
-int sttd_server_set_start_sound(int uid, const char* file);
+LIBSCL_EXPORT_API int sttd_server_set_start_sound(int uid, const char* file);
 
-int sttd_server_set_stop_sound(int uid, const char* file);
+LIBSCL_EXPORT_API int sttd_server_set_stop_sound(int uid, const char* file);
 
 
-int sttd_server_get_audio_volume(int uid, float* current_volume);
+LIBSCL_EXPORT_API int sttd_server_get_audio_volume(int uid, float* current_volume);
 
-int sttd_server_start(int uid, const char* lang, const char* recognition_type, int silence, const char* appid);
+LIBSCL_EXPORT_API int sttd_server_start(int uid, const char* lang, const char* recognition_type, int silence, const char* appid);
 
-int sttd_server_stop(int uid);
+LIBSCL_EXPORT_API int sttd_server_stop(int uid);
 
-int sttd_server_cancel(int uid);
+LIBSCL_EXPORT_API int sttd_server_cancel(int uid);
 
 
 

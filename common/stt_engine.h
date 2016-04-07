@@ -27,55 +27,60 @@ extern "C" {
 * STT Engine Interfaces
 */
 
+#ifndef LIBSCL_EXPORT_API
+#define LIBSCL_EXPORT_API
+#endif // LIBSCL_EXPORT_API
+
+
 
 /* Register engine id */
-int stt_engine_load(int engine_id, const char* filepath);
+LIBSCL_EXPORT_API int stt_engine_load(int engine_id, const char* filepath);
 
 /* Unregister engine id */
-int stt_engine_unload(int engine_id);
+LIBSCL_EXPORT_API int stt_engine_unload(int engine_id);
 
 
 /* Init / Deinit */
-int stt_engine_initialize(int engine_id, sttpe_result_cb result_cb, sttpe_silence_detected_cb silence_cb);
+LIBSCL_EXPORT_API int stt_engine_initialize(int engine_id, sttpe_result_cb result_cb, sttpe_silence_detected_cb silence_cb);
 
-int stt_engine_deinitialize(int engine_id);
+LIBSCL_EXPORT_API int stt_engine_deinitialize(int engine_id);
 
 /* Get option */
-int stt_engine_get_supported_langs(int engine_id, GSList** lang_list);
+LIBSCL_EXPORT_API int stt_engine_get_supported_langs(int engine_id, GSList** lang_list);
 
-int stt_engine_is_valid_language(int engine_id, const char* language, bool *is_valid);
+LIBSCL_EXPORT_API int stt_engine_is_valid_language(int engine_id, const char* language, bool *is_valid);
 
-int stt_engine_get_first_language(int engine_id, char** language);
+LIBSCL_EXPORT_API int stt_engine_get_first_language(int engine_id, char** language);
 
-int stt_engine_support_silence(int engine_id, bool* support);
+LIBSCL_EXPORT_API int stt_engine_support_silence(int engine_id, bool* support);
 
-int stt_engine_support_recognition_type(int engine_id, const char* type, bool* support);
+LIBSCL_EXPORT_API int stt_engine_support_recognition_type(int engine_id, const char* type, bool* support);
 
-int stt_engine_get_audio_type(int engine_id, sttp_audio_type_e* types, int* rate, int* channels);
+LIBSCL_EXPORT_API int stt_engine_get_audio_type(int engine_id, sttp_audio_type_e* types, int* rate, int* channels);
 
 /* Set option */
-int stt_engine_set_silence_detection(int engine_id, bool value);
+LIBSCL_EXPORT_API int stt_engine_set_silence_detection(int engine_id, bool value);
 
 /* Get right */
-int stt_engine_check_app_agreed(int engine_id, const char* appid, bool* value);
+LIBSCL_EXPORT_API int stt_engine_check_app_agreed(int engine_id, const char* appid, bool* value);
 
 /* Recognition */
-int stt_engine_recognize_start(int engine_id, const char* lang, const char* recognition_type, void* user_param);
+LIBSCL_EXPORT_API int stt_engine_recognize_start(int engine_id, const char* lang, const char* recognition_type, void* user_param);
 
-int stt_engine_set_recording_data(int engine_id, const void* data, unsigned int length);
+LIBSCL_EXPORT_API int stt_engine_set_recording_data(int engine_id, const void* data, unsigned int length);
 
-int stt_engine_recognize_stop(int engine_id);
+LIBSCL_EXPORT_API int stt_engine_recognize_stop(int engine_id);
 
-int stt_engine_recognize_cancel(int engine_id);
+LIBSCL_EXPORT_API int stt_engine_recognize_cancel(int engine_id);
 
-int stt_engine_foreach_result_time(int engine_id, void* time_info, sttpe_result_time_cb callback, void* user_data);
+LIBSCL_EXPORT_API int stt_engine_foreach_result_time(int engine_id, void* time_info, sttpe_result_time_cb callback, void* user_data);
 
 
 /* File recognition */
-int stt_engine_recognize_start_file(int engine_id, const char* lang, const char* recognition_type, 
+LIBSCL_EXPORT_API int stt_engine_recognize_start_file(int engine_id, const char* lang, const char* recognition_type, 
 				const char* filepath, sttp_audio_type_e audio_type, int sample_rate, void* user_param);
 
-int stt_engine_recognize_cancel_file(int engine_id);
+LIBSCL_EXPORT_API int stt_engine_recognize_cancel_file(int engine_id);
 
 
 #ifdef __cplusplus

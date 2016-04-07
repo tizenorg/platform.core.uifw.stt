@@ -23,6 +23,11 @@
 extern "C" {
 #endif
 
+#ifndef LIBSCL_EXPORT_API
+#define LIBSCL_EXPORT_API
+#endif // LIBSCL_EXPORT_API
+
+
 typedef struct {
 	char*	name;
 	char*	uuid;
@@ -49,32 +54,32 @@ typedef struct {
 }stt_result_time_info_s;
 
 /* Get engine information */
-int stt_parser_get_engine_info(const char* path, stt_engine_info_s** engine_info);
+LIBSCL_EXPORT_API int stt_parser_get_engine_info(const char* path, stt_engine_info_s** engine_info);
 
-int stt_parser_free_engine_info(stt_engine_info_s* engine_info);
+LIBSCL_EXPORT_API int stt_parser_free_engine_info(stt_engine_info_s* engine_info);
 
 
-int stt_parser_load_config(stt_config_s** config_info);
+LIBSCL_EXPORT_API int stt_parser_load_config(stt_config_s** config_info);
 
-int stt_parser_unload_config(stt_config_s* config_info);
+LIBSCL_EXPORT_API int stt_parser_unload_config(stt_config_s* config_info);
 
-int stt_parser_set_engine(const char* engine_id, const char* setting, const char* language, bool silence);
+LIBSCL_EXPORT_API int stt_parser_set_engine(const char* engine_id, const char* setting, const char* language, bool silence);
 
-int stt_parser_set_language(const char* language);
+LIBSCL_EXPORT_API int stt_parser_set_language(const char* language);
 
-int stt_parser_set_auto_lang(bool value);
+LIBSCL_EXPORT_API int stt_parser_set_auto_lang(bool value);
 
-int stt_parser_set_silence_detection(bool value);
+LIBSCL_EXPORT_API int stt_parser_set_silence_detection(bool value);
 
-int stt_parser_find_config_changed(char** engine, char** setting, int* auto_lang, char** language, int* silence);
+LIBSCL_EXPORT_API int stt_parser_find_config_changed(char** engine, char** setting, int* auto_lang, char** language, int* silence);
 
 
 /* Time info */
-int stt_parser_set_time_info(GSList* time_list);
+LIBSCL_EXPORT_API int stt_parser_set_time_info(GSList* time_list);
 
-int stt_parser_get_time_info(GSList** time_list);
+LIBSCL_EXPORT_API int stt_parser_get_time_info(GSList** time_list);
 
-int stt_parser_clear_time_info();
+LIBSCL_EXPORT_API int stt_parser_clear_time_info();
 
 
 #ifdef __cplusplus

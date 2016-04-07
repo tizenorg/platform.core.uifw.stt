@@ -20,6 +20,11 @@
 #include "stt_main.h"
 
 #ifdef __cplusplus
+
+#ifndef LIBSCL_EXPORT_API
+#define LIBSCL_EXPORT_API
+#endif // LIBSCL_EXPORT_API
+
 extern "C" {
 #endif
 
@@ -81,23 +86,23 @@ typedef struct {
 
 typedef bool (*stt_time_cb)(int index, int event, const char* text, long start_time, long end_time, void *user_data);
 
-int stt_client_new(stt_h* stt);
+LIBSCL_EXPORT_API int stt_client_new(stt_h* stt);
 
-int stt_client_destroy(stt_h stt);
+LIBSCL_EXPORT_API int stt_client_destroy(stt_h stt);
 
-stt_client_s* stt_client_get(stt_h stt);
+LIBSCL_EXPORT_API stt_client_s* stt_client_get(stt_h stt);
 
-stt_client_s* stt_client_get_by_uid(const int uid);
+LIBSCL_EXPORT_API stt_client_s* stt_client_get_by_uid(const int uid);
 
-int stt_client_get_size();
+LIBSCL_EXPORT_API int stt_client_get_size();
 
-int stt_client_use_callback(stt_client_s* client);
+LIBSCL_EXPORT_API int stt_client_use_callback(stt_client_s* client);
 
-int stt_client_not_use_callback(stt_client_s* client);
+LIBSCL_EXPORT_API int stt_client_not_use_callback(stt_client_s* client);
 
-int stt_client_get_use_callback(stt_client_s* client);
+LIBSCL_EXPORT_API int stt_client_get_use_callback(stt_client_s* client);
 
-GList* stt_client_get_client_list();
+LIBSCL_EXPORT_API GList* stt_client_get_client_list();
 
 #ifdef __cplusplus
 }

@@ -21,11 +21,16 @@
 extern "C" {
 #endif
 
-int stt_network_initialize();
+#ifndef LIBSCL_EXPORT_API
+#define LIBSCL_EXPORT_API
+#endif // LIBSCL_EXPORT_API
 
-int stt_network_finalize();
 
-bool stt_network_is_connected();
+LIBSCL_EXPORT_API int stt_network_initialize();
+
+LIBSCL_EXPORT_API int stt_network_finalize();
+
+LIBSCL_EXPORT_API bool stt_network_is_connected();
 
 
 #ifdef __cplusplus

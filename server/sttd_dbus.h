@@ -19,20 +19,25 @@
 extern "C" {
 #endif
 
-int sttd_dbus_open_connection();
+#ifndef LIBSCL_EXPORT_API
+#define LIBSCL_EXPORT_API
+#endif // LIBSCL_EXPORT_API
 
-int sttd_dbus_close_connection();
+
+LIBSCL_EXPORT_API int sttd_dbus_open_connection();
+
+LIBSCL_EXPORT_API int sttd_dbus_close_connection();
 
 
-int sttdc_send_hello(int uid);
+LIBSCL_EXPORT_API int sttdc_send_hello(int uid);
 
-int sttdc_send_set_volume(int uid, float volume);
+LIBSCL_EXPORT_API int sttdc_send_set_volume(int uid, float volume);
 
-int sttdc_send_set_state(int uid, int state);
+LIBSCL_EXPORT_API int sttdc_send_set_state(int uid, int state);
 
-int sttdc_send_result(int uid, int event, const char** data, int data_count, const char* result_msg);
+LIBSCL_EXPORT_API int sttdc_send_result(int uid, int event, const char** data, int data_count, const char* result_msg);
 
-int sttdc_send_error_signal(int uid, int reason, const char *err_msg);
+LIBSCL_EXPORT_API int sttdc_send_error_signal(int uid, int reason, const char *err_msg);
 
 
 #ifdef __cplusplus

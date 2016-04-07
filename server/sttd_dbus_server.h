@@ -23,46 +23,51 @@ extern "C" {
 
 #include <dbus/dbus.h>
 
+#ifndef LIBSCL_EXPORT_API
+#define LIBSCL_EXPORT_API
+#endif // LIBSCL_EXPORT_API
 
-int sttd_dbus_server_hello(DBusConnection* conn, DBusMessage* msg);
+
+
+LIBSCL_EXPORT_API int sttd_dbus_server_hello(DBusConnection* conn, DBusMessage* msg);
 
 /*
 * Dbus Server functions for APIs
 */ 
 
-int sttd_dbus_server_initialize(DBusConnection* conn, DBusMessage* msg);
+LIBSCL_EXPORT_API int sttd_dbus_server_initialize(DBusConnection* conn, DBusMessage* msg);
 
-int sttd_dbus_server_finalize(DBusConnection* conn, DBusMessage* msg);
+LIBSCL_EXPORT_API int sttd_dbus_server_finalize(DBusConnection* conn, DBusMessage* msg);
 
-int sttd_dbus_server_get_support_engines(DBusConnection* conn, DBusMessage* msg);
+LIBSCL_EXPORT_API int sttd_dbus_server_get_support_engines(DBusConnection* conn, DBusMessage* msg);
 
-int sttd_dbus_server_set_current_engine(DBusConnection* conn, DBusMessage* msg);
+LIBSCL_EXPORT_API int sttd_dbus_server_set_current_engine(DBusConnection* conn, DBusMessage* msg);
 
-int sttd_dbus_server_get_current_engine(DBusConnection* conn, DBusMessage* msg);
+LIBSCL_EXPORT_API int sttd_dbus_server_get_current_engine(DBusConnection* conn, DBusMessage* msg);
 
-int sttd_dbus_server_check_app_agreed(DBusConnection* conn, DBusMessage* msg);
+LIBSCL_EXPORT_API int sttd_dbus_server_check_app_agreed(DBusConnection* conn, DBusMessage* msg);
 
-int sttd_dbus_server_get_support_lang(DBusConnection* conn, DBusMessage* msg);
+LIBSCL_EXPORT_API int sttd_dbus_server_get_support_lang(DBusConnection* conn, DBusMessage* msg);
 
-int sttd_dbus_server_get_default_lang(DBusConnection* conn, DBusMessage* msg);
+LIBSCL_EXPORT_API int sttd_dbus_server_get_default_lang(DBusConnection* conn, DBusMessage* msg);
 
-int sttd_dbus_server_is_recognition_type_supported(DBusConnection* conn, DBusMessage* msg);
-
-
-int sttd_dbus_server_set_start_sound(DBusConnection* conn, DBusMessage* msg);
-
-int sttd_dbus_server_unset_start_sound(DBusConnection* conn, DBusMessage* msg);
-
-int sttd_dbus_server_set_stop_sound(DBusConnection* conn, DBusMessage* msg);
-
-int sttd_dbus_server_unset_stop_sound(DBusConnection* conn, DBusMessage* msg);
+LIBSCL_EXPORT_API int sttd_dbus_server_is_recognition_type_supported(DBusConnection* conn, DBusMessage* msg);
 
 
-int sttd_dbus_server_start(DBusConnection* conn, DBusMessage* msg);
+LIBSCL_EXPORT_API int sttd_dbus_server_set_start_sound(DBusConnection* conn, DBusMessage* msg);
 
-int sttd_dbus_server_stop(DBusConnection* conn, DBusMessage* msg);
+LIBSCL_EXPORT_API int sttd_dbus_server_unset_start_sound(DBusConnection* conn, DBusMessage* msg);
 
-int sttd_dbus_server_cancel(DBusConnection* conn, DBusMessage* msg);
+LIBSCL_EXPORT_API int sttd_dbus_server_set_stop_sound(DBusConnection* conn, DBusMessage* msg);
+
+LIBSCL_EXPORT_API int sttd_dbus_server_unset_stop_sound(DBusConnection* conn, DBusMessage* msg);
+
+
+LIBSCL_EXPORT_API int sttd_dbus_server_start(DBusConnection* conn, DBusMessage* msg);
+
+LIBSCL_EXPORT_API int sttd_dbus_server_stop(DBusConnection* conn, DBusMessage* msg);
+
+LIBSCL_EXPORT_API int sttd_dbus_server_cancel(DBusConnection* conn, DBusMessage* msg);
 
 
 

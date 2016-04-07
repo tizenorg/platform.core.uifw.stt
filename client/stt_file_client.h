@@ -24,6 +24,11 @@ extern "C" {
 
 #define TAG_STTFC "sttfile"
 
+#ifndef LIBSCL_EXPORT_API
+#define LIBSCL_EXPORT_API
+#endif // LIBSCL_EXPORT_API
+
+
 typedef struct {
 	/* callback functions */
 	stt_file_recognition_result_cb	recognition_result_cb;
@@ -56,17 +61,17 @@ typedef struct {
 }stt_file_client_s;
 
 
-int stt_file_client_new();
+LIBSCL_EXPORT_API int stt_file_client_new();
 
-int stt_file_client_destroy();
+LIBSCL_EXPORT_API int stt_file_client_destroy();
 
-stt_file_client_s* stt_file_client_get();
+LIBSCL_EXPORT_API stt_file_client_s* stt_file_client_get();
 
-int stt_file_client_use_callback(stt_file_client_s* client);
+LIBSCL_EXPORT_API int stt_file_client_use_callback(stt_file_client_s* client);
 
-int stt_file_client_not_use_callback(stt_file_client_s* client);
+LIBSCL_EXPORT_API int stt_file_client_not_use_callback(stt_file_client_s* client);
 
-int stt_file_client_get_use_callback(stt_file_client_s* client);
+LIBSCL_EXPORT_API int stt_file_client_get_use_callback(stt_file_client_s* client);
 
 
 

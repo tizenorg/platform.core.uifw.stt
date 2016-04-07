@@ -29,6 +29,11 @@ extern "C" {
 /**
 * @brief Enumerations of error codes.
 */
+
+#ifndef LIBSCL_EXPORT_API
+#define LIBSCL_EXPORT_API
+#endif // LIBSCL_EXPORT_API
+
 typedef enum {
 	STTP_ERROR_NONE			=  0,		/**< Successful */
 	STTP_ERROR_OUT_OF_MEMORY	= -ENOMEM,	/**< Out of Memory */
@@ -504,7 +509,7 @@ typedef struct {
 * @see sttp_get_engine_info()
 * @see sttp_unload_engine()
 */
-int sttp_load_engine(sttpd_funcs_s* pdfuncs, sttpe_funcs_s* pefuncs);
+LIBSCL_EXPORT_API int sttp_load_engine(sttpd_funcs_s* pdfuncs, sttpe_funcs_s* pefuncs);
 
 /**
 * @brief Unloads this engine by the daemon.
@@ -513,7 +518,7 @@ int sttp_load_engine(sttpd_funcs_s* pdfuncs, sttpe_funcs_s* pefuncs);
 *
 * @see sttp_load_engine()
 */
-void sttp_unload_engine(void);
+LIBSCL_EXPORT_API void sttp_unload_engine(void);
 
 /**
 * @brief Called to get the engine base information.
@@ -547,7 +552,7 @@ typedef void (*sttpe_engine_info_cb)(const char* engine_uuid, const char* engine
 * @see sttpe_engine_info_cb()
 * @see sttp_load_engine()
 */
-int sttp_get_engine_info(sttpe_engine_info_cb callback, void* user_data);
+LIBSCL_EXPORT_API int sttp_get_engine_info(sttpe_engine_info_cb callback, void* user_data);
 
 #ifdef __cplusplus
 }

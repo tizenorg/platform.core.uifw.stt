@@ -33,6 +33,11 @@ extern "C" {
 /** 
 * @brief Enumerations of error codes.
 */
+
+#ifndef LIBSCL_EXPORT_API
+#define LIBSCL_EXPORT_API
+#endif // LIBSCL_EXPORT_API
+
 typedef enum {
 	STT_SETTING_ERROR_NONE			= TIZEN_ERROR_NONE,		/**< Successful */
 	STT_SETTING_ERROR_OUT_OF_MEMORY		= TIZEN_ERROR_OUT_OF_MEMORY,	/**< Out of Memory */
@@ -127,7 +132,7 @@ typedef void (*stt_setting_config_changed_cb)(void *user_data);
 *
 * @see stt_setting_finalize()
 */
-int stt_setting_initialize(void);
+LIBSCL_EXPORT_API int stt_setting_initialize(void);
 
 /**
 * @brief finalize stt setting and disconnect to stt-daemon. 
@@ -140,7 +145,7 @@ int stt_setting_initialize(void);
 *
 * @see stt_setting_initialize()
 */
-int stt_setting_finalize(void);
+LIBSCL_EXPORT_API int stt_setting_finalize(void);
 
 /**
 * @brief Retrieve supported engine informations using callback function.
@@ -158,7 +163,7 @@ int stt_setting_finalize(void);
 *
 * @see stt_setting_supported_engine_cb()
 */
-int stt_setting_foreach_supported_engines(stt_setting_supported_engine_cb callback, void* user_data);
+LIBSCL_EXPORT_API int stt_setting_foreach_supported_engines(stt_setting_supported_engine_cb callback, void* user_data);
 
 /**
 * @brief Get current engine id.
@@ -177,7 +182,7 @@ int stt_setting_foreach_supported_engines(stt_setting_supported_engine_cb callba
 *
 * @see stt_setting_set_engine()
 */
-int stt_setting_get_engine(char** engine_id);
+LIBSCL_EXPORT_API int stt_setting_get_engine(char** engine_id);
 
 /**
 * @brief Set current engine id.
@@ -193,7 +198,7 @@ int stt_setting_get_engine(char** engine_id);
 *
 * @see stt_setting_get_engine()
 */
-int stt_setting_set_engine(const char* engine_id);
+LIBSCL_EXPORT_API int stt_setting_set_engine(const char* engine_id);
 
 /**
 * @brief Get supported languages of current engine.
@@ -212,7 +217,7 @@ int stt_setting_set_engine(const char* engine_id);
 *
 * @see stt_setting_supported_language_cb()
 */
-int stt_setting_foreach_supported_languages(stt_setting_supported_language_cb callback, void* user_data);
+LIBSCL_EXPORT_API int stt_setting_foreach_supported_languages(stt_setting_supported_language_cb callback, void* user_data);
 
 /**
 * @brief Get a default language of current engine.
@@ -231,7 +236,7 @@ int stt_setting_foreach_supported_languages(stt_setting_supported_language_cb ca
 *
 * @see stt_setting_set_default_language()
 */
-int stt_setting_get_default_language(char** language);
+LIBSCL_EXPORT_API int stt_setting_get_default_language(char** language);
 
 /**
 * @brief Set a default language of current engine.
@@ -247,7 +252,7 @@ int stt_setting_get_default_language(char** language);
 *
 * @see stt_setting_get_default_language()
 */
-int stt_setting_set_default_language(const char* language);
+LIBSCL_EXPORT_API int stt_setting_set_default_language(const char* language);
 
 /**
 * @brief Set a automatic option of language.
@@ -263,7 +268,7 @@ int stt_setting_set_default_language(const char* language);
 *
 * @see stt_setting_get_auto_language()
 */
-int stt_setting_set_auto_language(bool value);
+LIBSCL_EXPORT_API int stt_setting_set_auto_language(bool value);
 
 /**
 * @brief Get a automatic option of voice.
@@ -279,7 +284,7 @@ int stt_setting_set_auto_language(bool value);
 *
 * @see stt_setting_set_auto_language()
 */
-int stt_setting_get_auto_language(bool* value);
+LIBSCL_EXPORT_API int stt_setting_get_auto_language(bool* value);
 
 /**
 * @brief Get silence detection.
@@ -295,7 +300,7 @@ int stt_setting_get_auto_language(bool* value);
 *
 * @see stt_setting_set_silence_detection()
 */
-int stt_setting_get_silence_detection(bool* value);
+LIBSCL_EXPORT_API int stt_setting_get_silence_detection(bool* value);
 
 /**
 * @brief Set silence detection.
@@ -311,7 +316,7 @@ int stt_setting_get_silence_detection(bool* value);
 *
 * @see stt_setting_get_silence_detection()
 */
-int stt_setting_set_silence_detection(const bool value);
+LIBSCL_EXPORT_API int stt_setting_set_silence_detection(const bool value);
 
 /**
 * @brief Registers a callback function to be called when engine information is changed
@@ -328,7 +333,7 @@ int stt_setting_set_silence_detection(const bool value);
 * @see stt_setting_engine_changed_cb()
 * @see stt_setting_unset_engine_changed_cb()
 */
-int stt_setting_set_engine_changed_cb(stt_setting_engine_changed_cb callback, void* user_data);
+LIBSCL_EXPORT_API int stt_setting_set_engine_changed_cb(stt_setting_engine_changed_cb callback, void* user_data);
 
 /**
 * @brief Unregisters the callback function
@@ -339,7 +344,7 @@ int stt_setting_set_engine_changed_cb(stt_setting_engine_changed_cb callback, vo
 *
 * @see stt_setting_set_engine_changed_cb()
 */
-int stt_setting_unset_engine_changed_cb();
+LIBSCL_EXPORT_API int stt_setting_unset_engine_changed_cb();
 
 /**
 * @brief Registers a callback function to be called when stt configure is changed
@@ -356,7 +361,7 @@ int stt_setting_unset_engine_changed_cb();
 * @see stt_setting_config_changed_cb()
 * @see stt_setting_unset_config_changed_cb()
 */
-int stt_setting_set_config_changed_cb(stt_setting_config_changed_cb callback, void* user_data);
+LIBSCL_EXPORT_API int stt_setting_set_config_changed_cb(stt_setting_config_changed_cb callback, void* user_data);
 
 /**
 * @brief Unregisters the callback function
@@ -368,7 +373,7 @@ int stt_setting_set_config_changed_cb(stt_setting_config_changed_cb callback, vo
 *
 * @see stt_setting_set_config_changed_cb()
 */
-int stt_setting_unset_config_changed_cb();
+LIBSCL_EXPORT_API int stt_setting_unset_config_changed_cb();
 
 #ifdef __cplusplus
 }

@@ -22,41 +22,46 @@
 extern "C" {
 #endif
 
-int stt_dbus_open_connection();
-
-int stt_dbus_close_connection();
-
-
-int stt_dbus_request_hello();
-
-int stt_dbus_request_initialize(int uid, bool* silence_supported);
-
-int stt_dbus_request_finalize(int uid);
-
-int stt_dbus_request_set_current_engine(int uid, const char* engine_id, bool* silence_supported);
-
-int stt_dbus_request_check_app_agreed(int uid, const char* appid, bool* value);
-
-int stt_dbus_request_get_support_langs(int uid, stt_h stt, stt_supported_language_cb callback, void* user_data);
-
-int stt_dbus_request_get_default_lang(int uid, char** language);
-
-int stt_dbus_request_is_recognition_type_supported(int uid, const char* type, bool* support);
-
-int stt_dbus_request_set_start_sound(int uid, const char* file);
-
-int stt_dbus_request_unset_start_sound(int uid);
-
-int stt_dbus_request_set_stop_sound(int uid, const char* file);
-
-int stt_dbus_request_unset_stop_sound(int uid);
+#ifndef LIBSCL_EXPORT_API
+#define LIBSCL_EXPORT_API
+#endif // LIBSCL_EXPORT_API
 
 
-int stt_dbus_request_start(int uid, const char* lang, const char* type, int silence, const char* appid);
+LIBSCL_EXPORT_API int stt_dbus_open_connection();
 
-int stt_dbus_request_stop(int uid);
+LIBSCL_EXPORT_API int stt_dbus_close_connection();
 
-int stt_dbus_request_cancel(int uid);
+
+LIBSCL_EXPORT_API int stt_dbus_request_hello();
+
+LIBSCL_EXPORT_API int stt_dbus_request_initialize(int uid, bool* silence_supported);
+
+LIBSCL_EXPORT_API int stt_dbus_request_finalize(int uid);
+
+LIBSCL_EXPORT_API int stt_dbus_request_set_current_engine(int uid, const char* engine_id, bool* silence_supported);
+
+LIBSCL_EXPORT_API int stt_dbus_request_check_app_agreed(int uid, const char* appid, bool* value);
+
+LIBSCL_EXPORT_API int stt_dbus_request_get_support_langs(int uid, stt_h stt, stt_supported_language_cb callback, void* user_data);
+
+LIBSCL_EXPORT_API int stt_dbus_request_get_default_lang(int uid, char** language);
+
+LIBSCL_EXPORT_API int stt_dbus_request_is_recognition_type_supported(int uid, const char* type, bool* support);
+
+LIBSCL_EXPORT_API int stt_dbus_request_set_start_sound(int uid, const char* file);
+
+LIBSCL_EXPORT_API int stt_dbus_request_unset_start_sound(int uid);
+
+LIBSCL_EXPORT_API int stt_dbus_request_set_stop_sound(int uid, const char* file);
+
+LIBSCL_EXPORT_API int stt_dbus_request_unset_stop_sound(int uid);
+
+
+LIBSCL_EXPORT_API int stt_dbus_request_start(int uid, const char* lang, const char* type, int silence, const char* appid);
+
+LIBSCL_EXPORT_API int stt_dbus_request_stop(int uid);
+
+LIBSCL_EXPORT_API int stt_dbus_request_cancel(int uid);
 
 
 #ifdef __cplusplus

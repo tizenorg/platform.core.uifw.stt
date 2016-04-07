@@ -22,6 +22,11 @@
 extern "C" {
 #endif
 
+#ifndef LIBSCL_EXPORT_API
+#define LIBSCL_EXPORT_API
+#endif // LIBSCL_EXPORT_API
+
+
 typedef enum {
 	APP_STATE_CREATED	= 0,
 	APP_STATE_READY		= 1,
@@ -52,25 +57,25 @@ typedef struct {
 typedef bool (*time_callback)(int index, int event, const char* text, long start_time, long end_time, void *user_data);
 
 
-int sttd_client_add(int pid, int uid);
+LIBSCL_EXPORT_API int sttd_client_add(int pid, int uid);
 
-int sttd_client_delete(int uid);
+LIBSCL_EXPORT_API int sttd_client_delete(int uid);
 
-int sttd_client_get_start_sound(int uid, char** filename);
+LIBSCL_EXPORT_API int sttd_client_get_start_sound(int uid, char** filename);
 
-int sttd_client_set_start_sound(int uid, const char* filename);
+LIBSCL_EXPORT_API int sttd_client_set_start_sound(int uid, const char* filename);
 
-int sttd_client_get_stop_sound(int uid, char** filename);
+LIBSCL_EXPORT_API int sttd_client_get_stop_sound(int uid, char** filename);
 
-int sttd_client_set_stop_sound(int uid, const char* filename);
+LIBSCL_EXPORT_API int sttd_client_set_stop_sound(int uid, const char* filename);
 
-int sttd_client_get_state(int uid, app_state_e* state);
+LIBSCL_EXPORT_API int sttd_client_get_state(int uid, app_state_e* state);
 
-int sttd_client_set_state(int uid, app_state_e state);
+LIBSCL_EXPORT_API int sttd_client_set_state(int uid, app_state_e state);
 
-int sttd_client_get_ref_count();
+LIBSCL_EXPORT_API int sttd_client_get_ref_count();
 
-int sttd_client_get_pid(int uid);
+LIBSCL_EXPORT_API int sttd_client_get_pid(int uid);
 
 #if 0
 int sttd_client_get_current_recording();
@@ -82,18 +87,18 @@ int sttd_cliet_set_timer(int uid, Ecore_Timer* timer);
 int sttd_cliet_get_timer(int uid, Ecore_Timer** timer);
 #endif
 
-int sttd_client_get_list(int** uids, int* uid_count);
+LIBSCL_EXPORT_API int sttd_client_get_list(int** uids, int* uid_count);
 
-int stt_client_set_current_recognition(int uid);
+LIBSCL_EXPORT_API int stt_client_set_current_recognition(int uid);
 
-int stt_client_get_current_recognition();
+LIBSCL_EXPORT_API int stt_client_get_current_recognition();
 
-int stt_client_unset_current_recognition();
+LIBSCL_EXPORT_API int stt_client_unset_current_recognition();
 
 
-int stt_client_set_app_agreed(int uid);
+LIBSCL_EXPORT_API int stt_client_set_app_agreed(int uid);
 
-bool stt_client_get_app_agreed(int uid);
+LIBSCL_EXPORT_API bool stt_client_get_app_agreed(int uid);
 
 
 #ifdef __cplusplus

@@ -21,28 +21,33 @@
 extern "C" {
 #endif
 
+#ifndef LIBSCL_EXPORT_API
+#define LIBSCL_EXPORT_API
+#endif // LIBSCL_EXPORT_API
+
+
 
 typedef int (*stt_recorder_audio_cb)(const void* data, const unsigned int length);
 
 typedef void (*stt_recorder_interrupt_cb)();
 
-int sttd_recorder_initialize(stt_recorder_audio_cb audio_cb, stt_recorder_interrupt_cb interrupt_cb);
+LIBSCL_EXPORT_API int sttd_recorder_initialize(stt_recorder_audio_cb audio_cb, stt_recorder_interrupt_cb interrupt_cb);
 
-int sttd_recorder_deinitialize();
+LIBSCL_EXPORT_API int sttd_recorder_deinitialize();
 
-int sttd_recorder_set_audio_session();
+LIBSCL_EXPORT_API int sttd_recorder_set_audio_session();
 
-int sttd_recorder_unset_audio_session();
+LIBSCL_EXPORT_API int sttd_recorder_unset_audio_session();
 
-int sttd_recorder_create(int engine_id, int uid, sttp_audio_type_e type, int channel, unsigned int sample_rate);
+LIBSCL_EXPORT_API int sttd_recorder_create(int engine_id, int uid, sttp_audio_type_e type, int channel, unsigned int sample_rate);
 
-int sttd_recorder_destroy(int engine_id);
+LIBSCL_EXPORT_API int sttd_recorder_destroy(int engine_id);
 
-int sttd_recorder_start(int engine_id);
+LIBSCL_EXPORT_API int sttd_recorder_start(int engine_id);
 
-int sttd_recorder_stop(int engine_id);
+LIBSCL_EXPORT_API int sttd_recorder_stop(int engine_id);
 
-int sttd_recorder_set_ignore_session(int engine_id);
+LIBSCL_EXPORT_API int sttd_recorder_set_ignore_session(int engine_id);
 
 
 #ifdef __cplusplus
