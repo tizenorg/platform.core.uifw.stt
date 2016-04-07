@@ -26,6 +26,7 @@ SET(EXEC_PREFIX "${PREFIX}")
 SET(VERSION 0.2.54)
 
 ADD_DEFINITIONS("-DSTT_LIBDIR=\"${LIBDIR}\"")
+ADD_DEFINITIONS("-flto")
 
 ## Include common directory ##
 INCLUDE_DIRECTORIES("${CMAKE_SOURCE_DIR}/common")
@@ -33,7 +34,7 @@ INCLUDE_DIRECTORIES("${CMAKE_SOURCE_DIR}/include")
 
 ## Dependent packages ##
 INCLUDE(FindPkgConfig)
-pkg_check_modules(pkgs REQUIRED 
+pkg_check_modules(pkgs REQUIRED
 	aul capi-media-audio-io capi-media-wav-player capi-system-info dbus-1 dlog ecore glib-2.0
 	libtzplatform-config libxml-2.0 vconf vconf-internal-keys
 )
