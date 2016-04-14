@@ -42,9 +42,6 @@ int sttd_recorder_start(int engine_id);
 
 int sttd_recorder_stop(int engine_id);
 
-int sttd_recorder_set_ignore_session(int engine_id);
-
-
 #ifdef __cplusplus
 }
 #endif
