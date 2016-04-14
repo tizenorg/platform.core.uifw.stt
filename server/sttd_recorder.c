@@ -48,6 +48,8 @@ static int g_recording_engine_id;
 
 static stt_recorder_audio_cb	g_audio_cb;
 
+static sound_stream_info_h	g_stream_info_h;
+
 static stt_recorder_interrupt_cb	g_interrupt_cb;
 
 static sttd_recorder_state	g_recorder_state = STTD_RECORDER_STATE_NONE;
@@ -66,35 +68,51 @@ static FILE* g_pFile;
 static int g_count = 1;
 #endif
 
-const char* __stt_get_session_interrupt_code(sound_session_interrupted_code_e code)
+const char* __stt_get_focus_changed_reason_code(sound_stream_focus_change_reason_e reason)
 {
-	switch (code) {
-	case SOUND_SESSION_INTERRUPTED_COMPLETED:		return "SOUND_SESSION_INTERRUPTED_COMPLETED";
-	case SOUND_SESSION_INTERRUPTED_BY_MEDIA:		return "SOUND_SESSION_INTERRUPTED_BY_MEDIA";
-	case SOUND_SESSION_INTERRUPTED_BY_CALL:			return "SOUND_SESSION_INTERRUPTED_BY_CALL";
-	case SOUND_SESSION_INTERRUPTED_BY_EARJACK_UNPLUG:	return "SOUND_SESSION_INTERRUPTED_BY_EARJACK_UNPLUG";
-	case SOUND_SESSION_INTERRUPTED_BY_RESOURCE_CONFLICT:	return "SOUND_SESSION_INTERRUPTED_BY_RESOURCE_CONFLICT";
-	case SOUND_SESSION_INTERRUPTED_BY_ALARM:		return "SOUND_SESSION_INTERRUPTED_BY_ALARM";
-	case SOUND_SESSION_INTERRUPTED_BY_EMERGENCY:		return "SOUND_SESSION_INTERRUPTED_BY_EMERGENCY";
-	case SOUND_SESSION_INTERRUPTED_BY_NOTIFICATION:		return "SOUND_SESSION_INTERRUPTED_BY_NOTIFICATION";
-	default:
-		return "Undefined error code";
+	switch (reason) {
+		case SOUND_STREAM_FOCUS_CHANGED_BY_MEDIA:			return "SOUND_STREAM_FOCUS_CHANGED_BY_MEDIA";
+		case SOUND_STREAM_FOCUS_CHANGED_BY_SYSTEM:			return "SOUND_STREAM_FOCUS_CHANGED_BY_SYSTEM";
+		case SOUND_STREAM_FOCUS_CHANGED_BY_ALARM:			return "SOUND_STREAM_FOCUS_CHANGED_BY_ALARM";
+		case SOUND_STREAM_FOCUS_CHANGED_BY_NOTIFICATION:	return "SOUND_STREAM_FOCUS_CHANGED_BY_NOTIFICATION";
+		case SOUND_STREAM_FOCUS_CHANGED_BY_EMERGENCY:		return "SOUND_STREAM_FOCUS_CHANGED_BY_EMERGENCY";
+		case SOUND_STREAM_FOCUS_CHANGED_BY_VOICE_INFORMATION:	return "SOUND_STREAM_FOCUS_CHANGED_BY_VOICE_INFORMATION";
+		case SOUND_STREAM_FOCUS_CHANGED_BY_VOICE_RECOGNITION:	return "SOUND_STREAM_FOCUS_CHANGED_BY_VOICE_RECOGNITION";
+		case SOUND_STREAM_FOCUS_CHANGED_BY_RINGTONE:		return "SOUND_STREAM_FOCUS_CHANGED_BY_RINGTONE";
+		case SOUND_STREAM_FOCUS_CHANGED_BY_VOIP:			return "SOUND_STREAM_FOCUS_CHANGED_BY_VOIP";
+		case SOUND_STREAM_FOCUS_CHANGED_BY_CALL:			return "SOUND_STREAM_FOCUS_CHANGED_BY_CALL";
+		case SOUND_STREAM_FOCUS_CHANGED_BY_MEDIA_EXTERNAL_ONLY:	return "SOUND_STREAM_FOCUS_CHANGED_BY_MEDIA_EXTERNAL_ONLY";
+		default:											return "Undefined reason code";
 	}
 }
 
-void __sttd_recorder_sound_interrupted_cb(sound_session_interrupted_code_e code, void *user_data)
+void __recorder_focus_state_cb(sound_stream_info_h stream_info, sound_stream_focus_change_reason_e reason, const char *extra_info, void *user_data)
 {
-	SLOG(LOG_DEBUG, TAG_STTD, "[Recorder] Get the interrupt code from sound mgr : %s",
-		__stt_get_session_interrupt_code(code));
+	SLOG(LOG_DEBUG, TAG_STTD, "[Recorder] Focus state changed cb");
 
-	if (SOUND_SESSION_INTERRUPTED_COMPLETED == code || SOUND_SESSION_INTERRUPTED_BY_EARJACK_UNPLUG == code)
+	if (stream_info != g_stream_info_h) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Invalid stream info handle");
 		return;
-
-	if (NULL != g_interrupt_cb) {
-		g_interrupt_cb();
 	}
-	return;
+
+	int ret;
+	sound_stream_focus_state_e state_for_recording;
+	ret = sound_manager_get_focus_state(g_stream_info_h, NULL, &state_for_recording);
+	if (SOUND_MANAGER_ERROR_NONE != ret) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to get focus state");
+		return;
+	}
+
+	SLOG(LOG_WARN, TAG_STTD, "[Recorder] focus state changed to (%d) with reason(%s)", (int)state_for_recording, __stt_get_focus_changed_reason_code(reason));
+	
+	if (STTD_RECORDER_STATE_RECORDING == g_recorder_state && SOUND_STREAM_FOCUS_STATE_RELEASED == state_for_recording) {
+		SLOG(LOG_WARN, TAG_STTD, "[Recorder] Focus released as interrupt");
+		if (NULL != g_interrupt_cb) {
+			g_interrupt_cb();
+		}
+	}
 }
+
 
 int sttd_recorder_initialize(stt_recorder_audio_cb audio_cb, stt_recorder_interrupt_cb interrupt_cb)
 {
@@ -117,12 +135,8 @@ int sttd_recorder_initialize(stt_recorder_audio_cb audio_cb, stt_recorder_interr
 	g_recorder_state = STTD_RECORDER_STATE_NONE;
 	g_recording_engine_id = -1;
 
-	if (0 != sound_manager_set_session_type(SOUND_SESSION_TYPE_MEDIA)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to set exclusive session");
-	}
-
-	if (0 != sound_manager_set_session_interrupted_cb(__sttd_recorder_sound_interrupted_cb, NULL)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to set sound interrupt callback");
+	if (0 != sound_manager_create_stream_information(SOUND_STREAM_TYPE_VOICE_RECOGNITION, __recorder_focus_state_cb, NULL, &g_stream_info_h)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to create stream info");
 	}
 
 	return 0;
@@ -134,8 +148,8 @@ int sttd_recorder_deinitialize()
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to destroy audio in handle mutex.");
 	}
 
-	if (0 != sound_manager_unset_session_interrupted_cb()) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to unset sound interrupt callback");
+	if (0 != sound_manager_destroy_stream_information(g_stream_info_h)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to destroy stream info");
 	}
 
 	/* Remove all recorder */
@@ -402,6 +416,16 @@ int sttd_recorder_start(int engine_id)
 	}
 
 	int ret = -1;
+	ret = sound_manager_acquire_focus(g_stream_info_h, SOUND_STREAM_FOCUS_FOR_RECORDING, NULL);
+	if (SOUND_MANAGER_ERROR_NONE != ret) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to acquire focus : %d", ret);
+	} else {
+		ret = audio_in_set_stream_info(recorder->audio_h, g_stream_info_h);
+		if (AUDIO_IO_ERROR_NONE != ret) {
+			SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to set stream info");
+		}
+	}
+	
 	ret = audio_in_prepare(recorder->audio_h);
 	if (AUDIO_IO_ERROR_NONE != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to start audio : %d", ret);
@@ -455,33 +479,14 @@ int sttd_recorder_stop(int engine_id)
 	g_recorder_state = STTD_RECORDER_STATE_READY;
 	g_recording_engine_id = -1;
 
+	ret = sound_manager_release_focus(g_stream_info_h, SOUND_STREAM_FOCUS_FOR_RECORDING, NULL);
+	if (SOUND_MANAGER_ERROR_NONE != ret) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to release focus :%d", ret);
+	}
+
 #ifdef BUF_SAVE_MODE
 	fclose(g_pFile);
 #endif
-
-	return 0;
-}
-
-int sttd_recorder_set_ignore_session(int engine_id)
-{
-	if (STTD_RECORDER_STATE_READY != g_recorder_state) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Record is working.");
-		return -1;
-	}
-
-	/* Check engine id is valid */
-	stt_recorder_s* recorder;
-	recorder = __get_recorder(engine_id);
-	if (NULL == recorder) {
-		SLOG(LOG_WARN, TAG_STTD, "[Recorder WARNING] Engine id is not valid");
-		return STTD_ERROR_INVALID_PARAMETER;
-	}
-
-	int ret = audio_in_ignore_session(recorder->audio_h);
-	if (AUDIO_IO_ERROR_NONE != ret) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to ignore session : %d", ret);
-		return STTD_ERROR_OPERATION_FAILED;
-	}
 
 	return 0;
 }
