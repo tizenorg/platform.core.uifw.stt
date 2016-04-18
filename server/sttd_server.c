@@ -984,7 +984,8 @@ Eina_Bool __stop_by_recording_timeout(void *data)
 
 void __sttd_server_recorder_start(void* data)
 {
-	int uid = (int)data;
+	intptr_t puid = (intptr_t)data;
+	int uid = (int)puid;
 	int current_uid = stt_client_get_current_recognition();
 
 	if (uid != current_uid) {
@@ -1093,7 +1094,8 @@ int sttd_server_start(int uid, const char* lang, const char* recognition_type, i
 	/* 2. Request wav play */
 	if (NULL != sound) {
 		int id = 0;
-		ret = wav_player_start(sound, SOUND_TYPE_MEDIA, __sttd_start_sound_completed_cb, (void*)uid, &id);
+		intptr_t puid = (intptr_t)uid;
+		ret = wav_player_start(sound, SOUND_TYPE_MEDIA, __sttd_start_sound_completed_cb, (void*)puid, &id);
 		if (WAV_PLAYER_ERROR_NONE != ret) {
 			SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to play wav");
 			is_sound_done = true;
@@ -1184,7 +1186,8 @@ Eina_Bool __time_out_for_processing(void *data)
 
 void __sttd_server_engine_stop(void* data)
 {
-	int uid = (int)data;
+	intptr_t puid = (intptr_t)data;
+	int uid = (int)puid;
 	/* change uid state */
 	sttd_client_set_state(uid, APP_STATE_PROCESSING);
 
@@ -1263,7 +1266,8 @@ int sttd_server_stop(int uid)
 	/* 2. Request wav play */
 	if (NULL != sound) {
 		int id = 0;
-		ret = wav_player_start(sound, SOUND_TYPE_MEDIA, __sttd_stop_sound_completed_cb, (void*)uid, &id);
+		intptr_t puid = (intptr_t)uid;
+		ret = wav_player_start(sound, SOUND_TYPE_MEDIA, __sttd_stop_sound_completed_cb, (void*)puid, &id);
 		if (WAV_PLAYER_ERROR_NONE != ret) {
 			SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to play wav");
 		} else {
