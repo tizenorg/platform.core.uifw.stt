@@ -45,7 +45,7 @@ typedef enum {
 	STT_FILE_ERROR_OPERATION_FAILED		= -0x0100000 | 0x34,	/**< Operation failed  */
 	STT_FILE_ERROR_NOT_SUPPORTED_FEATURE	= -0x0100000 | 0x35,	/**< Not supported feature of current engine */
 	STT_FILE_ERROR_NOT_AGREE_SERVICE	= -0x0100000 | 0x36	/**< Not agreed service of engine*/
-}stt_file_error_e;
+} stt_file_error_e;
 
 /**
 * @brief Enumerations of state.
@@ -54,7 +54,7 @@ typedef enum {
 	STT_FILE_STATE_NONE		= 0,	/**< 'NONE' state */
 	STT_FILE_STATE_READY		= 1,	/**< 'READY' state */
 	STT_FILE_STATE_PROCESSING	= 2,	/**< 'PROCESSING' state */
-}stt_file_state_e;
+} stt_file_state_e;
 
 /**
 * @brief Enumerations of audio type.
@@ -63,7 +63,7 @@ typedef enum {
 	STT_FILE_AUDIO_TYPE_RAW_S16 = 0,	/**< Signed 16-bit audio sample */
 	STT_FILE_AUDIO_TYPE_RAW_U8,		/**< Unsigned 8-bit audio sample */
 	STT_FILE_AUDIO_TYPE_MAX
-}stt_file_audio_type_e;
+} stt_file_audio_type_e;
 
 /**
 * @brief Enumerations of result event.
@@ -72,7 +72,7 @@ typedef enum {
 	STT_FILE_RESULT_EVENT_FINAL_RESULT = 0,	/**< Event when the recognition full or last result is ready  */
 	STT_FILE_RESULT_EVENT_PARTIAL_RESULT,	/**< Event when the recognition partial result is ready  */
 	STT_FILE_RESULT_EVENT_ERROR		/**< Event when the recognition has failed */
-}stt_file_result_event_e;
+} stt_file_result_event_e;
 
 /**
 * @brief Enumerations of result time callback event.
@@ -81,7 +81,7 @@ typedef enum {
 	STT_FILE_RESULT_TIME_EVENT_BEGINNING = 0,	/**< Event when the token is beginning type */
 	STT_FILE_RESULT_TIME_EVENT_MIDDLE = 1,		/**< Event when the token is middle type */
 	STT_FILE_RESULT_TIME_EVENT_END = 2		/**< Event when the token is end type */
-}stt_file_result_time_event_e;
+} stt_file_result_time_event_e;
 
 /**
 * @brief Recognition type : Continuous free dictation.

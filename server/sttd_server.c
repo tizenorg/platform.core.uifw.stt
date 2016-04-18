@@ -425,11 +425,11 @@ int sttd_initialize()
 {
 	int ret = 0;
 
-	if( 0 != pthread_mutex_init(&sttpe_result_mutex, NULL)) {
+	if (0 != pthread_mutex_init(&sttpe_result_mutex, NULL)) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to initialize sttpe result mutex.");
 	}
 
-	if( 0 != pthread_mutex_init(&sttpe_result_time_mutex, NULL)) {
+	if (0 != pthread_mutex_init(&sttpe_result_time_mutex, NULL)) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to initialize sttpe sttpe_result_time_mutex.");
 	}
 
@@ -469,11 +469,11 @@ int sttd_initialize()
 
 int sttd_finalize()
 {
-	if( 0 != pthread_mutex_destroy(&sttpe_result_mutex)) {
+	if (0 != pthread_mutex_destroy(&sttpe_result_mutex)) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to destroy sttpe result mutex.");
 	}
 
-	if( 0 != pthread_mutex_destroy(&sttpe_result_time_mutex)) {
+	if (0 != pthread_mutex_destroy(&sttpe_result_time_mutex)) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to destroy sttpe_result_time_mutex.");
 	}
 
@@ -554,7 +554,7 @@ Eina_Bool sttd_cleanup_client(void *data)
 		
 		__read_proc();
 
-		for (i = 0;i < client_count;i++) {
+		for (i = 0; i < client_count; i++) {
 			int pid = sttd_client_get_pid(client_list[i]);
 			if (0 > pid) {
 				SLOG(LOG_ERROR, TAG_STTD, "[ERROR] Invalid pid");

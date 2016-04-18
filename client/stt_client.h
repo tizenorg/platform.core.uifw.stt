@@ -28,7 +28,7 @@ typedef enum {
 	STT_INTERNAL_STATE_STARTING	= 1,
 	STT_INTERNAL_STATE_STOPING	= 2,
 	STT_INTERNAL_STATE_CANCELING	= 3
-}stt_internal_state_e;
+} stt_internal_state_e;
 
 typedef struct {
 	/* base info */
@@ -76,7 +76,7 @@ typedef struct {
 	
 	/* error data */
 	int	reason;
-}stt_client_s;
+} stt_client_s;
 
 
 typedef bool (*stt_time_cb)(int index, int event, const char* text, long start_time, long end_time, void *user_data);

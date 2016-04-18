@@ -126,7 +126,7 @@ int sttd_recorder_initialize(stt_recorder_audio_cb audio_cb, stt_recorder_interr
 		return STTD_ERROR_INVALID_STATE;
 	}
 
-	if( 0 != pthread_mutex_init(&sttd_audio_in_handle_mutex, NULL)) {
+	if (0 != pthread_mutex_init(&sttd_audio_in_handle_mutex, NULL)) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to initialize audio in handle mutex.");
 	}
 
@@ -144,7 +144,7 @@ int sttd_recorder_initialize(stt_recorder_audio_cb audio_cb, stt_recorder_interr
 
 int sttd_recorder_deinitialize()
 {
-	if( 0 != pthread_mutex_destroy(&sttd_audio_in_handle_mutex)) {
+	if (0 != pthread_mutex_destroy(&sttd_audio_in_handle_mutex)) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to destroy audio in handle mutex.");
 	}
 

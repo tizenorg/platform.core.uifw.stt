@@ -52,19 +52,19 @@ typedef enum {
 	STTD_ERROR_INVALID_LANGUAGE	= TIZEN_ERROR_STT | 0x02,	/**< Invalid language */
 	STTD_ERROR_ENGINE_NOT_FOUND	= TIZEN_ERROR_STT | 0x03,	/**< No available engine  */	
 	STTD_ERROR_OPERATION_FAILED	= TIZEN_ERROR_STT | 0x04,	/**< Operation failed  */
-	STTD_ERROR_NOT_SUPPORTED_FEATURE= TIZEN_ERROR_STT | 0x05	/**< Not supported feature of current engine */
-}stt_error_e;
+	STTD_ERROR_NOT_SUPPORTED_FEATURE = TIZEN_ERROR_STT | 0x05	/**< Not supported feature of current engine */
+} stt_error_e;
 
 typedef enum {
 	STTD_RESULT_STATE_DONE		= 0,			/**< Sync state change */
 	STTD_RESULT_STATE_NOT_DONE	= 1			/**< Async state change */
-}sttd_result_state_e;
+} sttd_result_state_e;
 
 typedef struct {
 	char* engine_id;
 	char* engine_name;
 	char* ug_name;
-}engine_s;
+} engine_s;
 
 #ifdef __cplusplus
 }
