@@ -204,7 +204,7 @@ static void __stt_recognition_result_cb(stt_h stt, stt_result_event_e event, con
 	ecore_timer_add(0, __stt_finalize, NULL);
 }
 
-int main (int argc, char *argv[])
+int main(int argc, char *argv[])
 {
 	if (2 > argc) {
 		SLOG(LOG_DEBUG, TAG_STT_TEST, "Please check parameter");

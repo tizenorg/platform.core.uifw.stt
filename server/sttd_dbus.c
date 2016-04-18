@@ -261,7 +261,7 @@ int sttdc_send_result(int uid, int event, const char** data, int data_count, con
 	SLOG(LOG_DEBUG, TAG_STTD, "[Dbus] result size (%d)", data_count);
 	for (i = 0; i < data_count; i++) {
 		if (NULL != data[i]) {
-			SLOG(LOG_DEBUG, TAG_STTD, "[Dbus] result (%d, %s)", i, data[i] );
+			SLOG(LOG_DEBUG, TAG_STTD, "[Dbus] result (%d, %s)", i, data[i]);
 
 			if (!dbus_message_iter_append_basic(&args, DBUS_TYPE_STRING, &data[i])) {
 				SLOG(LOG_ERROR, TAG_STTD, "[Dbus] response message : Fail to append result data");

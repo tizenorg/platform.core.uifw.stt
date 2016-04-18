@@ -39,32 +39,32 @@ extern "C" {
 //#define CLIENT_DATA_DEBUG
 
 typedef enum {
-	STTD_ERROR_NONE			= TIZEN_ERROR_NONE,		/**< Successful */
-	STTD_ERROR_OUT_OF_MEMORY	= TIZEN_ERROR_OUT_OF_MEMORY,	/**< Out of Memory */
-	STTD_ERROR_IO_ERROR		= TIZEN_ERROR_IO_ERROR,		/**< I/O error */
-	STTD_ERROR_INVALID_PARAMETER	= TIZEN_ERROR_INVALID_PARAMETER,/**< Invalid parameter */
-	STTD_ERROR_TIMED_OUT		= TIZEN_ERROR_TIMED_OUT,	/**< No answer from the daemon */
-	STTD_ERROR_RECORDER_BUSY	= TIZEN_ERROR_RESOURCE_BUSY,	/**< Device or resource busy */
-	STTD_ERROR_OUT_OF_NETWORK	= TIZEN_ERROR_NETWORK_DOWN,	/**< Network is down */
-	STTD_ERROR_PERMISSION_DENIED	= TIZEN_ERROR_PERMISSION_DENIED,/**< Permission denied */
-	STTD_ERROR_NOT_SUPPORTED	= TIZEN_ERROR_NOT_SUPPORTED,	/**< STT NOT supported */
-	STTD_ERROR_INVALID_STATE	= TIZEN_ERROR_STT | 0x01,	/**< Invalid state */
-	STTD_ERROR_INVALID_LANGUAGE	= TIZEN_ERROR_STT | 0x02,	/**< Invalid language */
-	STTD_ERROR_ENGINE_NOT_FOUND	= TIZEN_ERROR_STT | 0x03,	/**< No available engine  */	
-	STTD_ERROR_OPERATION_FAILED	= TIZEN_ERROR_STT | 0x04,	/**< Operation failed  */
-	STTD_ERROR_NOT_SUPPORTED_FEATURE= TIZEN_ERROR_STT | 0x05	/**< Not supported feature of current engine */
-}stt_error_e;
+	STTD_ERROR_NONE				= TIZEN_ERROR_NONE,		/**< Successful */
+	STTD_ERROR_OUT_OF_MEMORY		= TIZEN_ERROR_OUT_OF_MEMORY,	/**< Out of Memory */
+	STTD_ERROR_IO_ERROR			= TIZEN_ERROR_IO_ERROR,		/**< I/O error */
+	STTD_ERROR_INVALID_PARAMETER		= TIZEN_ERROR_INVALID_PARAMETER,/**< Invalid parameter */
+	STTD_ERROR_TIMED_OUT			= TIZEN_ERROR_TIMED_OUT,	/**< No answer from the daemon */
+	STTD_ERROR_RECORDER_BUSY		= TIZEN_ERROR_RESOURCE_BUSY,	/**< Device or resource busy */
+	STTD_ERROR_OUT_OF_NETWORK		= TIZEN_ERROR_NETWORK_DOWN,	/**< Network is down */
+	STTD_ERROR_PERMISSION_DENIED		= TIZEN_ERROR_PERMISSION_DENIED,/**< Permission denied */
+	STTD_ERROR_NOT_SUPPORTED		= TIZEN_ERROR_NOT_SUPPORTED,	/**< STT NOT supported */
+	STTD_ERROR_INVALID_STATE		= TIZEN_ERROR_STT | 0x01,	/**< Invalid state */
+	STTD_ERROR_INVALID_LANGUAGE		= TIZEN_ERROR_STT | 0x02,	/**< Invalid language */
+	STTD_ERROR_ENGINE_NOT_FOUND		= TIZEN_ERROR_STT | 0x03,	/**< No available engine  */	
+	STTD_ERROR_OPERATION_FAILED		= TIZEN_ERROR_STT | 0x04,	/**< Operation failed  */
+	STTD_ERROR_NOT_SUPPORTED_FEATURE	= TIZEN_ERROR_STT | 0x05	/**< Not supported feature of current engine */
+} stt_error_e;
 
 typedef enum {
 	STTD_RESULT_STATE_DONE		= 0,			/**< Sync state change */
 	STTD_RESULT_STATE_NOT_DONE	= 1			/**< Async state change */
-}sttd_result_state_e;
+} sttd_result_state_e;
 
 typedef struct {
 	char* engine_id;
 	char* engine_name;
 	char* ug_name;
-}engine_s;
+} engine_s;
 
 #ifdef __cplusplus
 }

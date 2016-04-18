@@ -85,8 +85,7 @@ static Eina_Bool listener_event_callback(void* data, Ecore_Fd_Handler *fd_handle
 					response = 1;
 				else
 					response = 0;
-			}
-			else {
+			} else {
 				SLOG(LOG_ERROR, TAG_STTC, "<<<< stt get hello : invalid uid");
 			}
 
@@ -102,8 +101,7 @@ static Eina_Bool listener_event_callback(void* data, Ecore_Fd_Handler *fd_handle
 
 				dbus_connection_flush(g_conn_listener);
 				dbus_message_unref(reply);
-			}
-			else {
+			} else {
 				SLOG(LOG_ERROR, TAG_STTC, ">>>> stt get hello : fail to create reply message");
 			}
 
@@ -129,8 +127,7 @@ static Eina_Bool listener_event_callback(void* data, Ecore_Fd_Handler *fd_handle
 			if (uid > 0 && state >= 0) {
 				SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt set state : uid(%d), state(%d)", uid, state);
 				__stt_cb_set_state(uid, state);
-			}
-			else {
+			} else {
 				SLOG(LOG_ERROR, TAG_STTC, "<<<< stt set state : invalid uid or state");
 			}
 
@@ -244,7 +241,7 @@ static Eina_Bool listener_event_callback(void* data, Ecore_Fd_Handler *fd_handle
 
 			SLOG(LOG_DEBUG, TAG_STTC, "=====");
 			SLOG(LOG_DEBUG, TAG_STTC, " ");
-		}/* STTD_METHOD_RESULT */
+		} /* STTD_METHOD_RESULT */
 
 		else if (dbus_message_is_signal(msg, if_name, STTD_METHOD_ERROR)) {
 			SLOG(LOG_DEBUG, TAG_STTC, "===== Get Error");
@@ -261,15 +258,14 @@ static Eina_Bool listener_event_callback(void* data, Ecore_Fd_Handler *fd_handle
 			if (dbus_error_is_set(&err)) {
 				SLOG(LOG_ERROR, TAG_STTC, "<<<< stt Get Error message : Get arguments error (%s)", err.message);
 				dbus_error_free(&err);
-			}
-			else {
+			} else {
 				SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt Get Error message : uid(%d), reason(%d), msg(%s)", uid, reason, err_msg);
 				__stt_cb_error(uid, reason);
 			}
 
 			SLOG(LOG_DEBUG, TAG_STTC, "=====");
 			SLOG(LOG_DEBUG, TAG_STTC, " ");
-		}/* STTD_METHOD_ERROR */
+		} /* STTD_METHOD_ERROR */
 
 		else {
 			SLOG(LOG_DEBUG, TAG_STTC, "Message is NOT valid");
@@ -279,7 +275,7 @@ static Eina_Bool listener_event_callback(void* data, Ecore_Fd_Handler *fd_handle
 
 		/* free the message */
 		dbus_message_unref(msg);
-	}/* while */
+	} /* while */
 
 	return ECORE_CALLBACK_RENEW;
 }
@@ -442,7 +438,7 @@ int stt_dbus_request_hello()
 	DBusMessage* result_msg = NULL;
 	int result = 0;
 
-	if(g_conn_sender) {
+	if (g_conn_sender) {
 		result_msg = dbus_connection_send_with_reply_and_block(g_conn_sender, msg, g_waiting_short_time, &err);
 		dbus_message_unref(msg);
 		if (dbus_error_is_set(&err)) {
@@ -461,7 +457,7 @@ int stt_dbus_request_hello()
 		} else {
 			result = STT_ERROR_TIMED_OUT;
 		}
-	}else {
+	} else {
 		SLOG(LOG_WARN, TAG_STTC, "[WARN] dbus connection handle is null (%p)", g_conn_sender);
 		result = STT_ERROR_OPERATION_FAILED;
 	}
@@ -499,7 +495,7 @@ int stt_dbus_request_initialize(int uid, bool* silence_supported)
 	DBusMessage* result_msg;
 	int result = STT_ERROR_OPERATION_FAILED;
 
-	if(g_conn_sender) {
+	if (g_conn_sender) {
 		result_msg = dbus_connection_send_with_reply_and_block(g_conn_sender, msg, g_waiting_time, &err);
 		dbus_message_unref(msg);
 		if (dbus_error_is_set(&err)) {
@@ -1237,7 +1233,7 @@ int stt_dbus_request_start(int uid, const char* lang, const char* type, int sile
 		DBUS_TYPE_STRING, &appid,
 		DBUS_TYPE_INVALID);
 #if 1
-	if(g_conn_sender) {
+	if (g_conn_sender) {
 		dbus_message_set_no_reply(msg, TRUE);
 
 		if (!dbus_connection_send(g_conn_sender, msg, NULL)) {
@@ -1318,7 +1314,7 @@ int stt_dbus_request_stop(int uid)
 		DBUS_TYPE_INT32, &uid, 
 		DBUS_TYPE_INVALID);
 #if 1
-	if(g_conn_sender) {
+	if (g_conn_sender) {
 		dbus_message_set_no_reply(msg, TRUE);
 
 		if (!dbus_connection_send(g_conn_sender, msg, NULL)) {
@@ -1398,7 +1394,7 @@ int stt_dbus_request_cancel(int uid)
 		DBUS_TYPE_INT32, &uid, 
 		DBUS_TYPE_INVALID);
 #if 1
-	if(g_conn_sender) {
+	if (g_conn_sender) {
 		dbus_message_set_no_reply(msg, TRUE);
 
 		if (!dbus_connection_send(g_conn_sender, msg, NULL)) {

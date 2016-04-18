@@ -53,7 +53,7 @@ typedef struct {
 
 	/* error data */
 	int	reason;
-}stt_file_client_s;
+} stt_file_client_s;
 
 
 int stt_file_client_new();
