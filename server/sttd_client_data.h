@@ -27,7 +27,7 @@ typedef enum {
 	APP_STATE_READY		= 1,
 	APP_STATE_RECORDING	= 2,
 	APP_STATE_PROCESSING	= 3
-}app_state_e;
+} app_state_e;
 
 typedef struct {
 	int	pid;
@@ -39,7 +39,7 @@ typedef struct {
 /*	Ecore_Timer*	timer;	*/
 
 	bool	app_agreed;
-}client_info_s;
+} client_info_s;
 
 typedef struct {
 	int	index;
@@ -47,7 +47,7 @@ typedef struct {
 	char*	text;
 	long	start_time;
 	long	end_time;
-}result_time_info_s;
+} result_time_info_s;
 
 typedef bool (*time_callback)(int index, int event, const char* text, long start_time, long end_time, void *user_data);
 

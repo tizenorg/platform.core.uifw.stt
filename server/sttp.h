@@ -38,8 +38,8 @@ typedef enum {
 	STTP_ERROR_INVALID_STATE	= -0x0100031,	/**< Invalid state */
 	STTP_ERROR_INVALID_LANGUAGE	= -0x0100032,	/**< Invalid language */
 	STTP_ERROR_OPERATION_FAILED	= -0x0100034,	/**< Operation failed */
-	STTP_ERROR_NOT_SUPPORTED_FEATURE= -0x0100035	/**< Not supported feature */
-}sttp_error_e;
+	STTP_ERROR_NOT_SUPPORTED_FEATURE	= -0x0100035	/**< Not supported feature */
+} sttp_error_e;
 
 /**
 * @brief Enumerations of audio type.
@@ -47,7 +47,7 @@ typedef enum {
 typedef enum {
 	STTP_AUDIO_TYPE_PCM_S16_LE = 0,	/**< Signed 16bit audio type, Little endian */
 	STTP_AUDIO_TYPE_PCM_U8		/**< Unsigned 8bit audio type */
-}sttp_audio_type_e;
+} sttp_audio_type_e;
 
 /**
 * @brief Enumerations of callback event.
@@ -56,7 +56,7 @@ typedef enum {
 	STTP_RESULT_EVENT_FINAL_RESULT = 0,	/**< Event when the recognition full or last result is ready  */
 	STTP_RESULT_EVENT_PARTIAL_RESULT,	/**< Event when the recognition partial result is ready  */
 	STTP_RESULT_EVENT_ERROR			/**< Event when the recognition has failed */
-}sttp_result_event_e;
+} sttp_result_event_e;
 
 /**
 * @brief Enumerations of result time callback event.
@@ -65,7 +65,7 @@ typedef enum {
 	STTP_RESULT_TIME_EVENT_BEGINNING = 0,	/**< Event when the token is beginning type */
 	STTP_RESULT_TIME_EVENT_MIDDLE,		/**< Event when the token is middle type */
 	STTP_RESULT_TIME_EVENT_END		/**< Event when the token is end type */
-}sttp_result_time_event_e;
+} sttp_result_time_event_e;
 
 /**
 * @brief Enumerations of silence type.
@@ -73,7 +73,7 @@ typedef enum {
 typedef enum {
 	STTP_SILENCE_TYPE_NO_RECORD_TIMEOUT = 0,	/**< No sound is recorded */
 	STTP_SILENCE_TYPE_END_OF_SPEECH_DETECTED	/**< End of speech is detected */
-}sttp_silence_type_e;
+} sttp_silence_type_e;
 
 /**
 * @brief Recognition type : free form dictation and default type.
@@ -214,7 +214,7 @@ typedef bool (*sttpe_supported_language_cb)(const char* language, void* user_dat
 *
 * @see sttpe_deinitialize()
 */
-typedef int (* sttpe_initialize)(sttpe_result_cb result_cb, sttpe_silence_detected_cb silence_cb);
+typedef int (*sttpe_initialize)(sttpe_result_cb result_cb, sttpe_silence_detected_cb silence_cb);
 
 /**
 * @brief Deinitializes the engine
@@ -225,7 +225,7 @@ typedef int (* sttpe_initialize)(sttpe_result_cb result_cb, sttpe_silence_detect
 *
 * @see sttpe_initialize()
 */
-typedef int (* sttpe_deinitialize)(void);
+typedef int (*sttpe_deinitialize)(void);
 
 /**
 * @brief Retrieves all supported languages of the engine.
@@ -242,7 +242,7 @@ typedef int (* sttpe_deinitialize)(void);
 *
 * @see sttpe_supported_language_cb()
 */
-typedef int (* sttpe_foreach_supported_langs)(sttpe_supported_language_cb callback, void* user_data);
+typedef int (*sttpe_foreach_supported_langs)(sttpe_supported_language_cb callback, void* user_data);
 
 /**
 * @brief Checks whether a language is valid or not.
@@ -253,7 +253,7 @@ typedef int (* sttpe_foreach_supported_langs)(sttpe_supported_language_cb callba
 *
 * @see sttpe_foreach_supported_languages()
 */
-typedef bool (* sttpe_is_valid_language)(const char* language);
+typedef bool (*sttpe_is_valid_language)(const char* language);
 
 /**
 * @brief Gets whether the engine supports silence detection.
@@ -262,7 +262,7 @@ typedef bool (* sttpe_is_valid_language)(const char* language);
 *
 * @see sttpe_set_silence_detection()
 */
-typedef bool (* sttpe_support_silence_detection)(void);
+typedef bool (*sttpe_support_silence_detection)(void);
 
 /**
 * @brief Gets supporting recognition type.
@@ -270,7 +270,7 @@ typedef bool (* sttpe_support_silence_detection)(void);
 * @return @c true to support recognition type, \n @c false not to support recognition type.
 *
 */
-typedef bool (* sttpe_support_recognition_type)(const char* type);
+typedef bool (*sttpe_support_recognition_type)(const char* type);
 
 /**
 * @brief Gets recording format of the engine.
@@ -283,7 +283,7 @@ typedef bool (* sttpe_support_recognition_type)(const char* type);
 * @retval #STTP_ERROR_NONE Successful
 * @retval #STTP_ERROR_INVALID_STATE Not initialized
 */
-typedef int (* sttpe_get_recording_format)(sttp_audio_type_e* types, int* rate, int* channels);
+typedef int (*sttpe_get_recording_format)(sttp_audio_type_e* types, int* rate, int* channels);
 
 /**
 * @brief Sets silence detection option.
@@ -295,7 +295,7 @@ typedef int (* sttpe_get_recording_format)(sttp_audio_type_e* types, int* rate, 
 * @retval #STTP_ERROR_INVALID_STATE Not initialized
 * @retval #STTP_ERROR_NOT_SUPPORTED_FEATURE Not supported feature
 */
-typedef int (* sttpe_set_silence_detection)(bool value);
+typedef int (*sttpe_set_silence_detection)(bool value);
 
 /**
 * @brief Gets whether application is agreed to get engine service.
@@ -308,7 +308,7 @@ typedef int (* sttpe_set_silence_detection)(bool value);
 * @retval #STTP_ERROR_INVALID_STATE Not initialized
 * @retval #STTP_ERROR_NOT_SUPPORTED_FEATURE Not supported feature
 */
-typedef int (* sttpe_check_app_agreed)(const char* appid, bool* value);
+typedef int (*sttpe_check_app_agreed)(const char* appid, bool* value);
 
 /**
 * @brief Retrieves result time info in recognition callback of daemon.
@@ -326,7 +326,7 @@ typedef int (* sttpe_check_app_agreed)(const char* appid, bool* value);
 *
 * @see sttpe_result_time_cb()
 */
-typedef int (* sttpe_foreach_result_time)(void* time_info, sttpe_result_time_cb callback, void* user_data);
+typedef int (*sttpe_foreach_result_time)(void* time_info, sttpe_result_time_cb callback, void* user_data);
 
 /**
 * @brief Start recognition.
@@ -349,7 +349,7 @@ typedef int (* sttpe_foreach_result_time)(void* time_info, sttpe_result_time_cb 
 * @see sttpe_stop()
 * @see sttpe_cancel()
 */
-typedef int (* sttpe_start)(const char* language, const char* type, void *user_data);
+typedef int (*sttpe_start)(const char* language, const char* type, void *user_data);
 
 /**
 * @brief Sets recording data for speech recognition from recorder.
@@ -372,7 +372,7 @@ typedef int (* sttpe_start)(const char* language, const char* type, void *user_d
 * @see sttpe_cancel()
 * @see sttpe_stop()
 */
-typedef int (* sttpe_set_recording_data)(const void* data, unsigned int length);
+typedef int (*sttpe_set_recording_data)(const void* data, unsigned int length);
 
 /**
 * @brief Stops to set recording data.
@@ -391,7 +391,7 @@ typedef int (* sttpe_set_recording_data)(const void* data, unsigned int length);
 * @see sttpe_result_cb()
 * @see sttpe_cancel()
 */
-typedef int (* sttpe_stop)(void);
+typedef int (*sttpe_stop)(void);
 
 /**
 * @brief Cancels the recognition process.
@@ -404,7 +404,7 @@ typedef int (* sttpe_stop)(void);
 * @see sttpe_start()
 * @see sttpe_stop()
 */
-typedef int (* sttpe_cancel)(void);
+typedef int (*sttpe_cancel)(void);
 
 /**
 * @brief Start recognition of file.
@@ -428,7 +428,7 @@ typedef int (* sttpe_cancel)(void);
 *
 * @see sttpe_cancel_file()
 */
-typedef int (* sttpe_start_file)(const char* language, const char* type, const char* filepath,
+typedef int (*sttpe_start_file)(const char* language, const char* type, const char* filepath,
 				 sttp_audio_type_e audio_type, int sample_rate, void *user_data);
 
 /**
@@ -441,7 +441,7 @@ typedef int (* sttpe_start_file)(const char* language, const char* type, const c
 *
 * @see sttpe_start_file()
 */
-typedef int (* sttpe_cancel_file)(void);
+typedef int (*sttpe_cancel_file)(void);
 
 /**
 * @brief A structure of the engine functions.

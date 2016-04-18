@@ -32,11 +32,11 @@ typedef enum {
 	STT_CONFIG_ERROR_INVALID_LANGUAGE	= TIZEN_ERROR_STT | 0x02,	/**< Invalid language */
 	STT_CONFIG_ERROR_ENGINE_NOT_FOUND	= TIZEN_ERROR_STT | 0x03,	/**< No available engine  */	
 	STT_CONFIG_ERROR_OPERATION_FAILED	= TIZEN_ERROR_STT | 0x04,	/**< Operation failed  */
-}stt_config_error_e;
+} stt_config_error_e;
 
 typedef enum {
 	STT_CONFIG_TYPE_OPTION_SILENCE_DETECTION
-}stt_config_type_e;
+} stt_config_type_e;
 
 typedef bool (*stt_config_supported_engine_cb)(const char* engine_id, const char* engine_name, const char* setting, bool support_silence, void* user_data);
 

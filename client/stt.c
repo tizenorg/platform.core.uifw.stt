@@ -605,7 +605,7 @@ int stt_unprepare(stt_h stt)
 		SLOG(LOG_WARN, TAG_STTC, "[WARNING] State changed callback is null");
 	}
 
-	if(g_connect_timer) {
+	if (g_connect_timer) {
 		ecore_timer_del(g_connect_timer);
 		g_connect_timer = NULL;
 	}
@@ -1488,7 +1488,7 @@ static Eina_Bool __stt_notify_error(void *data)
 int __stt_cb_error(int uid, int reason)
 {
 	stt_client_s* client = stt_client_get_by_uid(uid);
-	if( NULL == client ) {
+	if (NULL == client) {
 		SLOG(LOG_ERROR, TAG_STTC, "Handle not found");
 		return -1;
 	}

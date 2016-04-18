@@ -47,7 +47,7 @@ typedef enum {
 	STT_SETTING_ERROR_ENGINE_NOT_FOUND	= TIZEN_ERROR_STT | 0x03,	/**< No available engine  */	
 	STT_SETTING_ERROR_OPERATION_FAILED	= TIZEN_ERROR_STT | 0x04,	/**< Operation failed  */
 	STT_SETTING_ERROR_NOT_SUPPORTED_FEATURE	= TIZEN_ERROR_STT | 0x05	/**< Not supported feature of current engine */
-}stt_setting_error_e;
+} stt_setting_error_e;
 
 /** 
 * @brief Enumerations of setting state.

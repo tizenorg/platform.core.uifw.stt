@@ -30,7 +30,7 @@ typedef struct {
 	char*	agreement;
 	GSList*	languages;
 	bool	support_silence_detection;
-}stt_engine_info_s;
+} stt_engine_info_s;
 
 typedef struct {
 	char*	engine_id;
@@ -38,7 +38,7 @@ typedef struct {
 	bool	auto_lang;
 	char*	language;
 	bool	silence_detection;
-}stt_config_s;
+} stt_config_s;
 
 typedef struct {
 	int	index;
@@ -46,7 +46,7 @@ typedef struct {
 	char*	text;
 	long	start_time;
 	long	end_time;
-}stt_result_time_info_s;
+} stt_result_time_info_s;
 
 /* Get engine information */
 int stt_parser_get_engine_info(const char* path, stt_engine_info_s** engine_info);

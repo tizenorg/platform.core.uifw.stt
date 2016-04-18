@@ -52,7 +52,7 @@ typedef enum {
 	STT_ERROR_ENGINE_NOT_FOUND	= TIZEN_ERROR_STT | 0x03,	/**< No available engine  */
 	STT_ERROR_OPERATION_FAILED	= TIZEN_ERROR_STT | 0x04,	/**< Operation failed  */
 	STT_ERROR_NOT_SUPPORTED_FEATURE	= TIZEN_ERROR_STT | 0x05	/**< Not supported feature of current engine */
-}stt_error_e;
+} stt_error_e;
 
 /**
  * @brief Definition for free form dictation and default type.
@@ -136,7 +136,7 @@ typedef enum {
 	STT_STATE_READY		= 1,		/**< 'READY' state */
 	STT_STATE_RECORDING	= 2,		/**< 'RECORDING' state */
 	STT_STATE_PROCESSING	= 3		/**< 'PROCESSING' state*/
-}stt_state_e;
+} stt_state_e;
 
 /**
  * @brief Enumeration for result event.
@@ -146,7 +146,7 @@ typedef enum {
 	STT_RESULT_EVENT_FINAL_RESULT = 0,	/**< Event when the recognition full or last result is ready  */
 	STT_RESULT_EVENT_PARTIAL_RESULT,	/**< Event when the recognition partial result is ready  */
 	STT_RESULT_EVENT_ERROR			/**< Event when the recognition has failed */
-}stt_result_event_e;
+} stt_result_event_e;
 
 /**
  * @brief Enumeration for result time callback event.
@@ -156,7 +156,7 @@ typedef enum {
 	STT_RESULT_TIME_EVENT_BEGINNING = 0,	/**< Event when the token is beginning type */
 	STT_RESULT_TIME_EVENT_MIDDLE = 1,	/**< Event when the token is middle type */
 	STT_RESULT_TIME_EVENT_END = 2		/**< Event when the token is end type */
-}stt_result_time_event_e;
+} stt_result_time_event_e;
 
 /**
  * @brief Enumeration for silence detection type.
@@ -166,7 +166,7 @@ typedef enum {
 	STT_OPTION_SILENCE_DETECTION_FALSE = 0,	/**< Silence detection type - False */
 	STT_OPTION_SILENCE_DETECTION_TRUE = 1,	/**< Silence detection type - True */
 	STT_OPTION_SILENCE_DETECTION_AUTO = 2	/**< Silence detection type - Auto */
-}stt_option_silence_detection_e;
+} stt_option_silence_detection_e;
 
 /**
  * @brief A structure of STT handler.
