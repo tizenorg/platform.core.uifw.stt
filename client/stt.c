@@ -1111,6 +1111,69 @@ int stt_start(stt_h stt, const char* language, const char* type)
 		temp = strdup(language);
 	}
 
+	ret = stt_dbus_request_start(client->uid, temp, type, client->silence, appid);
+	if (0 != ret) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to start : %s", __stt_get_error_code(ret));
+	} else {
+		SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] Start is successful but not done");
+		client->internal_state = STT_INTERNAL_STATE_STARTING;
+	}
+
+	if (NULL != temp)	free(temp);
+
+	SLOG(LOG_DEBUG, TAG_STTC, "=====");
+	SLOG(LOG_DEBUG, TAG_STTC, " ");
+
+	return ret;
+}
+
+int stt_start_async(stt_h stt, const char* language, const char* type)
+{
+	if (0 != __stt_get_feature_enabled()) {
+		return STT_ERROR_NOT_SUPPORTED;
+	}
+
+	SLOG(LOG_DEBUG, TAG_STTC, "===== STT START");
+
+	if (NULL == stt) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL");
+		return STT_ERROR_INVALID_PARAMETER;
+	}
+
+	stt_client_s* client = stt_client_get(stt);
+	if (NULL == client) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not available");
+		return STT_ERROR_INVALID_PARAMETER;
+	}
+
+	/* check state */
+	if (client->current_state != STT_STATE_READY) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State: Current state(%d) is not READY", client->current_state);
+		return STT_ERROR_INVALID_STATE;
+	}
+
+	if (STT_INTERNAL_STATE_NONE != client->internal_state) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State : Internal state is NOT none : %d", client->internal_state);
+		return STT_ERROR_INVALID_STATE;
+	}
+
+	int ret = -1;
+	char appid[128] = {0, };
+	ret = aul_app_get_appid_bypid(getpid(), appid, sizeof(appid));
+
+	if ((AUL_R_OK != ret) || (0 == strlen(appid))) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to get application ID");
+	} else {
+		SLOG(LOG_DEBUG, TAG_STTC, "[DEBUG] Current app id is %s", appid);
+	}
+
+	char* temp = NULL;
+	if (NULL == language) {
+		temp = strdup("default");
+	} else {
+		temp = strdup(language);
+	}
+
 #if 0
 	ret = -1;
 	/* do request */
@@ -1159,7 +1222,7 @@ int stt_start(stt_h stt, const char* language, const char* type)
 		}
 	}
 #else
-	ret = stt_dbus_request_start(client->uid, temp, type, client->silence, appid);
+	ret = stt_dbus_request_start_async(client->uid, temp, type, client->silence, appid);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to start : %s", __stt_get_error_code(ret));
 	} else {
@@ -1176,6 +1239,93 @@ int stt_start(stt_h stt, const char* language, const char* type)
 }
 
 int stt_stop(stt_h stt)
+{
+	if (0 != __stt_get_feature_enabled()) {
+		return STT_ERROR_NOT_SUPPORTED;
+	}
+
+	SLOG(LOG_DEBUG, TAG_STTC, "===== STT STOP");
+
+	if (NULL == stt) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL");
+		return STT_ERROR_INVALID_PARAMETER;
+	}
+
+	stt_client_s* client = stt_client_get(stt);
+	if (NULL == client) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not available");
+		return STT_ERROR_INVALID_PARAMETER;
+	}
+
+	/* check state */
+	if (client->current_state != STT_STATE_RECORDING) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State : Current state(%d) is NOT RECORDING", client->current_state);
+		return STT_ERROR_INVALID_STATE;
+	}
+
+	if (STT_INTERNAL_STATE_NONE != client->internal_state) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State : Internal state is NOT none : %d", client->internal_state);
+		return STT_ERROR_INVALID_STATE;
+	}
+#if 1
+	int ret = -1;
+	/* do request */
+	int count = 0;
+	while (0 != ret) {
+		ret = stt_dbus_request_stop(client->uid);
+		if (0 > ret) {
+			/* Failure */
+			if (STT_ERROR_TIMED_OUT != ret) {
+				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to stop : %s", __stt_get_error_code(ret));
+				return ret;
+			} else {
+				SLOG(LOG_WARN, TAG_STTC, "[WARNING] retry stop");
+				usleep(10000);
+				count++;
+				if (STT_RETRY_COUNT == count) {
+					SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to request");
+					return ret;
+				}
+			}
+		} else {
+			if (STT_RESULT_STATE_DONE == ret) {
+				SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] Stop is done : %d", ret);
+				client->before_state = client->current_state;
+				client->current_state = STT_STATE_PROCESSING;
+
+				if (NULL != client->state_changed_cb) {
+					ecore_main_loop_thread_safe_call_async(__stt_notify_state_changed, client);
+					SLOG(LOG_DEBUG, TAG_STTC, "State changed callback is called");
+				} else {
+					SLOG(LOG_WARN, TAG_STTC, "[WARNING] State changed callback is null");
+				}
+			} else if (STT_RESULT_STATE_NOT_DONE == ret) {
+				SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] Stop is not done : %d", ret);
+				client->internal_state = STT_INTERNAL_STATE_STOPING;
+			} else {
+				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid result : %d", ret);
+			}
+			ret = STT_ERROR_NONE;
+			break;
+		}
+	}
+#else
+	int ret = stt_dbus_request_stop(client->uid);
+
+	if (0 != ret) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to stop : %s", __stt_get_error_code(ret));
+	} else {
+		SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] Stop is successful but not done");
+		client->internal_state = STT_INTERNAL_STATE_STOPING;
+	}
+#endif
+	SLOG(LOG_DEBUG, TAG_STTC, "=====");
+	SLOG(LOG_DEBUG, TAG_STTC, " ");
+
+	return ret;
+}
+
+int stt_stop_async(stt_h stt)
 {
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
@@ -1247,7 +1397,7 @@ int stt_stop(stt_h stt)
 		}
 	}
 #else
-	int ret = stt_dbus_request_stop(client->uid);
+	int ret = stt_dbus_request_stop_async(client->uid);
 
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to stop : %s", __stt_get_error_code(ret));
@@ -1262,8 +1412,90 @@ int stt_stop(stt_h stt)
 	return ret;
 }
 
-
 int stt_cancel(stt_h stt)
+{
+	if (0 != __stt_get_feature_enabled()) {
+		return STT_ERROR_NOT_SUPPORTED;
+	}
+
+	SLOG(LOG_DEBUG, TAG_STTC, "===== STT CANCEL");
+
+	if (NULL == stt) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input handle is null");
+		return STT_ERROR_INVALID_PARAMETER;
+	}
+
+	stt_client_s* client = stt_client_get(stt);
+
+	/* check handle */
+	if (NULL == client) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not available");
+		return STT_ERROR_INVALID_PARAMETER;
+	}
+
+	/* check state */
+	if (STT_STATE_RECORDING != client->current_state && STT_STATE_PROCESSING != client->current_state) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid state : Current state(%d) is 'Ready'", client->current_state);
+		return STT_ERROR_INVALID_STATE;
+	}
+
+	if (STT_INTERNAL_STATE_NONE != client->internal_state) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State : Internal state is NOT none : %d", client->internal_state);
+		return STT_ERROR_INVALID_STATE;
+	}
+#if 1
+	int ret = -1;
+	/* do request */
+	int count = 0;
+	while (0 != ret) {
+		ret = stt_dbus_request_cancel(client->uid);
+		if (0 != ret) {
+			/* Failure */
+			if (STT_ERROR_TIMED_OUT != ret) {
+				SLOG(LOG_DEBUG, TAG_STTC, "[ERROR] Fail to cancel : %s", __stt_get_error_code(ret));
+				return ret;
+			} else {
+				SLOG(LOG_WARN, TAG_STTC, "[WARNING] retry");
+				usleep(10000);
+				count++;
+				if (STT_RETRY_COUNT == count) {
+					SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to request");
+					return ret;
+				}
+			}
+		} else {
+			SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS]");
+
+			client->before_state = client->current_state;
+			client->current_state = STT_STATE_READY;
+
+			if (NULL != client->state_changed_cb) {
+				ecore_main_loop_thread_safe_call_async(__stt_notify_state_changed, client);
+				SLOG(LOG_DEBUG, TAG_STTC, "State changed callback is called");
+			} else {
+				SLOG(LOG_WARN, TAG_STTC, "[WARNING] State changed callback is null");
+			}
+			ret = STT_ERROR_NONE;
+			break;
+		}
+	}
+#else
+	int ret = stt_dbus_request_cancel(client->uid);
+	if (0 != ret) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to cancel : %s", __stt_get_error_code(ret));
+	} else {
+		SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] Cancel is successful but not done");
+		client->internal_state = STT_INTERNAL_STATE_CANCELING;
+	}
+#endif
+	SLOG(LOG_DEBUG, TAG_STTC, "=====");
+	SLOG(LOG_DEBUG, TAG_STTC, " ");
+
+	return ret;
+}
+
+
+int stt_cancel_async(stt_h stt)
 {
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
@@ -1331,7 +1563,7 @@ int stt_cancel(stt_h stt)
 		}
 	}
 #else
-	int ret = stt_dbus_request_cancel(client->uid);
+	int ret = stt_dbus_request_cancel_async(client->uid);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to cancel : %s", __stt_get_error_code(ret));
 	} else {
@@ -1488,7 +1720,7 @@ static Eina_Bool __stt_notify_error(void *data)
 int __stt_cb_error(int uid, int reason)
 {
 	stt_client_s* client = stt_client_get_by_uid(uid);
-	if (NULL == client) {
+	if( NULL == client ) {
 		SLOG(LOG_ERROR, TAG_STTC, "Handle not found");
 		return -1;
 	}
