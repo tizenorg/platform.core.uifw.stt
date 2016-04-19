@@ -65,11 +65,11 @@ int sttd_server_set_stop_sound(int uid, const char* file);
 
 int sttd_server_get_audio_volume(int uid, float* current_volume);
 
-int sttd_server_start(int uid, const char* lang, const char* recognition_type, int silence, const char* appid);
+int sttd_server_start(int uid, const char* lang, const char* recognition_type, int silence, const char* appid, bool async);
 
-int sttd_server_stop(int uid);
+int sttd_server_stop(int uid, bool async);
 
-int sttd_server_cancel(int uid);
+int sttd_server_cancel(int uid, bool async);
 
 
 

@@ -60,10 +60,15 @@ int sttd_dbus_server_unset_stop_sound(DBusConnection* conn, DBusMessage* msg);
 
 int sttd_dbus_server_start(DBusConnection* conn, DBusMessage* msg);
 
+int sttd_dbus_server_start_async(DBusConnection* conn, DBusMessage* msg);
+
 int sttd_dbus_server_stop(DBusConnection* conn, DBusMessage* msg);
+
+int sttd_dbus_server_stop_async(DBusConnection* conn, DBusMessage* msg);
 
 int sttd_dbus_server_cancel(DBusConnection* conn, DBusMessage* msg);
 
+int sttd_dbus_server_cancel_async(DBusConnection* conn, DBusMessage* msg);
 
 
 #ifdef __cplusplus

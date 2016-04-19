@@ -851,21 +851,17 @@ int sttd_dbus_server_start(DBusConnection* conn, DBusMessage* msg)
 		dbus_error_free(&err);
 		ret = STTD_ERROR_OPERATION_FAILED;
 	} else {
-		SLOG(LOG_DEBUG, TAG_STTD, "[IN] stt start : uid(%d), lang(%s), type(%s), silence(%d) appid(%s)"
-			, uid, lang, type, silence, appid); 
-		ret = sttd_server_start(uid, lang, type, silence, appid);
+		SLOG(LOG_DEBUG, TAG_STTD, "[IN] stt start : uid(%d), lang(%s), type(%s), silence(%d), appid(%s), async(%d)"
+			, uid, lang, type, silence, appid, false); 
+		ret = sttd_server_start(uid, lang, type, silence, appid, false);
 	}
 
 	if (0 <= ret) {
 		SLOG(LOG_DEBUG, TAG_STTD, "[OUT SUCCESS] Result(%d)", ret);
 	} else {
 		SLOG(LOG_ERROR, TAG_STTD, "[OUT ERROR] Result(%d)", ret);
-		if (0 != sttdc_send_error_signal(uid, ret, "[ERROR] Fail to start")) {
-			SLOG(LOG_ERROR, TAG_STTD, "[ERROR] Fail to send error signal");
-		}
 	}
 
-#if 0
 	DBusMessage* reply;
 	reply = dbus_message_new_method_return(msg);
 
@@ -885,9 +881,55 @@ int sttd_dbus_server_start(DBusConnection* conn, DBusMessage* msg)
 		dbus_connection_flush(conn);
 		dbus_message_unref(reply);
 	} else {
-		SLOG(LOG_ERROR, TAG_STTD, "[OUT ERROR] Fail to create reply message!!");
+		SLOG(LOG_ERROR, TAG_STTD, "[OUT ERROR] Fail to start reply message!!");
 	}
-#endif
+
+	SLOG(LOG_DEBUG, TAG_STTD, "<<<<<");
+	SLOG(LOG_DEBUG, TAG_STTD, "  ");
+
+	return 0;
+}
+
+int sttd_dbus_server_start_async(DBusConnection* conn, DBusMessage* msg)
+{
+	DBusError err;
+	dbus_error_init(&err);
+
+	int uid;
+	char* lang;
+	char* type;
+	char* appid;
+	int silence;
+	int ret = STTD_ERROR_OPERATION_FAILED;
+
+	dbus_message_get_args(msg, &err, 
+		DBUS_TYPE_INT32, &uid, 
+		DBUS_TYPE_STRING, &lang,   
+		DBUS_TYPE_STRING, &type,
+		DBUS_TYPE_INT32, &silence,
+		DBUS_TYPE_STRING, &appid,
+		DBUS_TYPE_INVALID);
+
+	SLOG(LOG_DEBUG, TAG_STTD, ">>>>> STT Start");
+
+	if (dbus_error_is_set(&err)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[IN ERROR] stt start : get arguments error (%s)", err.message);
+		dbus_error_free(&err);
+		ret = STTD_ERROR_OPERATION_FAILED;
+	} else {
+		SLOG(LOG_DEBUG, TAG_STTD, "[IN] stt start : uid(%d), lang(%s), type(%s), silence(%d), appid(%s), async(%d)"
+			, uid, lang, type, silence, appid, true); 
+		ret = sttd_server_start(uid, lang, type, silence, appid, true);
+	}
+
+	if (0 <= ret) {
+		SLOG(LOG_DEBUG, TAG_STTD, "[OUT SUCCESS] Result(%d)", ret);
+	} else {
+		SLOG(LOG_ERROR, TAG_STTD, "[OUT ERROR] Result(%d)", ret);
+		if (0 != sttdc_send_error_signal(uid, ret, "[ERROR] Fail to start")) {
+			SLOG(LOG_ERROR, TAG_STTD, "[ERROR] Fail to send error signal");
+		}
+	}
 
 	SLOG(LOG_DEBUG, TAG_STTD, "<<<<<");
 	SLOG(LOG_DEBUG, TAG_STTD, "  ");
@@ -911,19 +953,16 @@ int sttd_dbus_server_stop(DBusConnection* conn, DBusMessage* msg)
 		dbus_error_free(&err);
 		ret = STTD_ERROR_OPERATION_FAILED;
 	} else {
-		SLOG(LOG_DEBUG, TAG_STTD, "[IN] stt stop : uid(%d)", uid); 
-		ret = sttd_server_stop(uid);
+		SLOG(LOG_DEBUG, TAG_STTD, "[IN] stt stop : uid(%d), async(%d)", uid, false); 
+		ret = sttd_server_stop(uid, false);
 	}
 
 	if (0 <= ret) {
 		SLOG(LOG_DEBUG, TAG_STTD, "[OUT SUCCESS] Result(%d)", ret);
 	} else {
 		SLOG(LOG_ERROR, TAG_STTD, "[OUT ERROR] Result(%d)", ret);
-		if (0 != sttdc_send_error_signal(uid, ret, "[ERROR] Fail to stop")) {
-			SLOG(LOG_ERROR, TAG_STTD, "[ERROR] Fail to send error signal");
-		}
 	}
-#if 0
+
 	DBusMessage* reply;
 	reply = dbus_message_new_method_return(msg);
 
@@ -945,7 +984,41 @@ int sttd_dbus_server_stop(DBusConnection* conn, DBusMessage* msg)
 	} else {
 		SLOG(LOG_ERROR, TAG_STTD, "[OUT ERROR] Fail to create reply message!!");
 	}
-#endif
+
+	SLOG(LOG_DEBUG, TAG_STTD, "<<<<<");
+	SLOG(LOG_DEBUG, TAG_STTD, "  ");
+
+	return 0;
+}
+
+int sttd_dbus_server_stop_async(DBusConnection* conn, DBusMessage* msg)
+{
+	DBusError err;
+	dbus_error_init(&err);
+
+	int uid;
+	int ret = STTD_ERROR_OPERATION_FAILED;
+	dbus_message_get_args(msg, &err, DBUS_TYPE_INT32, &uid, DBUS_TYPE_INVALID);
+
+	SLOG(LOG_DEBUG, TAG_STTD, ">>>>> STT Stop");
+
+	if (dbus_error_is_set(&err)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[IN ERROR] stt stop : get arguments error (%s)", err.message);
+		dbus_error_free(&err);
+		ret = STTD_ERROR_OPERATION_FAILED;
+	} else {
+		SLOG(LOG_DEBUG, TAG_STTD, "[IN] stt stop : uid(%d), async(%d)", uid, true); 
+		ret = sttd_server_stop(uid, true);
+	}
+
+	if (0 <= ret) {
+		SLOG(LOG_DEBUG, TAG_STTD, "[OUT SUCCESS] Result(%d)", ret);
+	} else {
+		SLOG(LOG_ERROR, TAG_STTD, "[OUT ERROR] Result(%d)", ret);
+		if (0 != sttdc_send_error_signal(uid, ret, "[ERROR] Fail to stop")) {
+			SLOG(LOG_ERROR, TAG_STTD, "[ERROR] Fail to send error signal");
+		}
+	}
 
 	SLOG(LOG_DEBUG, TAG_STTD, "<<<<<");
 	SLOG(LOG_DEBUG, TAG_STTD, "  ");
@@ -969,19 +1042,16 @@ int sttd_dbus_server_cancel(DBusConnection* conn, DBusMessage* msg)
 		dbus_error_free(&err);
 		ret = STTD_ERROR_OPERATION_FAILED;
 	} else {
-		SLOG(LOG_DEBUG, TAG_STTD, "[IN] stt cancel : uid(%d)", uid); 
-		ret = sttd_server_cancel(uid);
+		SLOG(LOG_DEBUG, TAG_STTD, "[IN] stt cancel : uid(%d), async(%d)", uid, false); 
+		ret = sttd_server_cancel(uid, false);
 	}
 
 	if (0 <= ret) {
 		SLOG(LOG_DEBUG, TAG_STTD, "[OUT SUCCESS] Result(%d)", ret);
 	} else {
 		SLOG(LOG_ERROR, TAG_STTD, "[OUT ERROR] Result(%d)", ret);
-		if (0 != sttdc_send_error_signal(uid, ret, "[ERROR] Fail to cancel")) {
-			SLOG(LOG_ERROR, TAG_STTD, "[ERROR] Fail to send error signal");
-		}
 	}
-#if 0
+
 	DBusMessage* reply;
 	reply = dbus_message_new_method_return(msg);
 
@@ -1003,7 +1073,42 @@ int sttd_dbus_server_cancel(DBusConnection* conn, DBusMessage* msg)
 	} else {
 		SLOG(LOG_ERROR, TAG_STTD, "[OUT ERROR] Fail to create reply message!!");
 	}
-#endif
+
+	SLOG(LOG_DEBUG, TAG_STTD, "<<<<<");
+	SLOG(LOG_DEBUG, TAG_STTD, "  ");
+
+	return 0;
+}
+
+int sttd_dbus_server_cancel_async(DBusConnection* conn, DBusMessage* msg)
+{
+	DBusError err;
+	dbus_error_init(&err);
+
+	int uid;
+	int ret = STTD_ERROR_OPERATION_FAILED;
+	dbus_message_get_args(msg, &err, DBUS_TYPE_INT32, &uid, DBUS_TYPE_INVALID);
+
+	SLOG(LOG_DEBUG, TAG_STTD, ">>>>> STT Cancel");
+
+	if (dbus_error_is_set(&err)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[IN ERROR] stt cancel : get arguments error (%s)", err.message);
+		dbus_error_free(&err);
+		ret = STTD_ERROR_OPERATION_FAILED;
+	} else {
+		SLOG(LOG_DEBUG, TAG_STTD, "[IN] stt cancel : uid(%d), async(%d)", uid, true); 
+		ret = sttd_server_cancel(uid, true);
+	}
+
+	if (0 <= ret) {
+		SLOG(LOG_DEBUG, TAG_STTD, "[OUT SUCCESS] Result(%d)", ret);
+	} else {
+		SLOG(LOG_ERROR, TAG_STTD, "[OUT ERROR] Result(%d)", ret);
+		if (0 != sttdc_send_error_signal(uid, ret, "[ERROR] Fail to cancel")) {
+			SLOG(LOG_ERROR, TAG_STTD, "[ERROR] Fail to send error signal");
+		}
+	}
+
 	SLOG(LOG_DEBUG, TAG_STTD, "<<<<<");
 	SLOG(LOG_DEBUG, TAG_STTD, "  ");
 

@@ -53,8 +53,11 @@ extern "C" {
 #define STT_METHOD_UNSET_STOP_SOUND	"stt_method_unset_stop_sound"
 
 #define STT_METHOD_START		"stt_method_start"
+#define STT_METHOD_START_ASYNC		"stt_method_start_async"
 #define STT_METHOD_STOP			"stt_method_stop"
+#define STT_METHOD_STOP_ASYNC		"stt_method_stop_async"
 #define STT_METHOD_CANCEL		"stt_method_cancel"
+#define STT_METHOD_CANCEL_ASYNC		"stt_method_cancel_async"
 #define STT_METHOD_START_FILE_RECONITION "stt_method_start_recognition"
 
 #define STTD_METHOD_RESULT		"sttd_method_result"
