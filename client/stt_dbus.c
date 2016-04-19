@@ -1214,9 +1214,9 @@ int stt_dbus_request_start(int uid, const char* lang, const char* type, int sile
 	/* create a signal & check for errors */
 	msg = dbus_message_new_method_call(
 		STT_SERVER_SERVICE_NAME,
-		STT_SERVER_SERVICE_OBJECT_PATH,	
-		STT_SERVER_SERVICE_INTERFACE,	
-		STT_METHOD_START);		
+		STT_SERVER_SERVICE_OBJECT_PATH,
+		STT_SERVER_SERVICE_INTERFACE,
+		STT_METHOD_START);
 
 	if (NULL == msg) {
 		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt start : Fail to make message");
@@ -1232,26 +1232,7 @@ int stt_dbus_request_start(int uid, const char* lang, const char* type, int sile
 		DBUS_TYPE_INT32, &silence,
 		DBUS_TYPE_STRING, &appid,
 		DBUS_TYPE_INVALID);
-#if 1
-	if (g_conn_sender) {
-		dbus_message_set_no_reply(msg, TRUE);
 
-		if (!dbus_connection_send(g_conn_sender, msg, NULL)) {
-			SLOG(LOG_ERROR, TAG_STTC, "[Dbus ERROR] <<<< stt start message : Out Of Memory !");
-			return STT_ERROR_OUT_OF_MEMORY;
-		} else {
-			dbus_connection_flush(g_conn_sender);
-		}
-
-		dbus_message_unref(msg);
-
-	} else {
-		SLOG(LOG_WARN, TAG_STTC, "[WARN] dbus connection handle is null (%p)", g_conn_sender);
-		return STT_ERROR_OPERATION_FAILED;
-	}
-
-	return 0;
-#else
 	DBusError err;
 	dbus_error_init(&err);
 
@@ -1289,7 +1270,57 @@ int stt_dbus_request_start(int uid, const char* lang, const char* type, int sile
 	}
 
 	return result;
-#endif
+}
+
+int stt_dbus_request_start_async(int uid, const char* lang, const char* type, int silence, const char* appid)
+{
+	if (NULL == lang || NULL == type || NULL == appid) {
+		SLOG(LOG_ERROR, TAG_STTC, "Input parameter is NULL");
+		return STT_ERROR_INVALID_PARAMETER;
+	}
+
+	DBusMessage* msg;
+
+	/* create a signal & check for errors */
+	msg = dbus_message_new_method_call(
+		STT_SERVER_SERVICE_NAME,
+		STT_SERVER_SERVICE_OBJECT_PATH,
+		STT_SERVER_SERVICE_INTERFACE,
+		STT_METHOD_START_ASYNC);
+
+	if (NULL == msg) {
+		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt start : Fail to make message");
+		return STT_ERROR_OPERATION_FAILED;
+	} else {
+		SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt start : uid(%d), language(%s), type(%s)", uid, lang, type);
+	}
+
+	dbus_message_append_args(msg,
+		DBUS_TYPE_INT32, &uid,
+		DBUS_TYPE_STRING, &lang,
+		DBUS_TYPE_STRING, &type,
+		DBUS_TYPE_INT32, &silence,
+		DBUS_TYPE_STRING, &appid,
+		DBUS_TYPE_INVALID);
+
+	if (g_conn_sender) {
+		dbus_message_set_no_reply(msg, TRUE);
+
+		if (!dbus_connection_send(g_conn_sender, msg, NULL)) {
+			SLOG(LOG_ERROR, TAG_STTC, "[Dbus ERROR] <<<< stt start message : Out Of Memory !");
+			return STT_ERROR_OUT_OF_MEMORY;
+		} else {
+			dbus_connection_flush(g_conn_sender);
+		}
+
+		dbus_message_unref(msg);
+
+	} else {
+		SLOG(LOG_WARN, TAG_STTC, "[WARN] dbus connection handle is null (%p)", g_conn_sender);
+		return STT_ERROR_OPERATION_FAILED;
+	}
+
+	return 0;
 }
 
 int stt_dbus_request_stop(int uid)
@@ -1299,8 +1330,8 @@ int stt_dbus_request_stop(int uid)
 	/* create a signal & check for errors */
 	msg = dbus_message_new_method_call(
 		STT_SERVER_SERVICE_NAME,
-		STT_SERVER_SERVICE_OBJECT_PATH,	
-		STT_SERVER_SERVICE_INTERFACE,	
+		STT_SERVER_SERVICE_OBJECT_PATH,
+		STT_SERVER_SERVICE_INTERFACE,
 		STT_METHOD_STOP);
 
 	if (NULL == msg) {
@@ -1313,25 +1344,7 @@ int stt_dbus_request_stop(int uid)
 	dbus_message_append_args(msg, 
 		DBUS_TYPE_INT32, &uid, 
 		DBUS_TYPE_INVALID);
-#if 1
-	if (g_conn_sender) {
-		dbus_message_set_no_reply(msg, TRUE);
 
-		if (!dbus_connection_send(g_conn_sender, msg, NULL)) {
-			SLOG(LOG_ERROR, TAG_STTC, "[Dbus ERROR] <<<< stt stop message : Out Of Memory !");
-			return STT_ERROR_OUT_OF_MEMORY;
-		} else {
-			dbus_connection_flush(g_conn_sender);
-		}
-
-		dbus_message_unref(msg);
-	} else {
-		SLOG(LOG_WARN, TAG_STTC, "[WARN] dbus connection handle is null (%p)", g_conn_sender);
-		return STT_ERROR_OPERATION_FAILED;
-	}
-
-	return 0;
-#else
 	DBusError err;
 	dbus_error_init(&err);
 
@@ -1369,31 +1382,30 @@ int stt_dbus_request_stop(int uid)
 	}
 
 	return result;
-#endif
 }
 
-int stt_dbus_request_cancel(int uid)
+int stt_dbus_request_stop_async(int uid)
 {
 	DBusMessage* msg;
 
 	/* create a signal & check for errors */
 	msg = dbus_message_new_method_call(
 		STT_SERVER_SERVICE_NAME,
-		STT_SERVER_SERVICE_OBJECT_PATH,	/* object name of the signal */
-		STT_SERVER_SERVICE_INTERFACE,	/* interface name of the signal */
-		STT_METHOD_CANCEL);	/* name of the signal */
+		STT_SERVER_SERVICE_OBJECT_PATH,
+		STT_SERVER_SERVICE_INTERFACE,
+		STT_METHOD_STOP_ASYNC);
 
 	if (NULL == msg) {
-		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt cancel : Fail to make message");
+		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt stop : Fail to make message");
 		return STT_ERROR_OPERATION_FAILED;
 	} else {
-		SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt cancel : uid(%d)", uid);
+		SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt stop : uid(%d)", uid);
 	}
 
 	dbus_message_append_args(msg, 
 		DBUS_TYPE_INT32, &uid, 
 		DBUS_TYPE_INVALID);
-#if 1
+
 	if (g_conn_sender) {
 		dbus_message_set_no_reply(msg, TRUE);
 
@@ -1411,7 +1423,30 @@ int stt_dbus_request_cancel(int uid)
 	}
 
 	return 0;
-#else
+}
+
+int stt_dbus_request_cancel(int uid)
+{
+	DBusMessage* msg;
+
+	/* create a signal & check for errors */
+	msg = dbus_message_new_method_call(
+		STT_SERVER_SERVICE_NAME,
+		STT_SERVER_SERVICE_OBJECT_PATH,
+		STT_SERVER_SERVICE_INTERFACE,
+		STT_METHOD_CANCEL);
+
+	if (NULL == msg) {
+		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt cancel : Fail to make message");
+		return STT_ERROR_OPERATION_FAILED;
+	} else {
+		SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt cancel : uid(%d)", uid);
+	}
+
+	dbus_message_append_args(msg, 
+		DBUS_TYPE_INT32, &uid, 
+		DBUS_TYPE_INVALID);
+
 	DBusError err;
 	dbus_error_init(&err);
 
@@ -1449,5 +1484,45 @@ int stt_dbus_request_cancel(int uid)
 	}
 
 	return result;
-#endif
+}
+
+int stt_dbus_request_cancel_async(int uid)
+{
+	DBusMessage* msg;
+
+	/* create a signal & check for errors */
+	msg = dbus_message_new_method_call(
+		STT_SERVER_SERVICE_NAME,
+		STT_SERVER_SERVICE_OBJECT_PATH,
+		STT_SERVER_SERVICE_INTERFACE,
+		STT_METHOD_CANCEL_ASYNC);
+
+	if (NULL == msg) {
+		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt cancel : Fail to make message");
+		return STT_ERROR_OPERATION_FAILED;
+	} else {
+		SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt cancel : uid(%d)", uid);
+	}
+
+	dbus_message_append_args(msg, 
+		DBUS_TYPE_INT32, &uid, 
+		DBUS_TYPE_INVALID);
+
+	if (g_conn_sender) {
+		dbus_message_set_no_reply(msg, TRUE);
+
+		if (!dbus_connection_send(g_conn_sender, msg, NULL)) {
+			SLOG(LOG_ERROR, TAG_STTC, "[Dbus ERROR] <<<< stt stop message : Out Of Memory !");
+			return STT_ERROR_OUT_OF_MEMORY;
+		} else {
+			dbus_connection_flush(g_conn_sender);
+		}
+
+		dbus_message_unref(msg);
+	} else {
+		SLOG(LOG_WARN, TAG_STTC, "[WARN] dbus connection handle is null (%p)", g_conn_sender);
+		return STT_ERROR_OPERATION_FAILED;
+	}
+
+	return 0;
 }

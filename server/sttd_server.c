@@ -55,7 +55,7 @@ void __stop_by_silence(void *data)
 
 	int ret;
 	if (0 != uid) {
-		ret = sttd_server_stop(uid);
+		ret = sttd_server_stop(uid, true);
 		if (0 > ret) {
 			return;
 		}
@@ -365,7 +365,7 @@ void __sttd_server_engine_changed_cb(const char* engine_id, const char* language
 	if (0 != uid) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server] Set ready state of uid(%d)", uid);
 
-		sttd_server_cancel(uid);
+		sttd_server_cancel(uid, true);
 		sttdc_send_set_state(uid, (int)APP_STATE_READY);
 
 		stt_client_unset_current_recognition();
@@ -970,7 +970,7 @@ Eina_Bool __stop_by_recording_timeout(void *data)
 	uid = stt_client_get_current_recognition();
 	if (0 != uid) {
 		/* cancel engine recognition */
-		int ret = sttd_server_stop(uid);
+		int ret = sttd_server_stop(uid, true);
 		if (0 != ret) {
 			SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to stop : result(%d)", ret);
 		}
@@ -1017,7 +1017,7 @@ void __sttd_start_sound_completed_cb(int id, void *user_data)
 	return;
 }
 
-int sttd_server_start(int uid, const char* lang, const char* recognition_type, int silence, const char* appid)
+int sttd_server_start(int uid, const char* lang, const char* recognition_type, int silence, const char* appid, bool async)
 {
 	if (NULL == lang || NULL == recognition_type) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Input parameter is NULL");
@@ -1140,8 +1140,10 @@ int sttd_server_start(int uid, const char* lang, const char* recognition_type, i
 			return STTD_ERROR_OPERATION_FAILED;
 		}
 
-		/* Notify uid state change */
-		sttdc_send_set_state(uid, APP_STATE_RECORDING);
+		if (true == async) {
+			/* Notify uid state change */
+			sttdc_send_set_state(uid, APP_STATE_RECORDING);
+		}
 
 		SLOG(LOG_DEBUG, TAG_STTD, "[Server SUCCESS] Start recognition");
 		return STTD_RESULT_STATE_DONE;
@@ -1223,7 +1225,7 @@ void __sttd_stop_sound_completed_cb(int id, void *user_data)
 	return;
 }
 
-int sttd_server_stop(int uid)
+int sttd_server_stop(int uid, bool async)
 {
 	/* check if uid is valid */
 	app_state_e state;
@@ -1300,8 +1302,10 @@ int sttd_server_stop(int uid)
 		/* change uid state */
 		sttd_client_set_state(uid, APP_STATE_PROCESSING);
 
-		/* Notify uid state change */
-		sttdc_send_set_state(uid, APP_STATE_PROCESSING);
+		if (true == async) {
+			/* Notify uid state change */
+			sttdc_send_set_state(uid, APP_STATE_PROCESSING);
+		}
 
 		SLOG(LOG_DEBUG, TAG_STTD, "[Server SUCCESS] Stop recognition");
 
@@ -1313,7 +1317,7 @@ int sttd_server_stop(int uid)
 	return STTD_ERROR_NONE;
 }
 
-int sttd_server_cancel(int uid)
+int sttd_server_cancel(int uid, bool async)
 {
 	/* check if uid is valid */
 	app_state_e state;
@@ -1359,8 +1363,10 @@ int sttd_server_cancel(int uid)
 		return STTD_ERROR_OPERATION_FAILED;
 	}
 
-	/* Notify uid state change */
-	sttdc_send_set_state(uid, APP_STATE_READY);
+	if (true == async) {
+		/* Notify uid state change */
+		sttdc_send_set_state(uid, APP_STATE_READY);
+	}
 
 	return STTD_ERROR_NONE;
 }

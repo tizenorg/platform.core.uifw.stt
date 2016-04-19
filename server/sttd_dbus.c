@@ -404,12 +404,20 @@ static Eina_Bool listener_event_callback(void* data, Ecore_Fd_Handler *fd_handle
 	else if (dbus_message_is_method_call(msg, STT_SERVER_SERVICE_INTERFACE, STT_METHOD_START))
 		sttd_dbus_server_start(g_conn_listener, msg);
 
+	else if (dbus_message_is_method_call(msg, STT_SERVER_SERVICE_INTERFACE, STT_METHOD_START_ASYNC))
+		sttd_dbus_server_start_async(g_conn_listener, msg);
+
 	else if (dbus_message_is_method_call(msg, STT_SERVER_SERVICE_INTERFACE, STT_METHOD_STOP))
 		sttd_dbus_server_stop(g_conn_listener, msg);
+
+	else if (dbus_message_is_method_call(msg, STT_SERVER_SERVICE_INTERFACE, STT_METHOD_STOP_ASYNC))
+		sttd_dbus_server_stop_async(g_conn_listener, msg);
 
 	else if (dbus_message_is_method_call(msg, STT_SERVER_SERVICE_INTERFACE, STT_METHOD_CANCEL))
 		sttd_dbus_server_cancel(g_conn_listener, msg);
 
+	else if (dbus_message_is_method_call(msg, STT_SERVER_SERVICE_INTERFACE, STT_METHOD_CANCEL_ASYNC))
+		sttd_dbus_server_cancel_async(g_conn_listener, msg);
 
 	/* free the message */
 	dbus_message_unref(msg);
