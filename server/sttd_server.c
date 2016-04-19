@@ -55,7 +55,7 @@ void __stop_by_silence(void *data)
 
 	int ret;
 	if (0 != uid) {
-		ret = sttd_server_stop(uid);
+		ret = sttd_server_stop(uid, true);
 		if (0 > ret) {
 			return;
 		}
@@ -365,7 +365,7 @@ void __sttd_server_engine_changed_cb(const char* engine_id, const char* language
 	if (0 != uid) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server] Set ready state of uid(%d)", uid);
 
-		sttd_server_cancel(uid);
+		sttd_server_cancel(uid, true);
 		sttdc_send_set_state(uid, (int)APP_STATE_READY);
 
 		stt_client_unset_current_recognition();
@@ -960,6 +960,9 @@ Eina_Bool __check_recording_state(void *data)
 }
 #endif
 
+static bool g_async_start_status = false;
+static bool g_sync_start = false;
+
 Eina_Bool __stop_by_recording_timeout(void *data)
 {
 	SLOG(LOG_DEBUG, TAG_STTD, "===== Stop by timeout");
@@ -970,7 +973,7 @@ Eina_Bool __stop_by_recording_timeout(void *data)
 	uid = stt_client_get_current_recognition();
 	if (0 != uid) {
 		/* cancel engine recognition */
-		int ret = sttd_server_stop(uid);
+		int ret = sttd_server_stop(uid, true);
 		if (0 != ret) {
 			SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to stop : result(%d)", ret);
 		}
@@ -999,8 +1002,12 @@ void __sttd_server_recorder_start(void* data)
 		return;
 	}
 
-	/* Notify uid state change */
-	sttdc_send_set_state(uid, APP_STATE_RECORDING);
+	if (true == g_async_start_status) {
+		/* Notify uid state change */
+		sttdc_send_set_state(uid, APP_STATE_RECORDING);
+	} else {
+		g_sync_start = true;
+	}
 
 	SLOG(LOG_DEBUG, TAG_STTD, "[Server SUCCESS] Start recognition");
 }
@@ -1017,7 +1024,7 @@ void __sttd_start_sound_completed_cb(int id, void *user_data)
 	return;
 }
 
-int sttd_server_start(int uid, const char* lang, const char* recognition_type, int silence, const char* appid)
+int sttd_server_start(int uid, const char* lang, const char* recognition_type, int silence, const char* appid, bool async)
 {
 	if (NULL == lang || NULL == recognition_type) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Input parameter is NULL");
@@ -1053,6 +1060,9 @@ int sttd_server_start(int uid, const char* lang, const char* recognition_type, i
 
 		stt_client_set_app_agreed(uid);
 	}
+
+	g_async_start_status = async;
+	g_sync_start = false;
 
 	/* check if engine use network */
 	if (true == sttd_engine_agent_need_network(uid)) {
@@ -1140,17 +1150,39 @@ int sttd_server_start(int uid, const char* lang, const char* recognition_type, i
 			return STTD_ERROR_OPERATION_FAILED;
 		}
 
-		/* Notify uid state change */
-		sttdc_send_set_state(uid, APP_STATE_RECORDING);
+		if (true == async) {
+			/* Notify uid state change */
+			sttdc_send_set_state(uid, APP_STATE_RECORDING);
+		}
 
 		SLOG(LOG_DEBUG, TAG_STTD, "[Server SUCCESS] Start recognition");
 		return STTD_RESULT_STATE_DONE;
 	}
 
-	SLOG(LOG_DEBUG, TAG_STTD, "[Server] Wait sound finish");
+	if (true == async) {
+		SLOG(LOG_DEBUG, TAG_STTD, "[Server] Wait sound finish");
+	} else {
+		int cnt = 0;
+		while (false == g_sync_start) {
+			usleep(10000);
+			if (0 == cnt || 6000 == cnt)
+				SLOG(LOG_WARN, TAG_STTD, "[Server] Wait for sound finish (%s)", cnt? "Start" : "End");
+			if (cnt > 6000) {
+				SLOG(LOG_WARN, TAG_STTD, "[Server] Stop recording by timeout");
+				if (NULL != g_recording_timer)
+					__stop_by_recording_timeout(NULL);
+				return STTD_ERROR_TIMED_OUT;
+			}
+			cnt++;
+		}
+		return STTD_RESULT_STATE_DONE;
+	}
 
 	return STTD_RESULT_STATE_NOT_DONE;
 }
+
+static bool g_async_stop_status = false;
+static bool g_sync_stop = false;
 
 Eina_Bool __time_out_for_processing(void *data)
 {
@@ -1176,9 +1208,10 @@ Eina_Bool __time_out_for_processing(void *data)
 		}
 	}
 
-	/* Change uid state */
-	sttd_client_set_state(uid, APP_STATE_READY);
-
+	if (true == g_async_stop_status) {
+		/* Change uid state */
+		sttd_client_set_state(uid, APP_STATE_READY);
+	}
 	stt_client_unset_current_recognition();
 
 	return EINA_FALSE;
@@ -1191,8 +1224,10 @@ void __sttd_server_engine_stop(void* data)
 	/* change uid state */
 	sttd_client_set_state(uid, APP_STATE_PROCESSING);
 
-	/* Notify uid state change */
-	sttdc_send_set_state(uid, APP_STATE_PROCESSING);
+	if (true == g_async_stop_status) {
+		/* Notify uid state change */
+		sttdc_send_set_state(uid, APP_STATE_PROCESSING);
+	}
 
 	/* Unset audio session */
 	int ret = sttd_recorder_unset_audio_session();
@@ -1206,6 +1241,10 @@ void __sttd_server_engine_stop(void* data)
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to stop engine : result(%d)", ret);
 		return;
+	}
+
+	if (false == g_async_stop_status) {
+		g_sync_stop = true;
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTD, "[Server SUCCESS] Stop recognition");
@@ -1223,7 +1262,7 @@ void __sttd_stop_sound_completed_cb(int id, void *user_data)
 	return;
 }
 
-int sttd_server_stop(int uid)
+int sttd_server_stop(int uid, bool async)
 {
 	/* check if uid is valid */
 	app_state_e state;
@@ -1252,6 +1291,9 @@ int sttd_server_stop(int uid)
 	SLOG(LOG_DEBUG, TAG_STTD, "[Server] stop sound path : %s", sound);
 
 	int ret;
+	g_async_stop_status = async;
+	g_sync_stop = false;
+
 	/* 1. Stop recorder */
 	ret = sttd_engine_agent_recognize_stop_recorder(uid);
 	if (0 != ret) {
@@ -1278,6 +1320,23 @@ int sttd_server_stop(int uid)
 
 		g_processing_timer = ecore_timer_add(g_processing_timeout, __time_out_for_processing, NULL);
 
+		if (false == async) {
+			int cnt = 0;
+			while (false == g_sync_stop) {
+				usleep(10000);
+				if (0 == cnt || 6000 == cnt)
+					SLOG(LOG_WARN, TAG_STTD, "[Server] Wait for finishing stop sound (%s)", cnt? "Start" : "End");
+				if (cnt > 6000) {
+					SLOG(LOG_WARN, TAG_STTD, "[Server] Stop processing by timeout");
+					if (NULL != g_processing_timer)
+						__time_out_for_processing(NULL);
+					return STTD_ERROR_TIMED_OUT;
+				}
+				cnt++;
+			}
+			return STTD_RESULT_STATE_DONE;
+		}
+
 		return STTD_RESULT_STATE_NOT_DONE;
 	} else {
 		SLOG(LOG_DEBUG, TAG_STTD, "[Server] No sound play");
@@ -1300,12 +1359,12 @@ int sttd_server_stop(int uid)
 		/* change uid state */
 		sttd_client_set_state(uid, APP_STATE_PROCESSING);
 
-		/* Notify uid state change */
-		sttdc_send_set_state(uid, APP_STATE_PROCESSING);
-
+		if (true == async) {
+			/* Notify uid state change */
+			sttdc_send_set_state(uid, APP_STATE_PROCESSING);
+			g_processing_timer = ecore_timer_add(g_processing_timeout, __time_out_for_processing, NULL);
+		}
 		SLOG(LOG_DEBUG, TAG_STTD, "[Server SUCCESS] Stop recognition");
-
-		g_processing_timer = ecore_timer_add(g_processing_timeout, __time_out_for_processing, NULL);
 
 		return STTD_RESULT_STATE_DONE;
 	}
@@ -1313,7 +1372,7 @@ int sttd_server_stop(int uid)
 	return STTD_ERROR_NONE;
 }
 
-int sttd_server_cancel(int uid)
+int sttd_server_cancel(int uid, bool async)
 {
 	/* check if uid is valid */
 	app_state_e state;
@@ -1359,8 +1418,10 @@ int sttd_server_cancel(int uid)
 		return STTD_ERROR_OPERATION_FAILED;
 	}
 
-	/* Notify uid state change */
-	sttdc_send_set_state(uid, APP_STATE_READY);
+	if (true == async) {
+		/* Notify uid state change */
+		sttdc_send_set_state(uid, APP_STATE_READY);
+	}
 
 	return STTD_ERROR_NONE;
 }

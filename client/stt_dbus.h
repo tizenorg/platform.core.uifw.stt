@@ -54,9 +54,15 @@ int stt_dbus_request_unset_stop_sound(int uid);
 
 int stt_dbus_request_start(int uid, const char* lang, const char* type, int silence, const char* appid);
 
+int stt_dbus_request_start_async(int uid, const char* lang, const char* type, int silence, const char* appid);
+
 int stt_dbus_request_stop(int uid);
 
+int stt_dbus_request_stop_async(int uid);
+
 int stt_dbus_request_cancel(int uid);
+
+int stt_dbus_request_cancel_async(int uid);
 
 
 #ifdef __cplusplus
