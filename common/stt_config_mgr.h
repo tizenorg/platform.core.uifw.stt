@@ -11,7 +11,7 @@
 *  limitations under the License.
 */
 
- 
+
 #ifndef __STT_CONFIG_MANAGER_H_
 #define __STT_CONFIG_MANAGER_H_
 

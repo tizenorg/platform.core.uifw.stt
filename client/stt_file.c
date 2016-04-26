@@ -563,10 +563,10 @@ int stt_file_get_state(stt_file_state_e* state)
 	*state = client->current_state;
 
 	switch (*state) {
-		case STT_FILE_STATE_NONE:	SLOG(LOG_DEBUG, TAG_STTFC, "Current state is 'NONE'");		break;
-		case STT_FILE_STATE_READY:	SLOG(LOG_DEBUG, TAG_STTFC, "Current state is 'Ready'");		break;
-		case STT_FILE_STATE_PROCESSING:	SLOG(LOG_DEBUG, TAG_STTFC, "Current state is 'Processing'");	break;
-		default:			SLOG(LOG_ERROR, TAG_STTFC, "[ERROR] Invalid value");		break;
+	case STT_FILE_STATE_NONE:	SLOG(LOG_DEBUG, TAG_STTFC, "Current state is 'NONE'");		break;
+	case STT_FILE_STATE_READY:	SLOG(LOG_DEBUG, TAG_STTFC, "Current state is 'Ready'");		break;
+	case STT_FILE_STATE_PROCESSING:	SLOG(LOG_DEBUG, TAG_STTFC, "Current state is 'Processing'");	break;
+	default:			SLOG(LOG_ERROR, TAG_STTFC, "[ERROR] Invalid value");		break;
 	}
 
 	return STT_FILE_ERROR_NONE;

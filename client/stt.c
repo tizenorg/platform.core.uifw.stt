@@ -751,11 +751,11 @@ int stt_get_state(stt_h stt, stt_state_e* state)
 	*state = client->current_state;
 
 	switch (*state) {
-		case STT_STATE_CREATED:		SLOG(LOG_DEBUG, TAG_STTC, "Current state is 'CREATED'");	break;
-		case STT_STATE_READY:		SLOG(LOG_DEBUG, TAG_STTC, "Current state is 'Ready'");		break;
-		case STT_STATE_RECORDING:	SLOG(LOG_DEBUG, TAG_STTC, "Current state is 'Recording'");	break;
-		case STT_STATE_PROCESSING:	SLOG(LOG_DEBUG, TAG_STTC, "Current state is 'Processing'");	break;
-		default:			SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid value");		break;
+	case STT_STATE_CREATED:		SLOG(LOG_DEBUG, TAG_STTC, "Current state is 'CREATED'");	break;
+	case STT_STATE_READY:		SLOG(LOG_DEBUG, TAG_STTC, "Current state is 'Ready'");		break;
+	case STT_STATE_RECORDING:	SLOG(LOG_DEBUG, TAG_STTC, "Current state is 'Recording'");	break;
+	case STT_STATE_PROCESSING:	SLOG(LOG_DEBUG, TAG_STTC, "Current state is 'Processing'");	break;
+	default:			SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid value");		break;
 	}
 
 	return STT_ERROR_NONE;

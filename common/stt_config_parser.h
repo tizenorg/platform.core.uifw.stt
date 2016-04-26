@@ -11,7 +11,7 @@
 *  limitations under the License.
 */
 
- 
+
 #ifndef __STT_CONFIG_PARSER_H_
 #define __STT_CONFIG_PARSER_H_
 

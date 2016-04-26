@@ -908,7 +908,7 @@ int stt_parser_get_time_info(GSList** time_list)
 
 				if (0 == i)		temp_info->event = 0;
 				else if (count -1 == i)	temp_info->event = 2;
-				else 			temp_info->event = 1;
+				else			temp_info->event = 1;
 
 				if (0 == xmlStrcmp(time_node->name, (const xmlChar *)STT_TAG_TIME_TEXT)) {
 					key = xmlNodeGetContent(time_node);
