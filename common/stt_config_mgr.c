@@ -353,7 +353,18 @@ int __stt_config_set_auto_language()
 	strncpy(candidate_lang, value, 5);
 	free(value);
 
+	/* Check current config info */
+	if (NULL == g_config_info) {
+		SLOG(LOG_ERROR, stt_tag(), "Current config info is NULL");
+		return STT_CONFIG_ERROR_OPERATION_FAILED;
+	}
+	
 	/* Check current language */
+	if (NULL == g_config_info->language) {
+		SLOG(LOG_ERROR, stt_tag(), "Current config language is NULL");
+		return STT_CONFIG_ERROR_OPERATION_FAILED;
+	}
+
 	if (0 == strncmp(g_config_info->language, candidate_lang, 5)) {
 		SLOG(LOG_DEBUG, stt_tag(), "[Config] Language is auto. STT language(%s) is same with display lang", g_config_info->language);
 		return 0;
@@ -362,12 +373,6 @@ int __stt_config_set_auto_language()
 	}
 
 	if (true == __stt_config_mgr_check_lang_is_valid(g_config_info->engine_id, candidate_lang)) {
-		/* stt default language change */
-		if (NULL == g_config_info->language) {
-			SLOG(LOG_ERROR, stt_tag(), "Current config language is NULL");
-			return -1;
-		}
-
 		char* before_lang = NULL;
 		if (0 != stt_parser_set_language(candidate_lang)) {
 			SLOG(LOG_ERROR, stt_tag(), "Fail to save default language");
@@ -441,10 +446,8 @@ int __stt_config_set_auto_language()
 			iter = g_slist_next(iter);
 		}
 
-		if (NULL != g_config_info->language) {
-			free(g_config_info->language);
-			g_config_info->language = strdup(tmp_language);
-		}
+		free(g_config_info->language);
+		g_config_info->language = strdup(tmp_language);
 
 		free(tmp_language);
 	}
@@ -1058,16 +1061,14 @@ int stt_config_mgr_set_engine(const char* engine)
 			lang = iter_lang->data;
 
 			SLOG(LOG_DEBUG, stt_tag(), " %s", lang);
-			if (NULL != lang) {
-				if (0 == strcmp(lang, g_config_info->language)) {
+			if (NULL != lang && NULL != g_config_info->language) {
+				if (0 == strcmp(lang, g_config_info->language)) {	
 					/* language is valid */
 					is_valid_lang = true;
 
-					if (NULL != g_config_info->language) {
-						free(g_config_info->language);
+					free(g_config_info->language);
+					g_config_info->language = strdup(lang);
 
-						g_config_info->language = strdup(lang);
-					}
 					break;
 				}
 			}
