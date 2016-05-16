@@ -11,11 +11,18 @@
 *  limitations under the License.
 */
 
+#ifdef TV_PRODUCT
+#define TV_BT_MODE
+#endif
+
 #include <audio_io.h>
 #include <Ecore.h>
 #include <math.h>
 #include <pthread.h>
 #include <sound_manager.h>
+#ifdef TV_BT_MODE
+#include <bluetooth.h>
+#endif
 
 #include "stt_defs.h"
 #include "sttd_dbus.h"
@@ -67,6 +74,75 @@ static FILE* g_pFile;
 
 static int g_count = 1;
 #endif
+
+#ifdef TV_BT_MODE
+static float get_volume_decibel(char* data, int size, sttp_audio_type_e type);
+
+static stt_recorder_s* __get_recorder(int engine_id);
+
+static int g_bt_extend_count;
+
+#define SMART_CONTROL_EXTEND_CMD	0x03
+#define SMART_CONTROL_START_CMD		0x04
+
+static void _bt_cb_hid_state_changed(int result, bool connected, const char *remote_address, void *user_data)
+{
+	SLOG(LOG_DEBUG, TAG_STTD, "[Recorder] Bluetooth Event [%d] Received address [%s]", result, remote_address);
+}
+
+static void _bt_hid_audio_data_receive_cb(bt_hid_voice_data_s *voice_data, void *user_data)
+{
+	if (STTD_RECORDER_STATE_RECORDING != g_recorder_state) {
+		/* SLOG(LOG_DEBUG, TAG_STTD, "[Recorder] Exit audio reading normal func"); */
+		return;
+	}
+
+	if (NULL != g_audio_cb) {
+		if (0 != g_audio_cb((void*)voice_data->audio_buf, (unsigned int)voice_data->length)) {
+			SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to read audio");
+			sttd_recorder_stop(g_recording_engine_id);
+		}
+
+		stt_recorder_s* recorder;
+		recorder = __get_recorder(g_recording_engine_id);
+		if (NULL == recorder) {
+			return;
+		}
+
+		float vol_db = get_volume_decibel((char*)voice_data->audio_buf, (int)voice_data->length, recorder->audio_type);
+		if (0 != sttdc_send_set_volume(recorder->uid, vol_db)) {
+			SLOG(LOG_ERROR, TAG_STTD, "[Recorder] Fail to send recording volume(%f)", vol_db);
+		}
+	}
+	
+	if (0 == g_buffer_count || 0 == g_buffer_count % 50) {
+		SLOG(LOG_WARN, TAG_STTD, "[Recorder][%d] Recording... : read_size(%d)", g_buffer_count, voice_data->length);
+
+		if (0 == g_bt_extend_count % 5 && 0 != g_buffer_count) {
+			const unsigned char input_data[2] = {SMART_CONTROL_EXTEND_CMD, 0x10 };
+			if (BT_ERROR_NONE != bt_hid_send_rc_command(NULL, input_data, sizeof(input_data))) {
+				SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail bt_hid_send_rc_command(NULL, %s, %d)", input_data, sizeof(input_data));
+			} else {
+				SLOG(LOG_DEBUG, TAG_STTD, "[Recorder] Extend bt audio recorder");
+			}
+		}
+		g_bt_extend_count++;
+		
+		if (100000 == g_buffer_count) {
+			g_buffer_count = 0;
+		}
+	}
+
+	g_buffer_count++;
+
+#ifdef BUF_SAVE_MODE
+	/* write pcm buffer */
+	fwrite(data, 1, len, g_pFile);
+#endif
+	return;
+}
+#endif
+
 
 const char* __stt_get_focus_changed_reason_code(sound_stream_focus_change_reason_e reason)
 {
@@ -139,6 +215,18 @@ int sttd_recorder_initialize(stt_recorder_audio_cb audio_cb, stt_recorder_interr
 		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to create stream info");
 	}
 
+#ifdef TV_BT_MODE
+	if (BT_ERROR_NONE != bt_initialize()) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to init bt");
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+	if (BT_ERROR_NONE != bt_hid_host_initialize(_bt_cb_hid_state_changed, NULL)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail bt_hid_host_initialize()");
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+#endif
+
 	return 0;
 }
 
@@ -170,6 +258,12 @@ int sttd_recorder_deinitialize()
 
 		iter = g_slist_nth(g_recorder_list, 0);
 	}
+
+#ifdef TV_BT_MODE
+	bt_hid_host_deinitialize ();
+
+	bt_deinitialize();
+#endif
 
 	g_recorder_state = STTD_RECORDER_STATE_NONE;
 
@@ -214,9 +308,11 @@ int sttd_recorder_create(int engine_id, int uid, sttp_audio_type_e type, int cha
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
+	audio_in_h temp_in_h = NULL;
+
+#ifndef TV_BT_MODE
 	audio_channel_e audio_ch;
 	audio_sample_type_e audio_type;
-	audio_in_h temp_in_h;
 
 	switch (channel) {
 	case 1:	audio_ch = AUDIO_CHANNEL_MONO;		break;
@@ -242,11 +338,19 @@ int sttd_recorder_create(int engine_id, int uid, sttp_audio_type_e type, int cha
 		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to create audio handle : %d", ret);
 		return STTD_ERROR_OPERATION_FAILED;
 	}
+#else
+	if (BT_ERROR_NONE != bt_hid_set_audio_data_receive_cb(_bt_hid_audio_data_receive_cb, NULL)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail bt_hid_set_audio_data_receive_cb()");
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+#endif
 
 	stt_recorder_s* recorder;
 	recorder = (stt_recorder_s*)calloc(1, sizeof(stt_recorder_s));
 	if (NULL == recorder) {
+#ifndef TV_BT_MODE
 		audio_in_destroy(temp_in_h);
+#endif
 		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to allocate memory");
 		return STTD_ERROR_OUT_OF_MEMORY;
 	}
@@ -278,6 +382,7 @@ int sttd_recorder_destroy(int engine_id)
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
+#ifndef TV_BT_MODE
 	int ret;
 	if (STTD_RECORDER_STATE_RECORDING == g_recorder_state) {
 		ret = audio_in_unprepare(recorder->audio_h);
@@ -292,6 +397,13 @@ int sttd_recorder_destroy(int engine_id)
 	if (AUDIO_IO_ERROR_NONE != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to destroy audioin : %d", ret);
 	}
+#else 
+	if (STTD_RECORDER_STATE_RECORDING == g_recorder_state) {
+		g_recorder_state = STTD_RECORDER_STATE_READY;
+	}
+
+	bt_hid_unset_audio_data_receive_cb();
+#endif
 
 	g_recorder_list = g_slist_remove(g_recorder_list, recorder);
 
@@ -346,6 +458,7 @@ static float get_volume_decibel(char* data, int size, sttp_audio_type_e type)
 	return db;
 }
 
+#ifndef TV_BT_MODE
 Eina_Bool __read_audio_func(void *data)
 {
 	int read_byte = -1;
@@ -401,12 +514,15 @@ Eina_Bool __read_audio_func(void *data)
 
 	return EINA_TRUE;
 }
+#endif
 
 int sttd_recorder_start(int engine_id)
 {
 	if (STTD_RECORDER_STATE_RECORDING == g_recorder_state)
 		return 0;
 
+	int ret = -1;
+#ifndef TV_BT_MODE
 	/* Check engine id is valid */
 	stt_recorder_s* recorder;
 	recorder = __get_recorder(engine_id);
@@ -415,7 +531,6 @@ int sttd_recorder_start(int engine_id)
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
-	int ret = -1;
 	ret = sound_manager_acquire_focus(g_stream_info_h, SOUND_STREAM_FOCUS_FOR_RECORDING, NULL);
 	if (SOUND_MANAGER_ERROR_NONE != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to acquire focus : %d", ret);
@@ -435,6 +550,30 @@ int sttd_recorder_start(int engine_id)
 	/* Add ecore timer to read audio data */
 	ecore_timer_add(0, __read_audio_func, NULL);
 
+#else
+	g_bt_extend_count = 0;
+	const unsigned char input_data[2] = {SMART_CONTROL_START_CMD, 0x00 };
+	int bt_retry = 0;
+	bool started = false;
+	while (5 > bt_retry) {
+		ret = bt_hid_send_rc_command(NULL, input_data, sizeof(input_data));
+		if (BT_ERROR_NONE == ret) {
+			SLOG(LOG_DEBUG, TAG_STTD, "[Recorder] Start bt audio recorder");
+			started = true;
+			break;
+		} else if (BT_ERROR_NOW_IN_PROGRESS == ret) {
+			SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail bt_hid_send_rc_command(NULL, %s, %d)", input_data, sizeof(input_data));
+			usleep(50000);
+			bt_retry++;
+		} else {
+			break;
+		}
+	}
+	if (false == started) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to start bt audio");
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+#endif
 	g_recorder_state = STTD_RECORDER_STATE_RECORDING;
 	g_recording_engine_id = engine_id;
 
@@ -471,10 +610,33 @@ int sttd_recorder_stop(int engine_id)
 	}
 
 	int ret;
+#ifndef TV_BT_MODE
 	ret = audio_in_unprepare(recorder->audio_h);
 	if (AUDIO_IO_ERROR_NONE != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to unprepare audioin : %d", ret);
 	}
+#else 
+	int bt_retry = 0;
+	bool stopped = false;
+	while (5 > bt_retry) {
+		ret = bt_hid_rc_stop_sending_voice(NULL);
+		if (BT_ERROR_NONE == ret) {
+			SLOG(LOG_DEBUG, TAG_STTD, "[Recorder] Stop bt audio");
+			stopped = true;
+			break;
+		} else if (BT_ERROR_NOW_IN_PROGRESS == ret) {
+			SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail bt_hid_rc_stop_sending_voice()");
+			usleep(50000);
+			bt_retry++;
+		} else {
+			break;
+		}
+	}
+	if (false == stopped) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to stop bt audio");
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+#endif
 
 	g_recorder_state = STTD_RECORDER_STATE_READY;
 	g_recording_engine_id = -1;

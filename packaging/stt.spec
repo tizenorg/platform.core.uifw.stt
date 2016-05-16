@@ -10,7 +10,6 @@ Source1002: %{name}-devel.manifest
 Requires(post): /sbin/ldconfig
 Requires(postun): /sbin/ldconfig
 BuildRequires:  pkgconfig(aul)
-BuildRequires:  pkgconfig(capi-base-common)
 BuildRequires:  pkgconfig(capi-media-audio-io)
 BuildRequires:  pkgconfig(capi-media-wav-player)
 BuildRequires:  pkgconfig(capi-system-info)
@@ -21,6 +20,9 @@ BuildRequires:  pkgconfig(glib-2.0)
 BuildRequires:  pkgconfig(libtzplatform-config)
 BuildRequires:  pkgconfig(libxml-2.0)
 BuildRequires:  pkgconfig(vconf)
+%if "%{PRODUCT_TYPE}" == "TV"
+BuildRequires:  pkgconfig(capi-network-bluetooth)
+%endif
 
 BuildRequires:  cmake
 
@@ -73,10 +75,15 @@ export FFLAGS="$FFLAGS -DTIZEN_ENGINEER_MODE"
 export CFLAGS="$CFLAGS -DTIZEN_DEBUG_ENABLE"
 export CXXFLAGS="$CXXFLAGS -DTIZEN_DEBUG_ENABLE"
 export FFLAGS="$FFLAGS -DTIZEN_DEBUG_ENABLE"
-
-
+%if "%{PRODUCT_TYPE}" == "TV"
+export CFLAGS="$CFLAGS -DTV_PRODUCT"
+cmake . -DCMAKE_INSTALL_PREFIX=/usr -DLIBDIR=%{_libdir} -DINCLUDEDIR=%{_includedir} \
+        -DTZ_SYS_RO_SHARE=%TZ_SYS_RO_SHARE -DTZ_SYS_BIN=%TZ_SYS_BIN -D_TV_PRODUCT=TRUE
+%else
 cmake . -DCMAKE_INSTALL_PREFIX=/usr -DLIBDIR=%{_libdir} -DINCLUDEDIR=%{_includedir} \
         -DTZ_SYS_RO_SHARE=%TZ_SYS_RO_SHARE -DTZ_SYS_BIN=%TZ_SYS_BIN
+%endif
+
 make %{?jobs:-j%jobs}
 
 %install
