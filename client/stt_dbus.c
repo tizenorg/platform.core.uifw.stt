@@ -27,7 +27,7 @@ static DBusConnection* g_conn_sender = NULL;
 static DBusConnection* g_conn_listener = NULL;
 
 
-extern int __stt_cb_error(int uid, int reason);
+extern int __stt_cb_error(int uid, int reason, char* err_msg);
 
 extern int __stt_cb_result(int uid, int event, char** data, int data_count, const char* msg);
 

@@ -37,6 +37,8 @@ static float g_volume_db = 0;
 
 static int g_feature_enabled = -1;
 
+static bool g_err_callback_status = false;
+
 const char* stt_tag()
 {
 	return "sttc";
@@ -761,6 +763,41 @@ int stt_get_state(stt_h stt, stt_state_e* state)
 	return STT_ERROR_NONE;
 }
 
+int stt_get_error_message(stt_h stt, char** err_msg)
+{
+	if (0 != __stt_get_feature_enabled()) {
+		return STT_ERROR_NOT_SUPPORTED;
+	}
+
+	if (NULL == stt || NULL == err_msg) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL");
+		return STT_ERROR_INVALID_PARAMETER;
+	}
+
+	if (false == g_err_callback_status) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] This callback should be called during an err_callback");
+		return STT_ERROR_OPERATION_FAILED;
+	}
+
+	stt_client_s* client = stt_client_get(stt);
+	if (NULL == client) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Get error msg : A handle is not valid");
+		return STT_ERROR_INVALID_PARAMETER;
+	}
+
+	if (NULL != client->err_msg) {
+		*err_msg = strdup(client->err_msg);
+		SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] Error msg (%s)", *err_msg);
+	} else {
+		SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] Error msg (NULL)");
+	}
+
+	SLOG(LOG_DEBUG, TAG_STTC, "=====");
+	SLOG(LOG_DEBUG, TAG_STTC, " ");
+
+	return STT_ERROR_NONE;
+}
+
 int stt_is_recognition_type_supported(stt_h stt, const char* type, bool* support)
 {
 	if (0 != __stt_get_feature_enabled()) {
@@ -1475,7 +1512,9 @@ static Eina_Bool __stt_notify_error(void *data)
 
 	if (NULL != client->error_cb) {
 		stt_client_use_callback(client);
+		g_err_callback_status = true;;
 		client->error_cb(client->stt, client->reason, client->error_user_data);
+		g_err_callback_status = false;
 		stt_client_not_use_callback(client);
 		SLOG(LOG_WARN, TAG_STTC, "[WARNING] Error callback is called : reason [%d]", client->reason);
 	} else {
@@ -1485,7 +1524,7 @@ static Eina_Bool __stt_notify_error(void *data)
 	return EINA_FALSE;
 }
 
-int __stt_cb_error(int uid, int reason)
+int __stt_cb_error(int uid, int reason, char* err_msg)
 {
 	stt_client_s* client = stt_client_get_by_uid(uid);
 	if (NULL == client) {
@@ -1495,6 +1534,8 @@ int __stt_cb_error(int uid, int reason)
 
 	client->reason = reason;
 	client->internal_state = STT_INTERNAL_STATE_NONE;
+	client->err_msg = strdup(err_msg);
+
 	SLOG(LOG_INFO, TAG_STTC, "internal state is initialized to 0");
 
 	if (NULL != client->error_cb) {

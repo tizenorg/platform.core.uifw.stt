@@ -76,6 +76,7 @@ typedef struct {
 	
 	/* error data */
 	int	reason;
+	char*	err_msg;
 } stt_client_s;
 
 
