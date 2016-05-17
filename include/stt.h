@@ -517,6 +517,28 @@ int stt_get_default_language(stt_h stt, char** language);
 int stt_get_state(stt_h stt, stt_state_e* state);
 
 /**
+ * @brief Gets the current error message.
+ * @since_tizen 3.0
+ * @privlevel public
+ * @privilege %http://tizen.org/privilege/recorder
+ * @remarks This function should be called during an stt error callback. If not, the error as operation failure will be returned. \n
+ * If the function succeeds, @a err_msg must be released using free() when it is no longer required.
+ *
+ * @param[in] stt The STT handle
+ * @param[out] err_msg The current error message
+ *
+ * @return 0 on success, otherwise a negative error value
+ * @retval #STT_ERROR_NONE Successful
+ * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
+ * @retval #STT_ERROR_OPERATION_FAILED Operation failure
+ *
+ * @see stt_set_error_cb()
+ * @see stt_unset_error_cb()
+*/
+int stt_get_error_message(stt_h stt, char** err_msg);
+
+/**
  * @brief Checks whether the recognition type is supported.
  * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @privlevel public

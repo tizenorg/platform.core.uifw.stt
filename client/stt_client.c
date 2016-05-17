@@ -79,6 +79,9 @@ int stt_client_new(stt_h* stt)
 	client->data_count = 0;
 	client->msg = NULL;
 
+	client->reason = 0;
+	client->err_msg = NULL;
+
 	client->before_state = STT_STATE_CREATED;
 	client->current_state = STT_STATE_CREATED;
 
@@ -119,6 +122,10 @@ int stt_client_destroy(stt_h stt)
 
 				if (NULL != data->current_engine_id) {
 					free(data->current_engine_id);
+				}
+
+				if (NULL != data->err_msg) {
+					free(data->err_msg);
 				}
 
 				free(data);

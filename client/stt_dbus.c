@@ -27,7 +27,7 @@ static DBusConnection* g_conn_sender = NULL;
 static DBusConnection* g_conn_listener = NULL;
 
 
-extern int __stt_cb_error(int uid, int reason);
+extern int __stt_cb_error(int uid, int reason, char* err_msg);
 
 extern int __stt_cb_result(int uid, int event, char** data, int data_count, const char* msg);
 
@@ -259,8 +259,8 @@ static Eina_Bool listener_event_callback(void* data, Ecore_Fd_Handler *fd_handle
 				SLOG(LOG_ERROR, TAG_STTC, "<<<< stt Get Error message : Get arguments error (%s)", err.message);
 				dbus_error_free(&err);
 			} else {
-				SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt Get Error message : uid(%d), reason(%d), msg(%s)", uid, reason, err_msg);
-				__stt_cb_error(uid, reason);
+				SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt Get Error message : uid(%d), reason(%d), err_msg(%s)", uid, reason, (NULL == err_msg) ? "NULL" : err_msg);
+				__stt_cb_error(uid, reason, err_msg);
 			}
 
 			SLOG(LOG_DEBUG, TAG_STTC, "=====");
