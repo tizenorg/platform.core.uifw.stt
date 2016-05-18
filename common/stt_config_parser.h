@@ -30,6 +30,7 @@ typedef struct {
 	char*	agreement;
 	GSList*	languages;
 	bool	support_silence_detection;
+	bool	need_credential;
 } stt_engine_info_s;
 
 typedef struct {
@@ -38,6 +39,7 @@ typedef struct {
 	bool	auto_lang;
 	char*	language;
 	bool	silence_detection;
+	bool	credential;
 } stt_config_s;
 
 typedef struct {
@@ -58,7 +60,7 @@ int stt_parser_load_config(stt_config_s** config_info);
 
 int stt_parser_unload_config(stt_config_s* config_info);
 
-int stt_parser_set_engine(const char* engine_id, const char* setting, const char* language, bool silence);
+int stt_parser_set_engine(const char* engine_id, const char* setting, const char* language, bool silence, bool credential);
 
 int stt_parser_set_language(const char* language);
 
@@ -66,7 +68,7 @@ int stt_parser_set_auto_lang(bool value);
 
 int stt_parser_set_silence_detection(bool value);
 
-int stt_parser_find_config_changed(char** engine, char** setting, int* auto_lang, char** language, int* silence);
+int stt_parser_find_config_changed(char** engine, char** setting, int* auto_lang, char** language, int* silence, int* credential);
 
 
 /* Time info */

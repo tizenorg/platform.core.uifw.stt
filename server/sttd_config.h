@@ -19,7 +19,7 @@
 extern "C" {
 #endif
 
-typedef void (*sttd_config_engine_changed_cb)(const char* engine_id, const char* language, bool support_silence, void* user_data);
+typedef void (*sttd_config_engine_changed_cb)(const char* engine_id, const char* language, bool support_silence, bool need_credential, void* user_data);
 
 typedef void (*sttd_config_language_changed_cb)(const char* language, void* user_data);
 

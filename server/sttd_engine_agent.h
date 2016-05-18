@@ -75,6 +75,8 @@ int sttd_engine_agent_get_default_lang(int uid, char** lang);
 
 int sttd_engine_agent_get_option_supported(int uid, bool* silence);
 
+int sttd_engine_agent_is_credential_needed(int uid, bool* credential);
+
 int sttd_engine_agent_is_recognition_type_supported(int uid, const char* type, bool* support);
 
 int sttd_engine_agent_set_default_engine(const char* engine_uuid);
@@ -87,7 +89,7 @@ int sttd_engine_agent_check_app_agreed(int uid, const char* appid, bool* result)
 
 /** Control engine */
 int sttd_engine_agent_recognize_start_engine(int uid, const char* lang, const char* recognition_type, 
-				int silence, void* user_param);
+				int silence, const char* credential, void* user_param);
 
 int sttd_engine_agent_recognize_start_recorder(int uid);
 

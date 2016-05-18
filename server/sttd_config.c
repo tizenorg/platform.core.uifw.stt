@@ -32,7 +32,7 @@ const char* stt_tag()
 }
 
 
-void __sttd_config_engine_changed_cb(const char* engine_id, const char* setting, const char* language, bool support_silence, void* user_data)
+void __sttd_config_engine_changed_cb(const char* engine_id, const char* setting, const char* language, bool support_silence, bool need_credential, void* user_data)
 {
 	/* Need to check engine is valid */
 	if (false == stt_config_check_default_engine_is_valid(engine_id)) {
@@ -41,7 +41,7 @@ void __sttd_config_engine_changed_cb(const char* engine_id, const char* setting,
 	}
 
 	if (NULL != g_engine_cb)
-		g_engine_cb(engine_id, language, support_silence, g_user_data);
+		g_engine_cb(engine_id, language, support_silence, need_credential, g_user_data);
 	else
 		SLOG(LOG_ERROR, TAG_STTD, "Engine changed callback is NULL");
 }

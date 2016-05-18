@@ -38,13 +38,13 @@ Eina_Bool sttd_get_daemon_exist();
 * API for client
 */
 
-int sttd_server_initialize(int pid, int uid, bool* silence);
+int sttd_server_initialize(int pid, int uid, bool* silence, bool* credential);
 
 int sttd_server_finalize(int uid);
 
 int sttd_server_get_supported_engines(int uid, GSList** engine_list);
 
-int sttd_server_set_current_engine(int uid, const char* engine_id, bool* silence);
+int sttd_server_set_current_engine(int uid, const char* engine_id, bool* silence, bool* credential);
 
 int sttd_server_get_current_engine(int uid, char** engine_id);
 
@@ -65,7 +65,7 @@ int sttd_server_set_stop_sound(int uid, const char* file);
 
 int sttd_server_get_audio_volume(int uid, float* current_volume);
 
-int sttd_server_start(int uid, const char* lang, const char* recognition_type, int silence, const char* appid);
+int sttd_server_start(int uid, const char* lang, const char* recognition_type, int silence, const char* appid, const char* credential);
 
 int sttd_server_stop(int uid);
 

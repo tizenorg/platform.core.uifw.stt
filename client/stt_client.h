@@ -47,6 +47,8 @@ typedef struct {
 	void*				error_user_data;
 	stt_default_language_changed_cb	default_lang_changed_cb;
 	void*				default_lang_changed_user_data;
+	stt_engine_changed_cb		engine_changed_cb;
+	void*				engine_changed_user_data;
 
 	stt_supported_engine_cb		supported_engine_cb;
 	void*				supported_engine_user_data;
@@ -54,10 +56,12 @@ typedef struct {
 	void*				supported_lang_user_data;
 
 	char*		current_engine_id;
+	char*		credential;
 
 	/* option */
 	bool		silence_supported;
 	stt_option_silence_detection_e	silence;
+	bool 		credential_needed;
 
 	/* state */
 	stt_state_e	before_state;

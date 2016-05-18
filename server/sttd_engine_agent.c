@@ -51,6 +51,7 @@ typedef struct _sttengine_info {
 	char*	first_lang;
 	bool	silence_detection;
 	bool	support_silence_detection;
+	bool 	need_credential;
 } sttengine_info_s;
 
 /** stt engine agent init */
@@ -950,6 +951,44 @@ int sttd_engine_agent_get_option_supported(int uid, bool* silence)
 	return 0;
 }
 
+int sttd_engine_agent_is_credential_needed(int uid, bool* credential)
+{
+	if (false == g_agent_init) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized");
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+	if (NULL == credential) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Invalid Parameter");
+		return STTD_ERROR_INVALID_PARAMETER;
+	}
+
+	sttengine_info_s* engine = NULL;
+	engine = __engine_agent_get_engine_by_uid(uid);
+
+	if (NULL == engine) {
+		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] uid(%d) is not valid", uid);
+		return STTD_ERROR_INVALID_PARAMETER;
+	}
+
+	if (false == engine->is_loaded) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not loaded engine");
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+	bool temp = false;
+	int ret;
+
+	ret = stt_engine_need_app_credential(engine->engine_id, &temp);
+	if (0 != ret) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to get to support recognition type : %d", ret);
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+	*credential = temp;
+	return 0;
+}
+
 int sttd_engine_agent_is_recognition_type_supported(int uid, const char* type, bool* support)
 {
 	if (false == g_agent_init) {
@@ -1026,7 +1065,7 @@ int __set_option(sttengine_info_s* engine, int silence)
 }
 
 int sttd_engine_agent_recognize_start_engine(int uid, const char* lang, const char* recognition_type,
-				      int silence, void* user_param)
+				      int silence, const char* credential, void* user_param)
 {
 	if (false == g_agent_init) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized");
@@ -1080,7 +1119,7 @@ int sttd_engine_agent_recognize_start_engine(int uid, const char* lang, const ch
 
 	SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] Start engine");
 
-	ret = stt_engine_recognize_start(engine->engine_id, temp, recognition_type, user_param);
+	ret = stt_engine_recognize_start(engine->engine_id, temp, recognition_type, credential, user_param);
 	if (NULL != temp)	free(temp);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Recognition start error(%d)", ret);

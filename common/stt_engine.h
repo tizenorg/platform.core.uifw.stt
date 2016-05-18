@@ -49,6 +49,8 @@ int stt_engine_get_first_language(int engine_id, char** language);
 
 int stt_engine_support_silence(int engine_id, bool* support);
 
+int stt_engine_need_app_credential(int engine_id, bool* need);
+
 int stt_engine_support_recognition_type(int engine_id, const char* type, bool* support);
 
 int stt_engine_get_audio_type(int engine_id, sttp_audio_type_e* types, int* rate, int* channels);
@@ -60,7 +62,7 @@ int stt_engine_set_silence_detection(int engine_id, bool value);
 int stt_engine_check_app_agreed(int engine_id, const char* appid, bool* value);
 
 /* Recognition */
-int stt_engine_recognize_start(int engine_id, const char* lang, const char* recognition_type, void* user_param);
+int stt_engine_recognize_start(int engine_id, const char* lang, const char* recognition_type, const char* credential, void* user_param);
 
 int stt_engine_set_recording_data(int engine_id, const void* data, unsigned int length);
 

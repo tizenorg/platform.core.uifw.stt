@@ -296,6 +296,22 @@ typedef void (*stt_default_language_changed_cb)(stt_h stt, const char* previous_
 						const char* current_language, void* user_data);
 
 /**
+ * @brief Called when the engine is changed.
+ * @since_tizen 3.0
+ *
+ * @param[in] stt The STT handle
+ * @param[in] engine_id Engine id
+ * @param[in] language The default language
+ * @param[in] support_silence support silence detection
+ * @param[in] need_credential necessity of credential
+ * @param[in] user_data The user data passed from the callback registration function
+ *
+ * @see stt_set_engine_changed_cb()
+*/
+typedef bool (*stt_engine_changed_cb)(stt_h stt, const char* engine_id, const char* language,
+						bool support_silence, bool need_credential, void* user_data);
+
+/**
  * @brief Creates a STT handle.
  * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @privlevel public
@@ -405,6 +421,27 @@ int stt_get_engine(stt_h stt, char** engine_id);
  * @see stt_get_engine()
 */
 int stt_set_engine(stt_h stt, const char* engine_id);
+
+/**
+ * @brief Sets the app credential.
+ * @since_tizen 3.0
+ * @privlevel public
+ * @privilege %http://tizen.org/privilege/recorder
+ *
+ * @param[in] stt The STT handle
+ * @param[in] credential The app credential
+ *
+ * @return 0 on success, otherwise a negative error value
+ * @retval #STT_ERROR_NONE Success
+ * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
+ *
+ * @pre The state should be #STT_STATE_CREATED or #STT_STATE_READY.
+ *
+ * @see stt_start()
+*/
+
+int stt_set_credential(stt_h stt, const char* credential);
 
 /**
  * @brief Connects the daemon asynchronously.
