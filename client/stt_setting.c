@@ -39,12 +39,12 @@ const char* stt_tag()
 	return "sttc";
 }
 
-void __config_engine_changed_cb(const char* engine_id, const char* setting, const char* language, bool support_silence, void* user_data)
+void __config_engine_changed_cb(const char* engine_id, const char* setting, const char* language, bool support_silence, bool need_credential, void* user_data)
 {
 	if (NULL != engine_id)	SECURE_SLOG(LOG_DEBUG, TAG_STTC, "Engine id(%s)", engine_id);
 	if (NULL != setting)	SECURE_SLOG(LOG_DEBUG, TAG_STTC, "Engine setting(%s)", setting);
 	if (NULL != language)	SECURE_SLOG(LOG_DEBUG, TAG_STTC, "Language(%s)", language);
-	SECURE_SLOG(LOG_DEBUG, TAG_STTC, "Silence(%s)", support_silence ? "on" : "off");
+	SLOG(LOG_DEBUG, TAG_STTC, "Silence(%s), Credential(%s)", support_silence ? "on" : "off", need_credential ? "need" : "no need");
 
 	if (NULL != g_config_changed_cb)
 		g_engine_changed_cb(g_config_changed_user_data);

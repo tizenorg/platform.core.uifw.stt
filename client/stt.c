@@ -147,6 +147,30 @@ void __stt_config_lang_changed_cb(const char* before_language, const char* curre
 	return;
 }
 
+void __stt_config_engine_changed_cb(const char* engine_id, const char* setting, const char* language, bool support_silence, bool need_credential, void* user_data)
+{
+	stt_h stt = (stt_h)user_data;
+
+	stt_client_s* client = stt_client_get(stt);
+	if (NULL == client) {
+		SLOG(LOG_ERROR, TAG_STTC, "[WARNING] A handle is not valid");
+		return;
+	}
+
+	if (NULL != engine_id)	SLOG(LOG_DEBUG, TAG_STTC, "Engine id(%s)", engine_id);
+	if (NULL != setting)	SLOG(LOG_DEBUG, TAG_STTC, "Engine setting(%s)", setting);
+	if (NULL != language)	SLOG(LOG_DEBUG, TAG_STTC, "Language(%s)", language);
+	SLOG(LOG_DEBUG, TAG_STTC, "Silence(%s), Credential(%s)", support_silence ? "on" : "off", need_credential ? "need" : "no need");
+
+	/* call callback function */
+	if (NULL != client->engine_changed_cb) {
+		client->engine_changed_cb(stt, engine_id, language, support_silence, need_credential, client->engine_changed_user_data);
+	} else {
+		SLOG(LOG_WARN, TAG_STTC, "No registered callback function of supported languages");
+	}
+	return;
+}
+
 int stt_create(stt_h* stt)
 {
 	if (0 != __stt_get_feature_enabled()) {
@@ -187,7 +211,7 @@ int stt_create(stt_h* stt)
 		return ret;
 	}
 
-	ret = stt_config_mgr_set_callback(client->uid, NULL, __stt_config_lang_changed_cb, NULL, NULL);
+	ret = stt_config_mgr_set_callback(client->uid, __stt_config_engine_changed_cb, __stt_config_lang_changed_cb, NULL, client->stt);
 	ret = __stt_convert_config_error_code(ret);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to set config changed : %s", __stt_get_error_code(ret));
@@ -424,6 +448,41 @@ int stt_set_engine(stt_h stt, const char* engine_id)
 	return 0;
 }
 
+int stt_set_credential(stt_h stt, const char* credential)
+{
+	if (0 != __stt_get_feature_enabled()) {
+		return STT_ERROR_NOT_SUPPORTED;
+	}
+
+	SLOG(LOG_DEBUG, TAG_STTC, "===== Set credential");
+
+	if (NULL == stt || NULL == credential) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL, stt(%s), credential(%a)", stt, credential);
+		return STT_ERROR_INVALID_PARAMETER;
+	}
+
+	stt_client_s* client = stt_client_get(stt);
+
+	/* check handle */
+	if (NULL == client) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not available");
+		return STT_ERROR_INVALID_PARAMETER;
+	}
+
+	/* check state */
+	if (client->current_state != STT_STATE_CREATED && client->current_state != STT_STATE_READY) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State: Current state(%d) is not CREATED or READY", client->current_state);
+		return STT_ERROR_INVALID_STATE;
+	}
+
+	client->credential = strdup(credential);
+
+	SLOG(LOG_DEBUG, TAG_STTC, "=====");
+	SLOG(LOG_DEBUG, TAG_STTC, " ");
+
+	return STT_ERROR_NONE;
+}
+
 static Eina_Bool __stt_connect_daemon(void *data)
 {
 	stt_client_s* client = (stt_client_s*)data;
@@ -451,8 +510,9 @@ static Eina_Bool __stt_connect_daemon(void *data)
 
 	/* request initialization */
 	bool silence_supported = false;
+	bool credential_needed = false;
 
-	ret = stt_dbus_request_initialize(client->uid, &silence_supported);
+	ret = stt_dbus_request_initialize(client->uid, &silence_supported, &credential_needed);
 
 	if (STT_ERROR_ENGINE_NOT_FOUND == ret) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to initialize : %s", __stt_get_error_code(ret));
@@ -468,15 +528,17 @@ static Eina_Bool __stt_connect_daemon(void *data)
 	} else {
 		/* success to connect stt-daemon */
 		client->silence_supported = silence_supported;
-		SLOG(LOG_DEBUG, TAG_STTC, "Supported options : silence(%s)", silence_supported ? "true" : "false");
+		client->credential_needed = credential_needed;
+		SLOG(LOG_DEBUG, TAG_STTC, "Supported options : silence(%s), credential(%s)", silence_supported ? "support" : "no support", credential_needed ? "need" : "no need");
 	}
 
 	if (NULL != client->current_engine_id) {
 		ret = -1;
 		int count = 0;
 		silence_supported = false;
+		credential_needed = false;
 		while (0 != ret) {
-			ret = stt_dbus_request_set_current_engine(client->uid, client->current_engine_id, &silence_supported);
+			ret = stt_dbus_request_set_current_engine(client->uid, client->current_engine_id, &silence_supported, &credential_needed);
 			if (0 != ret) {
 				if (STT_ERROR_TIMED_OUT != ret) {
 					SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to set current engine : %s", __stt_get_error_code(ret));
@@ -495,7 +557,7 @@ static Eina_Bool __stt_connect_daemon(void *data)
 
 				/* success to change engine */
 				client->silence_supported = silence_supported;
-				SLOG(LOG_DEBUG, TAG_STTC, "Supported options : silence(%s)", silence_supported ? "true" : "false");
+				SLOG(LOG_DEBUG, TAG_STTC, "Supported options : silence(%s), credential(%s)", silence_supported ? "support" : "no support", credential_needed ? "need" : "no need");
 			}
 		}
 	}
@@ -1196,7 +1258,12 @@ int stt_start(stt_h stt, const char* language, const char* type)
 		}
 	}
 #else
-	ret = stt_dbus_request_start(client->uid, temp, type, client->silence, appid);
+	if (true == client->credential_needed && NULL == client->credential) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Do not have app credential for this engine(%s)", client->current_engine_id);
+		return STT_ERROR_PERMISSION_DENIED;
+	}
+
+	ret = stt_dbus_request_start(client->uid, temp, type, client->silence, appid, client->credential);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to start : %s", __stt_get_error_code(ret));
 	} else {
@@ -1948,6 +2015,62 @@ int stt_unset_default_language_changed_cb(stt_h stt)
 
 	client->default_lang_changed_cb = NULL;
 	client->default_lang_changed_user_data = NULL;
+
+	return 0;
+}
+
+int stt_set_engine_changed_cb(stt_h stt, stt_engine_changed_cb callback, void* user_data)
+{
+	if (0 != __stt_get_feature_enabled()) {
+		return STT_ERROR_NOT_SUPPORTED;
+	}
+
+	if (NULL == stt || NULL == callback)
+		return STT_ERROR_INVALID_PARAMETER;
+
+	stt_client_s* client = stt_client_get(stt);
+
+	/* check handle */
+	if (NULL == client) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not available");
+		return STT_ERROR_INVALID_PARAMETER;
+	}
+
+	if (STT_STATE_CREATED != client->current_state) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Current state(%d) is not 'Created'", client->current_state);
+		return STT_ERROR_INVALID_STATE;
+	}
+
+	client->engine_changed_cb = callback;
+	client->engine_changed_user_data = user_data;
+
+	return 0;
+}
+
+int stt_unset_engine_changed_cb(stt_h stt)
+{
+	if (0 != __stt_get_feature_enabled()) {
+		return STT_ERROR_NOT_SUPPORTED;
+	}
+
+	if (NULL == stt)
+		return STT_ERROR_INVALID_PARAMETER;
+
+	stt_client_s* client = stt_client_get(stt);
+
+	/* check handle */
+	if (NULL == client) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not available");
+		return STT_ERROR_INVALID_PARAMETER;
+	}
+
+	if (STT_STATE_CREATED != client->current_state) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Current state(%d) is not 'Created'", client->current_state);
+		return STT_ERROR_INVALID_STATE;
+	}
+
+	client->engine_changed_cb = NULL;
+	client->engine_changed_user_data = NULL;
 
 	return 0;
 }

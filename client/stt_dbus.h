@@ -29,11 +29,11 @@ int stt_dbus_close_connection();
 
 int stt_dbus_request_hello();
 
-int stt_dbus_request_initialize(int uid, bool* silence_supported);
+int stt_dbus_request_initialize(int uid, bool* silence_supported, bool* credential_needed);
 
 int stt_dbus_request_finalize(int uid);
 
-int stt_dbus_request_set_current_engine(int uid, const char* engine_id, bool* silence_supported);
+int stt_dbus_request_set_current_engine(int uid, const char* engine_id, bool* silence_supported, bool* credential_needed);
 
 int stt_dbus_request_check_app_agreed(int uid, const char* appid, bool* value);
 
@@ -52,7 +52,7 @@ int stt_dbus_request_set_stop_sound(int uid, const char* file);
 int stt_dbus_request_unset_stop_sound(int uid);
 
 
-int stt_dbus_request_start(int uid, const char* lang, const char* type, int silence, const char* appid);
+int stt_dbus_request_start(int uid, const char* lang, const char* type, int silence, const char* appid, const char* credential);
 
 int stt_dbus_request_stop(int uid);
 

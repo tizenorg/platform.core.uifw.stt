@@ -54,6 +54,7 @@ int sttd_dbus_server_initialize(DBusConnection* conn, DBusMessage* msg)
 	int pid;
 	int uid;
 	bool silence_supported = false;
+	bool credential_needed = false;
 
 	int ret = STTD_ERROR_OPERATION_FAILED;
 
@@ -70,7 +71,7 @@ int sttd_dbus_server_initialize(DBusConnection* conn, DBusMessage* msg)
 		ret = STTD_ERROR_OPERATION_FAILED;
 	} else {
 		SLOG(LOG_DEBUG, TAG_STTD, "[IN] stt initialize : pid(%d), uid(%d)", pid , uid); 
-		ret =  sttd_server_initialize(pid, uid, &silence_supported);
+		ret =  sttd_server_initialize(pid, uid, &silence_supported, &credential_needed);
 	}
 
 	DBusMessage* reply;
@@ -80,11 +81,12 @@ int sttd_dbus_server_initialize(DBusConnection* conn, DBusMessage* msg)
 		dbus_message_append_args(reply, 
 			DBUS_TYPE_INT32, &ret, 
 			DBUS_TYPE_INT32, &silence_supported,
+			DBUS_TYPE_INT32, &credential_needed,
 			DBUS_TYPE_INVALID);
 
 		if (0 == ret) {
-			SLOG(LOG_DEBUG, TAG_STTD, "[OUT SUCCESS] Result(%d), silence(%d)", 
-				ret, silence_supported); 
+			SLOG(LOG_DEBUG, TAG_STTD, "[OUT SUCCESS] Result(%d), silence(%d), credential(%d)", 
+				ret, silence_supported, credential_needed); 
 		} else {
 			SLOG(LOG_ERROR, TAG_STTD, "[OUT ERROR] Result(%d)", ret);
 		}
@@ -256,6 +258,7 @@ int sttd_dbus_server_set_current_engine(DBusConnection* conn, DBusMessage* msg)
 	int uid;
 	char* engine_id;
 	bool silence_supported = false;
+	bool credential_needed = false;
 	int ret = STTD_ERROR_OPERATION_FAILED;
 
 	dbus_message_get_args(msg, &err,
@@ -271,7 +274,7 @@ int sttd_dbus_server_set_current_engine(DBusConnection* conn, DBusMessage* msg)
 		ret = STTD_ERROR_OPERATION_FAILED;
 	} else {
 		SLOG(LOG_DEBUG, TAG_STTD, "[IN] stt set current engine : uid(%d)", uid); 
-		ret = sttd_server_set_current_engine(uid, engine_id, &silence_supported);
+		ret = sttd_server_set_current_engine(uid, engine_id, &silence_supported, &credential_needed);
 	}
 
 	DBusMessage* reply;
@@ -281,11 +284,12 @@ int sttd_dbus_server_set_current_engine(DBusConnection* conn, DBusMessage* msg)
 		dbus_message_append_args(reply, 
 			DBUS_TYPE_INT32, &ret, 
 			DBUS_TYPE_INT32, &silence_supported,
+			DBUS_TYPE_INT32, &credential_needed,
 			DBUS_TYPE_INVALID);
 
 		if (0 == ret) {
-			SLOG(LOG_DEBUG, TAG_STTD, "[OUT SUCCESS] Result(%d), silence(%d)", 
-				ret, silence_supported);
+			SLOG(LOG_DEBUG, TAG_STTD, "[OUT SUCCESS] Result(%d), silence(%d), credential(%d)", 
+				ret, silence_supported, credential_needed);
 		} else {
 			SLOG(LOG_ERROR, TAG_STTD, "[OUT ERROR] Result(%d) ", ret);
 		}
@@ -834,6 +838,7 @@ int sttd_dbus_server_start(DBusConnection* conn, DBusMessage* msg)
 	char* type;
 	char* appid;
 	int silence;
+	char* credential;
 	int ret = STTD_ERROR_OPERATION_FAILED;
 
 	dbus_message_get_args(msg, &err, 
@@ -842,6 +847,7 @@ int sttd_dbus_server_start(DBusConnection* conn, DBusMessage* msg)
 		DBUS_TYPE_STRING, &type,
 		DBUS_TYPE_INT32, &silence,
 		DBUS_TYPE_STRING, &appid,
+		DBUS_TYPE_STRING, &credential,
 		DBUS_TYPE_INVALID);
 
 	SLOG(LOG_DEBUG, TAG_STTD, ">>>>> STT Start");
@@ -851,9 +857,9 @@ int sttd_dbus_server_start(DBusConnection* conn, DBusMessage* msg)
 		dbus_error_free(&err);
 		ret = STTD_ERROR_OPERATION_FAILED;
 	} else {
-		SLOG(LOG_DEBUG, TAG_STTD, "[IN] stt start : uid(%d), lang(%s), type(%s), silence(%d) appid(%s)"
-			, uid, lang, type, silence, appid); 
-		ret = sttd_server_start(uid, lang, type, silence, appid);
+		SLOG(LOG_DEBUG, TAG_STTD, "[IN] stt start : uid(%d), lang(%s), type(%s), silence(%d) appid(%s) credential(%s)"
+			, uid, lang, type, silence, appid, credential); 
+		ret = sttd_server_start(uid, lang, type, silence, appid, credential);
 	}
 
 	if (0 <= ret) {

@@ -193,11 +193,12 @@ Eina_Bool stt_config_mgr_inotify_event_cb(void* data, Ecore_Fd_Handler *fd_handl
 		char* lang = NULL;
 		int auto_lang = -1;
 		int silence = -1;
+		int credential = -1;
 
 		GSList *iter = NULL;
 		stt_config_client_s* temp_client = NULL;
 
-		if (0 != stt_parser_find_config_changed(&engine, &setting, &auto_lang, &lang, &silence))
+		if (0 != stt_parser_find_config_changed(&engine, &setting, &auto_lang, &lang, &silence, &credential))
 			return ECORE_CALLBACK_PASS_ON;
 
 		/* Engine changed */
@@ -220,6 +221,8 @@ Eina_Bool stt_config_mgr_inotify_event_cb(void* data, Ecore_Fd_Handler *fd_handl
 
 			if (-1 != silence)	g_config_info->silence_detection = silence;
 
+			if (-1 != credential)	g_config_info->credential = credential;
+
 			/* Call all callbacks of client*/
 			iter = g_slist_nth(g_config_client_list, 0);
 
@@ -229,7 +232,7 @@ Eina_Bool stt_config_mgr_inotify_event_cb(void* data, Ecore_Fd_Handler *fd_handl
 				if (NULL != temp_client) {
 					if (NULL != temp_client->engine_cb) {
 						temp_client->engine_cb(g_config_info->engine_id, g_config_info->setting, g_config_info->language,
-							g_config_info->silence_detection, temp_client->user_data);
+							g_config_info->silence_detection, g_config_info->credential, temp_client->user_data);
 					}
 				}
 
@@ -633,9 +636,10 @@ int __stt_config_mgr_check_engine_is_valid(const char* engine_id)
 	SLOG(LOG_DEBUG, stt_tag(), "  Setting : %s", g_config_info->setting);
 	SLOG(LOG_DEBUG, stt_tag(), "  language : %s", g_config_info->language);
 	SLOG(LOG_DEBUG, stt_tag(), "  Silence detection : %s", g_config_info->silence_detection ? "on" : "off");
+	SLOG(LOG_DEBUG, stt_tag(), "  Credential : %s", g_config_info->credential ? "true" : "false");
 
 	if (0 != stt_parser_set_engine(g_config_info->engine_id, g_config_info->setting, g_config_info->language,
-		g_config_info->silence_detection)) {
+		g_config_info->silence_detection, g_config_info->credential)) {
 			SLOG(LOG_ERROR, stt_tag(), " Fail to save config");
 			return STT_CONFIG_ERROR_OPERATION_FAILED;
 	}
@@ -783,6 +787,7 @@ int stt_config_mgr_initialize(int uid)
 	SLOG(LOG_DEBUG, stt_tag(), " auto language : %s", g_config_info->auto_lang ? "on" : "off");
 	SLOG(LOG_DEBUG, stt_tag(), " language : %s", g_config_info->language);
 	SLOG(LOG_DEBUG, stt_tag(), " silence detection : %s", g_config_info->silence_detection ? "on" : "off");
+	SLOG(LOG_DEBUG, stt_tag(), " credential : %s", g_config_info->credential ? "true" : "false");
 	SLOG(LOG_DEBUG, stt_tag(), "===================");
 
 	if (0 != __stt_config_mgr_register_config_event()) {
@@ -1094,6 +1099,11 @@ int stt_config_mgr_set_engine(const char* engine)
 				g_config_info->silence_detection = false;
 		}
 
+		if (false == engine_info->need_credential) {
+			if (true == g_config_info->credential)
+				g_config_info->credential = false;
+		}
+
 		is_valid_engine = true;
 		break;
 	}
@@ -1104,9 +1114,10 @@ int stt_config_mgr_set_engine(const char* engine)
 		SLOG(LOG_DEBUG, stt_tag(), "  Setting : %s", g_config_info->setting);
 		SLOG(LOG_DEBUG, stt_tag(), "  language : %s", g_config_info->language);
 		SLOG(LOG_DEBUG, stt_tag(), "  Silence detection : %s", g_config_info->silence_detection ? "on" : "off");
+		SLOG(LOG_DEBUG, stt_tag(), "  Credential : %s", g_config_info->credential ? "true" : "false");
 
 		if (0 != stt_parser_set_engine(g_config_info->engine_id, g_config_info->setting, g_config_info->language,
-			g_config_info->silence_detection)) {
+			g_config_info->silence_detection, g_config_info->credential)) {
 				SLOG(LOG_ERROR, stt_tag(), " Fail to save config");
 				return STT_CONFIG_ERROR_OPERATION_FAILED;
 		}

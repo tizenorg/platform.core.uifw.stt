@@ -466,7 +466,7 @@ int stt_dbus_request_hello()
 }
 
 
-int stt_dbus_request_initialize(int uid, bool* silence_supported)
+int stt_dbus_request_initialize(int uid, bool* silence_supported, bool* credential_needed)
 {
 	DBusMessage* msg;
 
@@ -507,6 +507,7 @@ int stt_dbus_request_initialize(int uid, bool* silence_supported)
 			dbus_message_get_args(result_msg, &err,
 				DBUS_TYPE_INT32, &result,
 				DBUS_TYPE_INT32, silence_supported,
+				DBUS_TYPE_INT32, credential_needed,
 				DBUS_TYPE_INVALID);
 
 			if (dbus_error_is_set(&err)) {
@@ -516,8 +517,8 @@ int stt_dbus_request_initialize(int uid, bool* silence_supported)
 			}
 
 			if (0 == result) {
-				SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt initialize : result = %d, silence(%d)",
-					result, *silence_supported);
+				SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt initialize : result = %d, silence(%d), credential(%d)",
+					result, *silence_supported, *credential_needed);
 			} else {
 				SLOG(LOG_ERROR, TAG_STTC, "<<<< stt initialize : result = %d", result);
 			}
@@ -595,7 +596,7 @@ int stt_dbus_request_finalize(int uid)
 	return result;
 }
 
-int stt_dbus_request_set_current_engine(int uid, const char* engine_id, bool* silence_supported)
+int stt_dbus_request_set_current_engine(int uid, const char* engine_id, bool* silence_supported, bool* credential_needed)
 {
 	DBusMessage* msg;
 
@@ -634,6 +635,7 @@ int stt_dbus_request_set_current_engine(int uid, const char* engine_id, bool* si
 		dbus_message_get_args(result_msg, &err, 
 			DBUS_TYPE_INT32, &result, 
 			DBUS_TYPE_INT32, silence_supported,
+			DBUS_TYPE_INT32, credential_needed,
 			DBUS_TYPE_INVALID);
 
 		if (dbus_error_is_set(&err)) {
@@ -645,8 +647,8 @@ int stt_dbus_request_set_current_engine(int uid, const char* engine_id, bool* si
 		dbus_message_unref(result_msg);
 
 		if (0 == result) {
-			SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt set engine : result = %d , silence(%d)", 
-				result, *silence_supported);
+			SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt set engine : result = %d , silence(%d), credential(%d)",
+				result, *silence_supported, *credential_needed);
 		} else {
 			SLOG(LOG_ERROR, TAG_STTC, "<<<< stt set engine : result = %d", result);
 		}
@@ -1202,7 +1204,7 @@ int stt_dbus_request_unset_stop_sound(int uid)
 	return result;
 }
 
-int stt_dbus_request_start(int uid, const char* lang, const char* type, int silence, const char* appid)
+int stt_dbus_request_start(int uid, const char* lang, const char* type, int silence, const char* appid, const char* credential)
 {
 	if (NULL == lang || NULL == type || NULL == appid) {
 		SLOG(LOG_ERROR, TAG_STTC, "Input parameter is NULL");
@@ -1231,6 +1233,7 @@ int stt_dbus_request_start(int uid, const char* lang, const char* type, int sile
 		DBUS_TYPE_STRING, &type,
 		DBUS_TYPE_INT32, &silence,
 		DBUS_TYPE_STRING, &appid,
+		DBUS_TYPE_STRING, &credential,
 		DBUS_TYPE_INVALID);
 #if 1
 	if (g_conn_sender) {

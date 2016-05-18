@@ -26,6 +26,7 @@
 #define STT_TAG_ENGINE_LANGUAGE_SET	"languages"
 #define STT_TAG_ENGINE_LANGUAGE		"lang"
 #define STT_TAG_ENGINE_SILENCE_SUPPORT	"silence-detection-support"
+#define STT_TAG_ENGINE_CREDENTIAL_NEED	"app-credential-need"
 
 #define STT_TAG_CONFIG_BASE_TAG		"stt-config"
 #define STT_TAG_CONFIG_ENGINE_ID	"engine"
@@ -33,6 +34,7 @@
 #define STT_TAG_CONFIG_AUTO_LANGUAGE	"auto"
 #define STT_TAG_CONFIG_LANGUAGE		"language"
 #define STT_TAG_CONFIG_SILENCE_DETECTION "silence-detection"
+#define STT_TAG_CONFIG_CREDENTIAL	"credential"
 
 
 #define STT_TAG_TIME_BASE_TAG		"stt-time"
@@ -98,6 +100,7 @@ int stt_parser_get_engine_info(const char* path, stt_engine_info_s** engine_info
 	temp->agreement = NULL;
 	temp->languages = NULL;
 	temp->support_silence_detection = false;
+	temp->need_credential = false;
 
 	while (cur != NULL) {
 		if (0 == xmlStrcmp(cur->name, (const xmlChar *)STT_TAG_ENGINE_NAME)) {
@@ -174,6 +177,20 @@ int stt_parser_get_engine_info(const char* path, stt_engine_info_s** engine_info
 				xmlFree(key);
 			} else {
 				SLOG(LOG_ERROR, stt_tag(), "[ERROR] <%s> has no content", STT_TAG_ENGINE_SILENCE_SUPPORT);
+			}
+		} else if (0 == xmlStrcmp(cur->name, (const xmlChar *)STT_TAG_ENGINE_CREDENTIAL_NEED)) {
+			key = xmlNodeGetContent(cur);
+			if (NULL != key) {
+				//SLOG(LOG_DEBUG, stt_tag(), "app-credential-need : %s", (char *)key);
+
+				if (0 == xmlStrcmp(key, (const xmlChar *)"true"))
+					temp->need_credential = true;
+				else
+					temp->need_credential = false;
+
+				xmlFree(key);
+			} else {
+				SLOG(LOG_ERROR, stt_tag(), "[ERROR] <%s> has no content", STT_TAG_ENGINE_CREDENTIAL_NEED);
 			}
 		} else {
 
@@ -261,6 +278,7 @@ int stt_parser_print_engine_info(stt_engine_info_s* engine_info)
 		SLOG(LOG_ERROR, stt_tag(), "  language is NONE");
 	}
 	SLOG(LOG_DEBUG, stt_tag(), " silence support : %s", engine_info->support_silence_detection ? "true" : "false");
+	SLOG(LOG_DEBUG, stt_tag(), " credential need : %s", engine_info->need_credential ? "true" : "false");
 	SLOG(LOG_DEBUG, stt_tag(), "=====================");
 
 	return 0;
@@ -385,6 +403,20 @@ int stt_parser_load_config(stt_config_s** config_info)
 			} else {
 				SLOG(LOG_ERROR, stt_tag(), "[ERROR] silence-detection is NULL");
 			}
+		} else if (0 == xmlStrcmp(cur->name, (const xmlChar *)STT_TAG_CONFIG_CREDENTIAL)) {
+			key = xmlNodeGetContent(cur);
+			if (NULL != key) {
+				//SLOG(LOG_DEBUG, stt_tag(), "credential : %s", (char *)key);
+
+				if (0 == xmlStrcmp(key, (const xmlChar *)"true"))
+					temp->credential = true;
+				else
+					temp->credential = false;
+
+				xmlFree(key);
+			} else {
+				SLOG(LOG_ERROR, stt_tag(), "[ERROR] credential is NULL");
+			}
 		} else {
 
 		}
@@ -415,7 +447,7 @@ int stt_parser_unload_config(stt_config_s* config_info)
 	return 0;
 }
 
-int stt_parser_set_engine(const char* engine_id, const char* setting, const char* language, bool silence)
+int stt_parser_set_engine(const char* engine_id, const char* setting, const char* language, bool silence, bool credential)
 {
 	if (NULL == g_config_doc || NULL == engine_id)
 		return -1;
@@ -456,6 +488,13 @@ int stt_parser_set_engine(const char* engine_id, const char* setting, const char
 				xmlNodeSetContent(cur, (const xmlChar *)"on");
 			else
 				xmlNodeSetContent(cur, (const xmlChar *)"off");
+		}
+
+		if (0 == xmlStrcmp(cur->name, (const xmlChar *)STT_TAG_CONFIG_CREDENTIAL)) {
+			if (true == credential)
+				xmlNodeSetContent(cur, (const xmlChar *)"true");
+			else
+				xmlNodeSetContent(cur, (const xmlChar *)"false");
 		}
 
 		cur = cur->next;
@@ -589,9 +628,9 @@ int stt_parser_set_silence_detection(bool value)
 	return 0;
 }
 
-int stt_parser_find_config_changed(char** engine, char** setting, int* auto_lang, char** language, int* silence)
+int stt_parser_find_config_changed(char** engine, char** setting, int* auto_lang, char** language, int* silence, int* credential)
 {
-	if (NULL == engine || NULL == language || NULL == silence) {
+	if (NULL == engine || NULL == language || NULL == silence || NULL == credential) {
 		SLOG(LOG_ERROR, stt_tag(), "[ERROR] Input parameter is NULL");
 		return -1;
 	}
@@ -734,6 +773,28 @@ int stt_parser_find_config_changed(char** engine, char** setting, int* auto_lang
 			} else {
 				SLOG(LOG_ERROR, stt_tag(), "[ERROR] old config and new config are different");
 			}
+		} else if (0 == xmlStrcmp(cur_new->name, (const xmlChar*)STT_TAG_CONFIG_CREDENTIAL)) {
+			if (0 == xmlStrcmp(cur_old->name, (const xmlChar*)STT_TAG_CONFIG_CREDENTIAL)) {
+				key_old = xmlNodeGetContent(cur_old);
+				if (NULL != key_old) {
+					key_new = xmlNodeGetContent(cur_new);
+					if (NULL != key_new) {
+						if (0 != xmlStrcmp(key_old, key_new)) {
+							SLOG(LOG_DEBUG, stt_tag(), "Old credential(%s), New credential(%s)", (char*)key_old, (char*)key_new);
+							if (0 == xmlStrcmp(key_new, (const xmlChar*)"true")) {
+								*credential = 1;
+							} else {
+								*credential = 0;
+							}
+						}
+						xmlFree(key_new);
+					}
+					xmlFree(key_old);
+				}
+			} else {
+				SLOG(LOG_ERROR, stt_tag(), "[ERROR] old config and new config are different");
+			}
+
 		} else {
 
 		}

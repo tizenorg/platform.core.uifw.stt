@@ -5,4 +5,5 @@
         <auto>on</auto>
         <language>en_US</language>
         <silence-detection>on</silence-detection>
+        <credential>false</credential>
 </stt-config>

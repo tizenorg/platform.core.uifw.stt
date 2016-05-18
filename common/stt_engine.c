@@ -48,9 +48,14 @@ static const char* __stt_get_engine_error_code(sttp_error_e err)
 	case STTP_ERROR_OUT_OF_MEMORY:		return "STTP_ERROR_OUT_OF_MEMORY";
 	case STTP_ERROR_IO_ERROR:		return "STTP_ERROR_IO_ERROR";
 	case STTP_ERROR_INVALID_PARAMETER:	return "STTP_ERROR_INVALID_PARAMETER";
+	case STTP_ERROR_TIMED_OUT:		return "STTP_ERROR_TIMED_OUT";
+	case STTP_ERROR_RECORDER_BUSY:		return "STTP_ERROR_RECORDER_BUSY";
 	case STTP_ERROR_OUT_OF_NETWORK:		return "STTP_ERROR_OUT_OF_NETWORK";
+	case STTP_ERROR_PERMISSION_DENIED:	return "STTP_ERROR_PERMISSION_DENIED";
+	case STTP_ERROR_NOT_SUPPORTED:		return "STTP_ERROR_NOT_SUPPORTED";
 	case STTP_ERROR_INVALID_STATE:		return "STTP_ERROR_INVALID_STATE";
 	case STTP_ERROR_INVALID_LANGUAGE:	return "STTP_ERROR_INVALID_LANGUAGE";
+	case STTP_ERROR_ENGINE_NOT_FOUND:	return "STTP_ERROR_ENGINE_NOT_FOUND";
 	case STTP_ERROR_OPERATION_FAILED:	return "STTP_ERROR_OPERATION_FAILED";
 	case STTP_ERROR_NOT_SUPPORTED_FEATURE:	return "STTP_ERROR_NOT_SUPPORTED_FEATURE";
 	default:
@@ -422,6 +427,31 @@ int stt_engine_support_silence(int engine_id, bool* support)
 	return 0;
 }
 
+
+int stt_engine_need_app_credential(int engine_id, bool* need)
+{
+	if (NULL == need) {
+		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Invalid Parameter");
+		return STTP_ERROR_INVALID_PARAMETER;
+	}
+
+	sttengine_s* engine = NULL;
+	engine = __get_engine(engine_id);
+	if (NULL == engine) {
+		SECURE_SLOG(LOG_WARN, stt_tag(), "[Engine WARNING] engine id(%d) is invalid", engine_id);
+		return STTP_ERROR_INVALID_PARAMETER;
+	}
+
+	bool result;
+	if (NULL != engine->pefuncs->need_app_credential) {
+		result = engine->pefuncs->need_app_credential();
+		*need = result;
+		return STTP_ERROR_NONE;
+	}
+
+	return STTP_ERROR_OPERATION_FAILED;
+}
+
 int stt_engine_support_recognition_type(int engine_id, const char* type, bool* support)
 {
 	if (NULL == type || NULL == support) {
@@ -518,7 +548,7 @@ int stt_engine_check_app_agreed(int engine_id, const char* appid, bool* value)
 }
 
 /* Recognition */
-int stt_engine_recognize_start(int engine_id, const char* lang, const char* recognition_type, void* user_param)
+int stt_engine_recognize_start(int engine_id, const char* lang, const char* recognition_type, const char* credential, void* user_param)
 {
 	if (NULL == lang || NULL == recognition_type) {
 		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Invalid Parameter");
@@ -532,9 +562,10 @@ int stt_engine_recognize_start(int engine_id, const char* lang, const char* reco
 		return STTP_ERROR_INVALID_PARAMETER;
 	}
 
-	int ret = engine->pefuncs->start(lang, recognition_type, user_param);
+	int ret = engine->pefuncs->start(lang, recognition_type, credential, user_param);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Fail to start recognition : %s", __stt_get_engine_error_code(ret));
+		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Fail to start recognition : lang(%s), recognition_type(%s), credential(%s)", lang, recognition_type, credential);
 		return STTP_ERROR_OPERATION_FAILED;
 	}
 

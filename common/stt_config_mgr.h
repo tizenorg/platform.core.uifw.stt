@@ -42,7 +42,7 @@ typedef bool (*stt_config_supported_engine_cb)(const char* engine_id, const char
 
 typedef bool (*stt_config_supported_langauge_cb)(const char* engine_id, const char* language, void* user_data);
 
-typedef void (*stt_config_engine_changed_cb)(const char* engine_id, const char* setting, const char* language, bool support_silence, void* user_data);
+typedef void (*stt_config_engine_changed_cb)(const char* engine_id, const char* setting, const char* language, bool support_silence, bool need_credential, void* user_data);
 
 typedef void (*stt_config_lang_changed_cb)(const char* before_language, const char* current_language, void* user_data);
 

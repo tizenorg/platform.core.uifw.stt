@@ -14,7 +14,7 @@
 #ifndef __STTP_H__
 #define __STTP_H__
 
-#include <errno.h>
+#include <tizen.h>
 #include <stdbool.h>
 
 /**
@@ -30,16 +30,21 @@ extern "C" {
 * @brief Enumerations of error codes.
 */
 typedef enum {
-	STTP_ERROR_NONE				=  0,		/**< Successful */
-	STTP_ERROR_OUT_OF_MEMORY		= -ENOMEM,	/**< Out of Memory */
-	STTP_ERROR_IO_ERROR			= -EIO,		/**< I/O error */
-	STTP_ERROR_INVALID_PARAMETER		= -EINVAL,	/**< Invalid parameter */
-	STTP_ERROR_OUT_OF_NETWORK		= -ENETDOWN,	/**< Out of network */
-	STTP_ERROR_INVALID_STATE		= -0x0100031,	/**< Invalid state */
-	STTP_ERROR_INVALID_LANGUAGE		= -0x0100032,	/**< Invalid language */
-	STTP_ERROR_OPERATION_FAILED		= -0x0100034,	/**< Operation failed */
-	STTP_ERROR_NOT_SUPPORTED_FEATURE	= -0x0100035	/**< Not supported feature */
-} sttp_error_e;
+	STTP_ERROR_NONE				= TIZEN_ERROR_NONE,		/**< Successful */
+	STTP_ERROR_OUT_OF_MEMORY		= TIZEN_ERROR_OUT_OF_MEMORY,	/**< Out of Memory */
+	STTP_ERROR_IO_ERROR			= TIZEN_ERROR_IO_ERROR,		/**< I/O error */
+	STTP_ERROR_INVALID_PARAMETER		= TIZEN_ERROR_INVALID_PARAMETER,/**< Invalid parameter */
+	STTP_ERROR_TIMED_OUT			= TIZEN_ERROR_TIMED_OUT,	/**< No answer from the daemon */
+	STTP_ERROR_RECORDER_BUSY		= TIZEN_ERROR_RESOURCE_BUSY,	/**< Device or resource busy */
+	STTP_ERROR_OUT_OF_NETWORK		= TIZEN_ERROR_NETWORK_DOWN,	/**< Network is down */
+	STTP_ERROR_PERMISSION_DENIED		= TIZEN_ERROR_PERMISSION_DENIED,/**< Permission denied */
+	STTP_ERROR_NOT_SUPPORTED		= TIZEN_ERROR_NOT_SUPPORTED,	/**< STT NOT supported */
+	STTP_ERROR_INVALID_STATE		= TIZEN_ERROR_STT | 0x01,	/**< Invalid state */
+	STTP_ERROR_INVALID_LANGUAGE		= TIZEN_ERROR_STT | 0x02,	/**< Invalid language */
+	STTP_ERROR_ENGINE_NOT_FOUND		= TIZEN_ERROR_STT | 0x03,	/**< No available engine  */
+	STTP_ERROR_OPERATION_FAILED		= TIZEN_ERROR_STT | 0x04,	/**< Operation failed  */
+	STTP_ERROR_NOT_SUPPORTED_FEATURE	= TIZEN_ERROR_STT | 0x05	/**< Not supported feature of current engine */
+}sttp_error_e;
 
 /**
 * @brief Enumerations of audio type.
@@ -265,6 +270,14 @@ typedef bool (*sttpe_is_valid_language)(const char* language);
 typedef bool (*sttpe_support_silence_detection)(void);
 
 /**
+* @brief Gets credential necessity.
+*
+* @return @c true to be needed app credential, \n @c false not to be needed app credential.
+*
+*/
+typedef bool (* sttpe_need_app_credential)(void);
+
+/**
 * @brief Gets supporting recognition type.
 *
 * @return @c true to support recognition type, \n @c false not to support recognition type.
@@ -333,6 +346,7 @@ typedef int (*sttpe_foreach_result_time)(void* time_info, sttpe_result_time_cb c
 *
 * @param[in] language A language.
 * @param[in] type A recognition type. (e.g. #STTP_RECOGNITION_TYPE_FREE, #STTP_RECOGNITION_TYPE_WEB_SEARCH)
+* @parma[in] credential The app credential to allow recognition
 * @param[in] user_data The user data to be passed to the callback function.
 *
 * @return 0 on success, otherwise a negative error value
@@ -349,7 +363,7 @@ typedef int (*sttpe_foreach_result_time)(void* time_info, sttpe_result_time_cb c
 * @see sttpe_stop()
 * @see sttpe_cancel()
 */
-typedef int (*sttpe_start)(const char* language, const char* type, void *user_data);
+typedef int (* sttpe_start)(const char* language, const char* type, const char* credential, void *user_data);
 
 /**
 * @brief Sets recording data for speech recognition from recorder.
@@ -458,6 +472,7 @@ typedef struct {
 	sttpe_is_valid_language		is_valid_lang;		/**< Check language */
 	sttpe_support_silence_detection	support_silence;	/**< Get silence detection support */
 	sttpe_support_recognition_type	support_recognition_type; /**< Get recognition type support */
+	sttpe_need_app_credential	need_app_credential;	/**< Get app credential necessity*/
 	sttpe_get_recording_format	get_audio_format;	/**< Get audio format */
 	sttpe_foreach_result_time	foreach_result_time;	/**< Foreach result time */
 

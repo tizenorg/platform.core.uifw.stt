@@ -349,7 +349,7 @@ void __server_silence_dectection_callback(sttp_silence_type_e type, void *user_p
 	return;
 }
 
-void __sttd_server_engine_changed_cb(const char* engine_id, const char* language, bool support_silence, void* user_data)
+void __sttd_server_engine_changed_cb(const char* engine_id, const char* language, bool support_silence, bool need_credential, void* user_data)
 {
 	if (NULL == engine_id) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Engine id is NULL");
@@ -603,7 +603,7 @@ Eina_Bool sttd_cleanup_client(void *data)
 * STT Server Functions for Client
 */
 
-int sttd_server_initialize(int pid, int uid, bool* silence)
+int sttd_server_initialize(int pid, int uid, bool* silence, bool* credential)
 {
 	if (false == sttd_engine_agent_is_default_engine()) {
 		/* Update installed engine */
@@ -630,6 +630,11 @@ int sttd_server_initialize(int pid, int uid, bool* silence)
 
 	if (0 != sttd_engine_agent_get_option_supported(uid, silence)) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to get engine options supported");
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+	if (0 != sttd_engine_agent_is_credential_needed(uid, credential)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to get credential necessity");
 		return STTD_ERROR_OPERATION_FAILED;
 	}
 
@@ -723,7 +728,7 @@ int sttd_server_get_supported_engines(int uid, GSList** engine_list)
 	return STTD_ERROR_NONE;
 }
 
-int sttd_server_set_current_engine(int uid, const char* engine_id, bool* silence)
+int sttd_server_set_current_engine(int uid, const char* engine_id, bool* silence, bool* credential)
 {
 	/* Check if uid is valid */
 	app_state_e state;
@@ -748,6 +753,11 @@ int sttd_server_set_current_engine(int uid, const char* engine_id, bool* silence
 	ret = sttd_engine_agent_get_option_supported(uid, silence);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to engine options : %d", ret);
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+	if (0 != sttd_engine_agent_is_credential_needed(uid, credential)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to get credential necessity");
 		return STTD_ERROR_OPERATION_FAILED;
 	}
 
@@ -1017,7 +1027,7 @@ void __sttd_start_sound_completed_cb(int id, void *user_data)
 	return;
 }
 
-int sttd_server_start(int uid, const char* lang, const char* recognition_type, int silence, const char* appid)
+int sttd_server_start(int uid, const char* lang, const char* recognition_type, int silence, const char* appid, const char* credential)
 {
 	if (NULL == lang || NULL == recognition_type) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Input parameter is NULL");
@@ -1107,7 +1117,7 @@ int sttd_server_start(int uid, const char* lang, const char* recognition_type, i
 	}
 
 	/* 3. Create recorder & engine initialize */
-	ret = sttd_engine_agent_recognize_start_engine(uid, lang, recognition_type, silence, NULL);
+	ret = sttd_engine_agent_recognize_start_engine(uid, lang, recognition_type, silence, credential, NULL);
 	if (0 != ret) {
 		stt_client_unset_current_recognition();
 		sttd_recorder_unset_audio_session();
