@@ -1,3 +1,12 @@
+stt (0.2.55) -- Wed, 18 May 2016
+
+  * Add to get error message function and to set credential fucntion (Wonnam Jang <wn.jang@samsung.com>)
+  * Support various audio input on one branch (Wonnam Jang <wn.jang@samsung.com>)
+  * Apply sound manager stream for session managing (Kwangyoun Kim <ky85.kim@samsung.com>)
+  * Update directory path to relative path (Wonnam Jang <wn.jang@samsung.com>)
+  * Change dbus connection to private (Kwangyoun Kim <ky85.kim@samsung.com>)
+  * Update cleanup client logic (Kwangyoun Kim <ky85.kim@samsung.com>)
+
 stt (0.2.54) -- Tue, 2 Jun 2015
 
   * Update IPC for getting volume not to use file (Dongyeol Lee <dy3.lee@samsung.com>)

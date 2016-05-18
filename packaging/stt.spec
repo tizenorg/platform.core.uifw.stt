@@ -1,6 +1,6 @@
 Name:       stt
 Summary:    Speech To Text client library and daemon
-Version:    0.2.54
+Version:    0.2.55
 Release:    1
 Group:      Graphics & UI Framework/Voice Framework
 License:    Apache-2.0
