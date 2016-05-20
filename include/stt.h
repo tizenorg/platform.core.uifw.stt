@@ -38,20 +38,21 @@ extern "C"
  * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
 */
 typedef enum {
-	STT_ERROR_NONE			= TIZEN_ERROR_NONE,		/**< Successful */
-	STT_ERROR_OUT_OF_MEMORY		= TIZEN_ERROR_OUT_OF_MEMORY,	/**< Out of Memory */
-	STT_ERROR_IO_ERROR		= TIZEN_ERROR_IO_ERROR,		/**< I/O error */
-	STT_ERROR_INVALID_PARAMETER	= TIZEN_ERROR_INVALID_PARAMETER,/**< Invalid parameter */
-	STT_ERROR_TIMED_OUT		= TIZEN_ERROR_TIMED_OUT,	/**< No answer from the daemon */
-	STT_ERROR_RECORDER_BUSY		= TIZEN_ERROR_RESOURCE_BUSY,	/**< Device or resource busy */
-	STT_ERROR_OUT_OF_NETWORK	= TIZEN_ERROR_NETWORK_DOWN,	/**< Network is down */
-	STT_ERROR_PERMISSION_DENIED	= TIZEN_ERROR_PERMISSION_DENIED,/**< Permission denied */
-	STT_ERROR_NOT_SUPPORTED		= TIZEN_ERROR_NOT_SUPPORTED,	/**< STT NOT supported */
-	STT_ERROR_INVALID_STATE		= TIZEN_ERROR_STT | 0x01,	/**< Invalid state */
-	STT_ERROR_INVALID_LANGUAGE	= TIZEN_ERROR_STT | 0x02,	/**< Invalid language */
-	STT_ERROR_ENGINE_NOT_FOUND	= TIZEN_ERROR_STT | 0x03,	/**< No available engine  */
-	STT_ERROR_OPERATION_FAILED	= TIZEN_ERROR_STT | 0x04,	/**< Operation failed  */
-	STT_ERROR_NOT_SUPPORTED_FEATURE	= TIZEN_ERROR_STT | 0x05	/**< Not supported feature of current engine */
+	STT_ERROR_NONE				= TIZEN_ERROR_NONE,		/**< Successful */
+	STT_ERROR_OUT_OF_MEMORY			= TIZEN_ERROR_OUT_OF_MEMORY,	/**< Out of Memory */
+	STT_ERROR_IO_ERROR			= TIZEN_ERROR_IO_ERROR,		/**< I/O error */
+	STT_ERROR_INVALID_PARAMETER		= TIZEN_ERROR_INVALID_PARAMETER,/**< Invalid parameter */
+	STT_ERROR_TIMED_OUT			= TIZEN_ERROR_TIMED_OUT,	/**< No answer from the daemon */
+	STT_ERROR_RECORDER_BUSY			= TIZEN_ERROR_RESOURCE_BUSY,	/**< Device or resource busy */
+	STT_ERROR_OUT_OF_NETWORK		= TIZEN_ERROR_NETWORK_DOWN,	/**< Network is down */
+	STT_ERROR_PERMISSION_DENIED		= TIZEN_ERROR_PERMISSION_DENIED,/**< Permission denied */
+	STT_ERROR_NOT_SUPPORTED			= TIZEN_ERROR_NOT_SUPPORTED,	/**< STT NOT supported */
+	STT_ERROR_INVALID_STATE			= TIZEN_ERROR_STT | 0x01,	/**< Invalid state */
+	STT_ERROR_INVALID_LANGUAGE		= TIZEN_ERROR_STT | 0x02,	/**< Invalid language */
+	STT_ERROR_ENGINE_NOT_FOUND		= TIZEN_ERROR_STT | 0x03,	/**< No available engine  */
+	STT_ERROR_OPERATION_FAILED		= TIZEN_ERROR_STT | 0x04,	/**< Operation failed  */
+	STT_ERROR_NOT_SUPPORTED_FEATURE		= TIZEN_ERROR_STT | 0x05,	/**< Not supported feature of current engine */
+	STT_ERROR_NO_SPEECH			= TIZEN_ERROR_STT | 0x06	/**< No speech while recording */
 } stt_error_e;
 
 /**

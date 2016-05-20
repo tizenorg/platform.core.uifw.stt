@@ -43,7 +43,8 @@ typedef enum {
 	STTP_ERROR_INVALID_LANGUAGE		= TIZEN_ERROR_STT | 0x02,	/**< Invalid language */
 	STTP_ERROR_ENGINE_NOT_FOUND		= TIZEN_ERROR_STT | 0x03,	/**< No available engine  */
 	STTP_ERROR_OPERATION_FAILED		= TIZEN_ERROR_STT | 0x04,	/**< Operation failed  */
-	STTP_ERROR_NOT_SUPPORTED_FEATURE	= TIZEN_ERROR_STT | 0x05	/**< Not supported feature of current engine */
+	STTP_ERROR_NOT_SUPPORTED_FEATURE	= TIZEN_ERROR_STT | 0x05,	/**< Not supported feature of current engine */
+	STTP_ERROR_NO_SPEECH			= TIZEN_ERROR_STT | 0x06	/**< No speech while recording */
 }sttp_error_e;
 
 /**
