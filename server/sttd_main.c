@@ -70,6 +70,8 @@ int main(int argc, char** argv)
 
 	sttd_finalize();
 
+	sttd_dbus_close_connection();
+
 	ecore_shutdown();
 
 	SLOG(LOG_DEBUG, TAG_STTD, "=====");

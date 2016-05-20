@@ -335,6 +335,9 @@ void __server_silence_dectection_callback(sttp_silence_type_e type, void *user_p
 		if (STTP_SILENCE_TYPE_NO_RECORD_TIMEOUT == type) {
 			SLOG(LOG_DEBUG, TAG_STTD, "Silence Detection type - No Record");
 			ecore_main_loop_thread_safe_call_async(__cancel_by_no_record, NULL);
+			if (0 != sttdc_send_error_signal(uid, STTP_ERROR_NO_SPEECH, "No speech while recording")) {
+				SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] No speech while recording");
+			}
 		} else if (STTP_SILENCE_TYPE_END_OF_SPEECH_DETECTED == type) {
 			SLOG(LOG_DEBUG, TAG_STTD, "Silence Detection type - End of Speech");
 			ecore_main_loop_thread_safe_call_async(__stop_by_silence, NULL);
@@ -441,6 +444,7 @@ int sttd_initialize()
 	ret = sttd_recorder_initialize(__server_audio_recorder_callback, __server_audio_interrupt_callback);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to initialize recorder : result(%d)", ret);
+		return ret;
 	}
 
 	/* Engine Agent initialize */
@@ -615,6 +619,8 @@ int sttd_server_initialize(int pid, int uid, bool* silence, bool* credential)
 		}
 	}
 
+	int ret = STTD_ERROR_NONE;
+
 	/* check if uid is valid */
 	app_state_e state;
 	if (0 == sttd_client_get_state(uid, &state)) {
@@ -623,25 +629,29 @@ int sttd_server_initialize(int pid, int uid, bool* silence, bool* credential)
 	}
 
 	/* load engine */
-	if (0 != sttd_engine_agent_load_current_engine(uid, NULL)) {
+	ret = sttd_engine_agent_load_current_engine(uid, NULL);
+	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to load default engine");
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
-	if (0 != sttd_engine_agent_get_option_supported(uid, silence)) {
+	ret = sttd_engine_agent_get_option_supported(uid, silence);
+	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to get engine options supported");
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
-	if (0 != sttd_engine_agent_is_credential_needed(uid, credential)) {
+	ret = sttd_engine_agent_is_credential_needed(uid, credential);
+	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to get credential necessity");
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	/* Add client information to client manager */
-	if (0 != sttd_client_add(pid, uid)) {
+	ret = sttd_client_add(pid, uid);
+	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to add client info");
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	return STTD_ERROR_NONE;
@@ -696,7 +706,7 @@ int sttd_server_finalize(int uid)
 
 	/* unload engine, if ref count of client is 0 */
 	if (0 == sttd_client_get_ref_count()) {
-		sttd_dbus_close_connection();
+//		sttd_dbus_close_connection();
 		ecore_timer_add(0, __quit_ecore_loop, NULL);
 	}
 
@@ -722,7 +732,7 @@ int sttd_server_get_supported_engines(int uid, GSList** engine_list)
 	ret = sttd_engine_agent_get_engine_list(engine_list);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to get engine list");
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	return STTD_ERROR_NONE;
@@ -747,18 +757,18 @@ int sttd_server_set_current_engine(int uid, const char* engine_id, bool* silence
 	ret = sttd_engine_agent_load_current_engine(uid, engine_id);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to set engine : %d", ret);
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	ret = sttd_engine_agent_get_option_supported(uid, silence);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to engine options : %d", ret);
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	if (0 != sttd_engine_agent_is_credential_needed(uid, credential)) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to get credential necessity");
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	return STTD_ERROR_NONE;
@@ -783,7 +793,7 @@ int sttd_server_get_current_engine(int uid, char** engine_id)
 	ret = sttd_engine_agent_get_current_engine(uid, engine_id);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to get engine : %d", ret);
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	return STTD_ERROR_NONE;
@@ -810,7 +820,7 @@ int sttd_server_check_app_agreed(int uid, const char* appid, bool* available)
 	ret = sttd_engine_agent_check_app_agreed(uid, appid, &temp);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to get engine available : %d", ret);
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	if (true == temp) {
@@ -837,7 +847,7 @@ int sttd_server_get_supported_languages(int uid, GSList** lang_list)
 	int ret = sttd_engine_agent_supported_langs(uid, lang_list);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to get supported languages");
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTD, "[Server SUCCESS] sttd_server_get_supported_languages");
@@ -863,7 +873,7 @@ int sttd_server_get_current_langauage(int uid, char** current_lang)
 	int ret = sttd_engine_agent_get_default_lang(uid, current_lang);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to get default language :result(%d)", ret);
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTD, "[Server SUCCESS] Get default language");
@@ -889,7 +899,7 @@ int sttd_server_is_recognition_type_supported(int uid, const char* type, int* su
 	int ret = sttd_engine_agent_is_recognition_type_supported(uid, type, &temp);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to get recognition type supported : result(%d)", ret);
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	*support = (int)temp;
@@ -911,7 +921,7 @@ int sttd_server_set_start_sound(int uid, const char* file)
 	int ret = sttd_client_set_start_sound(uid, file);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to set start sound file : result(%d)", ret);
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	return 0;
@@ -929,7 +939,7 @@ int sttd_server_set_stop_sound(int uid, const char* file)
 	int ret = sttd_client_set_stop_sound(uid, file);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to set start sound file : result(%d)", ret);
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	return 0;
@@ -1053,7 +1063,7 @@ int sttd_server_start(int uid, const char* lang, const char* recognition_type, i
 		ret = sttd_engine_agent_check_app_agreed(uid, appid, &temp);
 		if (0 != ret) {
 			SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to get engine available : %d", ret);
-			return STTD_ERROR_OPERATION_FAILED;
+			return ret;
 		}
 
 		if (false == temp) {
@@ -1073,9 +1083,10 @@ int sttd_server_start(int uid, const char* lang, const char* recognition_type, i
 	}
 
 	char* sound = NULL;
-	if (0 != sttd_client_get_start_sound(uid, &sound)) {
+	ret = sttd_client_get_start_sound(uid, &sound);
+	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to get start beep sound");
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	if (0 != stt_client_set_current_recognition(uid)) {
@@ -1147,7 +1158,7 @@ int sttd_server_start(int uid, const char* lang, const char* recognition_type, i
 			sttd_client_set_state(uid, APP_STATE_READY);
 
 			SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to start recorder : result(%d)", ret);
-			return STTD_ERROR_OPERATION_FAILED;
+			return ret;
 		}
 
 		/* Notify uid state change */
@@ -1270,7 +1281,7 @@ int sttd_server_stop(int uid)
 			SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to cancel recognize");
 		}
 		if (NULL != sound)	free(sound);
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	/* 2. Request wav play */
@@ -1296,7 +1307,7 @@ int sttd_server_stop(int uid)
 		ret = sttd_recorder_unset_audio_session();
 		if (0 != ret) {
 			SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to unset session : %d", ret);
-			return STTD_ERROR_OPERATION_FAILED;
+			return ret;
 		}
 
 		/* Stop engine */
@@ -1304,7 +1315,7 @@ int sttd_server_stop(int uid)
 		if (0 != ret) {
 			stt_client_unset_current_recognition();
 			SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to stop engine : result(%d)", ret);
-			return STTD_ERROR_OPERATION_FAILED;
+			return ret;
 		}
 
 		/* change uid state */
@@ -1355,7 +1366,7 @@ int sttd_server_cancel(int uid)
 		int ret = sttd_recorder_unset_audio_session();
 		if (0 != ret) {
 			SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to unset session : %d", ret);
-			return STTD_ERROR_OPERATION_FAILED;
+			return ret;
 		}
 	}
 
@@ -1366,7 +1377,7 @@ int sttd_server_cancel(int uid)
 	int ret = sttd_engine_agent_recognize_cancel(uid);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to cancel : result(%d)", ret);
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	/* Notify uid state change */
