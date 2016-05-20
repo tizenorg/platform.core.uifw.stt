@@ -246,7 +246,7 @@ int __internal_get_engine_info(const char* filepath, sttengine_info_s** info)
 	handle = dlopen(filepath, RTLD_LAZY);
 
 	if (!handle) {
-		SECURE_SLOG(LOG_WARN, TAG_STTD, "[Engine Agent] Invalid engine : %s", filepath);
+		SECURE_SLOG(LOG_WARN, TAG_STTD, "[Engine Agent] Invalid engine : %s, error(%s)", filepath, dlerror());
 		return STTD_ERROR_ENGINE_NOT_FOUND;
 	}
 
@@ -655,13 +655,13 @@ int sttd_engine_agent_load_current_engine(int uid, const char* engine_uuid)
 	ret = stt_engine_load(engine->engine_id, engine->engine_path);
 	if (0 != ret) {
 		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to load engine : id(%d) path(%s)", engine->engine_id, engine->engine_path);
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	ret = stt_engine_initialize(engine->engine_id, __result_cb, __detect_silence_cb);
 	if (0 != ret) {
 		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to initialize engine : id(%d) path(%s)", engine->engine_id, engine->engine_path);
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	ret = stt_engine_set_silence_detection(engine->engine_id, g_default_silence_detected);
@@ -682,7 +682,7 @@ int sttd_engine_agent_load_current_engine(int uid, const char* engine_uuid)
 		free(tmp_lang);
 	} else {
 		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to get first language from engine : %d %s", engine->engine_id, engine->engine_name);
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 #ifndef AUDIO_CREATE_ON_START
@@ -694,13 +694,13 @@ int sttd_engine_agent_load_current_engine(int uid, const char* engine_uuid)
 	ret = stt_engine_get_audio_type(engine->engine_id, &atype, &rate, &channels);
 	if (0 != ret) {
 		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to get audio type : %d %s", engine->engine_id, engine->engine_name);
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	ret = sttd_recorder_create(engine->engine_id, uid, atype, channels, rate);
 	if (0 != ret) {
 		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to create recorder : %d %s", engine->engine_id, engine->engine_name);
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 #endif
 
@@ -875,7 +875,7 @@ int sttd_engine_agent_supported_langs(int uid, GSList** lang_list)
 	int ret = stt_engine_get_supported_langs(engine->engine_id, lang_list);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] get language list error(%d)", ret);
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	return 0;
@@ -908,9 +908,10 @@ int sttd_engine_agent_get_default_lang(int uid, char** lang)
 
 	/* get default language */
 	bool is_valid = false;
-	if (0 != stt_engine_is_valid_language(engine->engine_id, g_default_language, &is_valid)) {
+	ret = stt_engine_is_valid_language(engine->engine_id, g_default_language, &is_valid);
+	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to check valid language");
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	if (true == is_valid) {
@@ -982,7 +983,7 @@ int sttd_engine_agent_is_credential_needed(int uid, bool* credential)
 	ret = stt_engine_need_app_credential(engine->engine_id, &temp);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to get to support recognition type : %d", ret);
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	*credential = temp;
@@ -1020,7 +1021,7 @@ int sttd_engine_agent_is_recognition_type_supported(int uid, const char* type, b
 	ret = stt_engine_support_recognition_type(engine->engine_id, type, &temp);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to get to support recognition type : %d", ret);
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	*support = temp;
@@ -1101,9 +1102,10 @@ int sttd_engine_agent_recognize_start_engine(int uid, const char* lang, const ch
 	char* temp = NULL;
 	if (0 == strncmp(lang, "default", strlen("default"))) {
 		bool is_valid = false;
-		if (0 != stt_engine_is_valid_language(engine->engine_id, g_default_language, &is_valid)) {
+		ret = stt_engine_is_valid_language(engine->engine_id, g_default_language, &is_valid);
+		if (0 != ret)) {
 			SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to check valid language");
-			return STTD_ERROR_OPERATION_FAILED;
+			return ret;
 		}
 
 		if (true == is_valid) {
@@ -1124,7 +1126,7 @@ int sttd_engine_agent_recognize_start_engine(int uid, const char* lang, const ch
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Recognition start error(%d)", ret);
 		sttd_recorder_destroy(engine->engine_id);
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 #ifdef AUDIO_CREATE_ON_START
@@ -1136,7 +1138,7 @@ int sttd_engine_agent_recognize_start_engine(int uid, const char* lang, const ch
 	ret = stt_engine_get_audio_type(engine->engine_id, &atype, &rate, &channels);
 	if (0 != ret) {
 		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to get audio type : %d %s", engine->engine_id, engine->engine_name);
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] Create recorder");
@@ -1144,7 +1146,7 @@ int sttd_engine_agent_recognize_start_engine(int uid, const char* lang, const ch
 	ret = sttd_recorder_create(engine->engine_id, uid, atype, channels, rate);
 	if (0 != ret) {
 		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to create recorder : %d %s", engine->engine_id, engine->engine_name);
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 #endif
 
@@ -1224,7 +1226,7 @@ int sttd_engine_agent_set_recording_data(int uid, const void* data, unsigned int
 	int ret = stt_engine_set_recording_data(engine->engine_id, data, length);
 	if (0 != ret) {
 		SLOG(LOG_WARN, TAG_STTD, "[Engine Agent WARNING] set recording error(%d)", ret);
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	return 0;
@@ -1255,7 +1257,7 @@ int sttd_engine_agent_recognize_stop_recorder(int uid)
 	ret = sttd_recorder_stop(engine->engine_id);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to stop recorder : result(%d)", ret);
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 #ifdef AUDIO_CREATE_ON_START
@@ -1294,7 +1296,7 @@ int sttd_engine_agent_recognize_stop_engine(int uid)
 	ret = stt_engine_recognize_stop(engine->engine_id);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] stop recognition error(%d)", ret);
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent Success] Stop engine");
@@ -1328,7 +1330,7 @@ int sttd_engine_agent_recognize_cancel(int uid)
 	ret = stt_engine_recognize_cancel(engine->engine_id);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] cancel recognition error(%d)", ret);
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] Stop recorder");
@@ -1336,7 +1338,7 @@ int sttd_engine_agent_recognize_cancel(int uid)
 	ret = sttd_recorder_stop(engine->engine_id);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to stop recorder : result(%d)", ret);
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 #ifdef AUDIO_CREATE_ON_START
@@ -1465,7 +1467,7 @@ int sttd_engine_agent_check_app_agreed(int uid, const char* appid, bool* result)
 	ret = stt_engine_check_app_agreed(engine->engine_id, appid, result);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] cancel recognition error(%d)", ret);
-		return STTD_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 

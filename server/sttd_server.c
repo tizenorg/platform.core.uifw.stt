@@ -335,6 +335,9 @@ void __server_silence_dectection_callback(sttp_silence_type_e type, void *user_p
 		if (STTP_SILENCE_TYPE_NO_RECORD_TIMEOUT == type) {
 			SLOG(LOG_DEBUG, TAG_STTD, "Silence Detection type - No Record");
 			ecore_main_loop_thread_safe_call_async(__cancel_by_no_record, NULL);
+			if (0 != sttdc_send_error_signal(uid, STTP_ERROR_NO_SPEECH, "No speech while recording")) {
+				SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] No speech while recording");
+			}
 		} else if (STTP_SILENCE_TYPE_END_OF_SPEECH_DETECTED == type) {
 			SLOG(LOG_DEBUG, TAG_STTD, "Silence Detection type - End of Speech");
 			ecore_main_loop_thread_safe_call_async(__stop_by_silence, NULL);

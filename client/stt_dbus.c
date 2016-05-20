@@ -455,6 +455,12 @@ int stt_dbus_request_hello()
 
 			SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt hello");
 		} else {
+			if (dbus_error_is_set(&err)) {
+				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Get arguments error (%s)", err.message);
+				dbus_error_free(&err);
+			}
+
+			SLOG(LOG_ERROR, TAG_STTC, "STT_ERROR_TIME_OUT");
 			result = STT_ERROR_TIMED_OUT;
 		}
 	} else {
