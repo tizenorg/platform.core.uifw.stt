@@ -176,7 +176,7 @@ int stt_engine_load(int engine_id, const char* filepath)
 		free(engine->pdfuncs);
 		free(engine->engine_path);
 		free(engine);
-		return STTP_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	/* engine error check */
@@ -263,7 +263,7 @@ int stt_engine_initialize(int engine_id, sttpe_result_cb result_cb, sttpe_silenc
 	ret = engine->pefuncs->initialize(result_cb, silence_cb);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Fail to initialize : %s", __stt_get_engine_error_code(ret));
-		return STTP_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	return 0;
@@ -322,7 +322,7 @@ int stt_engine_get_supported_langs(int engine_id, GSList** lang_list)
 	ret = engine->pefuncs->foreach_langs(__supported_language_cb, (void*)lang_list);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] get language list error : %s", __stt_get_engine_error_code(ret));
-		return STTP_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	return 0;
@@ -369,7 +369,7 @@ int stt_engine_get_first_language(int engine_id, char** language)
 	ret = engine->pefuncs->foreach_langs(__supported_language_cb, &lang_list);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] get language list error : %s", __stt_get_engine_error_code(ret));
-		return STTP_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	GSList *iter = NULL;
@@ -494,7 +494,7 @@ int stt_engine_get_audio_type(int engine_id, sttp_audio_type_e* types, int* rate
 	ret = engine->pefuncs->get_audio_format(types, rate, channels);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Fail to get audio format : %s", __stt_get_engine_error_code(ret));
-		return STTP_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	return 0;
@@ -516,7 +516,7 @@ int stt_engine_set_silence_detection(int engine_id, bool value)
 		return STTP_ERROR_NOT_SUPPORTED_FEATURE;
 	} else if (0 != ret) {
 		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Fail to set silence detection : %d", ret);
-		return STTP_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	return 0;
@@ -541,7 +541,7 @@ int stt_engine_check_app_agreed(int engine_id, const char* appid, bool* value)
 	if (0 != ret) {
 		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Fail to get app agreement : %s", __stt_get_engine_error_code(ret));
 		*value = false;
-		return STTP_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	return 0;
@@ -566,7 +566,7 @@ int stt_engine_recognize_start(int engine_id, const char* lang, const char* reco
 	if (0 != ret) {
 		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Fail to start recognition : %s", __stt_get_engine_error_code(ret));
 		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Fail to start recognition : lang(%s), recognition_type(%s), credential(%s)", lang, recognition_type, credential);
-		return STTP_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	return 0;
@@ -589,7 +589,7 @@ int stt_engine_set_recording_data(int engine_id, const void* data, unsigned int 
 	int ret = engine->pefuncs->set_recording(data, length);
 	if (0 != ret) {
 		SLOG(LOG_WARN, stt_tag(), "[Engine WARNING] Fail to set recording : %s", __stt_get_engine_error_code(ret));
-		return STTP_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	return 0;
@@ -607,7 +607,7 @@ int stt_engine_recognize_stop(int engine_id)
 	int ret = engine->pefuncs->stop();
 	if (0 != ret) {
 		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Fail to stop : %s", __stt_get_engine_error_code(ret));
-		return STTP_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	return 0;
@@ -625,7 +625,7 @@ int stt_engine_recognize_cancel(int engine_id)
 	int ret = engine->pefuncs->cancel();
 	if (0 != ret) {
 		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Fail to cancel : %s", __stt_get_engine_error_code(ret));
-		return STTP_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	return 0;
@@ -643,7 +643,7 @@ int stt_engine_foreach_result_time(int engine_id, void* time_info, sttpe_result_
 	int ret = engine->pefuncs->foreach_result_time(time_info, callback, user_data);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Fail to foreach result time : %s", __stt_get_engine_error_code(ret));
-		return STTP_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	return 0;
@@ -672,7 +672,7 @@ int stt_engine_recognize_start_file(int engine_id, const char* lang, const char*
 	int ret = engine->pefuncs->start_file(lang, recognition_type, filepath, audio_type, sample_rate, user_param);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Fail to start file recognition : %s", __stt_get_engine_error_code(ret));
-		return STTP_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	return 0;
@@ -695,7 +695,7 @@ int stt_engine_recognize_cancel_file(int engine_id)
 	int ret = engine->pefuncs->cancel_file();
 	if (0 != ret) {
 		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Fail to start file recognition : %s", __stt_get_engine_error_code(ret));
-		return STTP_ERROR_OPERATION_FAILED;
+		return ret;
 	}
 
 	return 0;

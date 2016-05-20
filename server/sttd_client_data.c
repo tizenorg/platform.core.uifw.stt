@@ -103,7 +103,7 @@ int sttd_client_add(int pid, int uid)
 
 	if (NULL == g_client_list) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Client Data ERROR] Fail to add new client");
-		return -1;
+		return STTD_ERROR_OPERATION_FAILED;
 	}
 
 #ifdef CLIENT_DATA_DEBUG

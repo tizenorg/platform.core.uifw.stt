@@ -66,6 +66,8 @@ int main(int argc, char** argv)
 		ecore_timer_del(g_check_client_timer);
 	}
 
+	sttd_dbus_close_connection();
+
 	stt_network_finalize();
 
 	sttd_finalize();

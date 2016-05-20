@@ -512,5 +512,7 @@ int sttd_dbus_close_connection()
 	g_conn_listener = NULL;
 	g_conn_sender = NULL;
 
+	SLOG(LOG_DEBUG, TAG_STTD, "[Server] Close dbus connection");
+
 	return 0;
 }

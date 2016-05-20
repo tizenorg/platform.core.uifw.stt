@@ -455,6 +455,12 @@ int stt_dbus_request_hello()
 
 			SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt hello");
 		} else {
+			if (dbus_error_is_set(&err)) {
+				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Get arguments error (%s)", err.message);
+				dbus_error_free(&err);
+			}
+
+			SLOG(LOG_ERROR, TAG_STTC, "STT_ERROR_TIME_OUT");
 			result = STT_ERROR_TIMED_OUT;
 		}
 	} else {
@@ -1216,9 +1222,9 @@ int stt_dbus_request_start(int uid, const char* lang, const char* type, int sile
 	/* create a signal & check for errors */
 	msg = dbus_message_new_method_call(
 		STT_SERVER_SERVICE_NAME,
-		STT_SERVER_SERVICE_OBJECT_PATH,	
-		STT_SERVER_SERVICE_INTERFACE,	
-		STT_METHOD_START);		
+		STT_SERVER_SERVICE_OBJECT_PATH,
+		STT_SERVER_SERVICE_INTERFACE,
+		STT_METHOD_START);
 
 	if (NULL == msg) {
 		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt start : Fail to make message");
@@ -1226,6 +1232,9 @@ int stt_dbus_request_start(int uid, const char* lang, const char* type, int sile
 	} else {
 		SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt start : uid(%d), language(%s), type(%s)", uid, lang, type);
 	}
+
+	if (NULL == credential)
+		credential = strdup("NULL");
 
 	dbus_message_append_args(msg,
 		DBUS_TYPE_INT32, &uid,
