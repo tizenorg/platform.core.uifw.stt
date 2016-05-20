@@ -251,8 +251,10 @@ int sttd_recorder_deinitialize()
 
 		if (NULL != recorder) {
 			g_recorder_list = g_slist_remove(g_recorder_list, recorder);
-			audio_in_destroy(recorder->audio_h);
-
+			if(recorder->audio_h) {
+				audio_in_destroy(recorder->audio_h);
+				recorder->audio_h = NULL;
+			}
 			free(recorder);
 		}
 
@@ -349,7 +351,10 @@ int sttd_recorder_create(int engine_id, int uid, sttp_audio_type_e type, int cha
 	recorder = (stt_recorder_s*)calloc(1, sizeof(stt_recorder_s));
 	if (NULL == recorder) {
 #ifndef TV_BT_MODE
-		audio_in_destroy(temp_in_h);
+		if (temp_in_h) {
+			audio_in_destroy(temp_in_h);
+			temp_in_h = NULL;
+		}
 #endif
 		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to allocate memory");
 		return STTD_ERROR_OUT_OF_MEMORY;
@@ -385,17 +390,22 @@ int sttd_recorder_destroy(int engine_id)
 #ifndef TV_BT_MODE
 	int ret;
 	if (STTD_RECORDER_STATE_RECORDING == g_recorder_state) {
-		ret = audio_in_unprepare(recorder->audio_h);
-		if (AUDIO_IO_ERROR_NONE != ret) {
-			SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to unprepare audioin : %d", ret);
+		if (recorder->audio_h) {
+			ret = audio_in_unprepare(recorder->audio_h);
+			if (AUDIO_IO_ERROR_NONE != ret) {
+				SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to unprepare audioin : %d", ret);
+			}
 		}
 
 		g_recorder_state = STTD_RECORDER_STATE_READY;
 	}
 
-	ret = audio_in_destroy(recorder->audio_h);
-	if (AUDIO_IO_ERROR_NONE != ret) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to destroy audioin : %d", ret);
+	if (recorder->audio_h) {
+		ret = audio_in_destroy(recorder->audio_h);
+		if (AUDIO_IO_ERROR_NONE != ret) {
+			SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to destroy audioin : %d", ret);
+		}
+		recorder->audio_h = NULL;
 	}
 #else 
 	if (STTD_RECORDER_STATE_RECORDING == g_recorder_state) {

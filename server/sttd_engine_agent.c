@@ -1476,6 +1476,22 @@ int sttd_engine_agent_check_app_agreed(int uid, const char* appid, bool* result)
 	return 0;
 }
 
+static void __recorder_destroy(void* data)
+{
+	sttp_result_event_e event = (sttp_result_event_e)data;
+
+	SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] Destroy recorder by ecore_thread_safe func");
+
+	if (0 != sttd_recorder_destroy(g_recording_engine_id)) {
+		SECURE_SLOG(LOG_WARN, TAG_STTD, "[Engine Agent] Fail to destroy recorder(%d)", g_recording_engine_id);
+	}
+	
+	if (event == STTP_RESULT_EVENT_FINAL_RESULT || event == STTP_RESULT_EVENT_ERROR) {
+		g_recording_engine_id = -1;
+	}
+}
+
+
 /*
 * STT Engine Callback Functions											`				  *
 */
@@ -1504,16 +1520,21 @@ void __result_cb(sttp_result_event_e event, const char* type, const char** data,
 
 #ifdef AUDIO_CREATE_ON_START
 	if (event == STTP_RESULT_EVENT_ERROR) {
+#if 1
+		ecore_main_loop_thread_safe_call_async(__recorder_destroy, (void*)event);
+#else
 		SLOG(LOG_DEBUG, TAG_STTD, "[Engine Agent] Destroy recorder");
 		if (0 != sttd_recorder_destroy(g_recording_engine_id))
 			SECURE_SLOG(LOG_WARN, TAG_STTD, "[Engine Agent] Fail to destroy recorder(%d)", g_recording_engine_id);
+#endif
 	}
 #endif
 
+#ifndef AUDIO_CREATE_ON_START
 	if (event == STTP_RESULT_EVENT_FINAL_RESULT || event == STTP_RESULT_EVENT_ERROR) {
 		g_recording_engine_id = -1;
 	}
-
+#endif
 	return;
 }
 
