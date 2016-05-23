@@ -1233,8 +1233,12 @@ int stt_dbus_request_start(int uid, const char* lang, const char* type, int sile
 		SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt start : uid(%d), language(%s), type(%s)", uid, lang, type);
 	}
 
-	if (NULL == credential)
-		credential = strdup("NULL");
+	char *temp = NULL;
+	if (NULL == credential) {
+		temp = strdup("NULL");
+	} else {
+		temp = strdup(credential);
+	}
 
 	dbus_message_append_args(msg,
 		DBUS_TYPE_INT32, &uid,
@@ -1242,7 +1246,7 @@ int stt_dbus_request_start(int uid, const char* lang, const char* type, int sile
 		DBUS_TYPE_STRING, &type,
 		DBUS_TYPE_INT32, &silence,
 		DBUS_TYPE_STRING, &appid,
-		DBUS_TYPE_STRING, &credential,
+		DBUS_TYPE_STRING, &temp,
 		DBUS_TYPE_INVALID);
 #if 1
 	if (g_conn_sender) {
@@ -1250,6 +1254,10 @@ int stt_dbus_request_start(int uid, const char* lang, const char* type, int sile
 
 		if (!dbus_connection_send(g_conn_sender, msg, NULL)) {
 			SLOG(LOG_ERROR, TAG_STTC, "[Dbus ERROR] <<<< stt start message : Out Of Memory !");
+			if (NULL != temp) {
+					free(temp);
+					temp = NULL;
+			}
 			return STT_ERROR_OUT_OF_MEMORY;
 		} else {
 			dbus_connection_flush(g_conn_sender);
@@ -1259,9 +1267,17 @@ int stt_dbus_request_start(int uid, const char* lang, const char* type, int sile
 
 	} else {
 		SLOG(LOG_WARN, TAG_STTC, "[WARN] dbus connection handle is null (%p)", g_conn_sender);
+		if (NULL != temp) {
+				free(temp);
+				temp = NULL;
+		}
 		return STT_ERROR_OPERATION_FAILED;
 	}
 
+	if (NULL != temp) {
+			free(temp);
+			temp = NULL;
+	}
 	return 0;
 #else
 	DBusError err;

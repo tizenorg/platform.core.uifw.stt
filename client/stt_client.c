@@ -70,6 +70,7 @@ int stt_client_new(stt_h* stt)
 	client->default_lang_changed_user_data = NULL;
 
 	client->current_engine_id = NULL;
+	client->credential = NULL;
 
 	client->silence_supported = false;
 	client->silence = STT_OPTION_SILENCE_DETECTION_AUTO;
@@ -126,6 +127,10 @@ int stt_client_destroy(stt_h stt)
 
 				if (NULL != data->err_msg) {
 					free(data->err_msg);
+				}
+
+				if (NULL != data->credential) {
+					free(data->credential);
 				}
 
 				free(data);
