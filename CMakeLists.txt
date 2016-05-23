@@ -36,13 +36,13 @@ INCLUDE_DIRECTORIES("${CMAKE_SOURCE_DIR}/include")
 INCLUDE(FindPkgConfig)
 IF("${_TV_PRODUCT}" STREQUAL "TRUE")
 pkg_check_modules(pkgs REQUIRED 
-	aul capi-media-audio-io capi-media-wav-player capi-network-bluetooth capi-system-info dbus-1 dlog ecore glib-2.0
-	libtzplatform-config libxml-2.0 vconf vconf-internal-keys
+	aul capi-media-audio-io capi-media-wav-player capi-network-bluetooth capi-system-info cynara-client cynara-session
+	dbus-1 dlog ecore glib-2.0 libtzplatform-config libxml-2.0 vconf vconf-internal-keys
 )
 ELSE()
 pkg_check_modules(pkgs REQUIRED 
-	aul capi-media-audio-io capi-media-wav-player capi-system-info dbus-1 dlog ecore glib-2.0
-	libtzplatform-config libxml-2.0 vconf vconf-internal-keys
+	aul capi-media-audio-io capi-media-wav-player capi-system-info cynara-client cynara-session
+	dbus-1 dlog ecore glib-2.0 libtzplatform-config libxml-2.0 vconf vconf-internal-keys
 )
 ENDIF()
 

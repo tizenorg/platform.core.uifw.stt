@@ -84,6 +84,8 @@ extern "C" {
 #define STT_FEATURE_PATH		"tizen.org/feature/speech.recognition"
 #define STT_MIC_FEATURE_PATH		"tizen.org/feature/microphone"
 
+#define STT_PRIVILEGE			"http://tizen.org/privilege/recorder"
+
 #ifdef __cplusplus
 }
 #endif

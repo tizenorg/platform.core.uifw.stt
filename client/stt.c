@@ -12,6 +12,9 @@
 */
 
 #include <aul.h>
+#include <cynara-client.h>
+#include <cynara-error.h>
+#include <cynara-session.h>
 #include <dirent.h>
 #include <Ecore.h>
 #include <fcntl.h>
@@ -36,6 +39,9 @@ static Ecore_Timer* g_connect_timer = NULL;
 static float g_volume_db = 0;
 
 static int g_feature_enabled = -1;
+
+static int g_privilege_allowed = -1;
+static cynara *p_cynara = NULL;
 
 static bool g_err_callback_status = false;
 
@@ -72,6 +78,77 @@ static int __stt_get_feature_enabled()
 	}
 
 	return 0;
+}
+
+static int __check_privilege_initialize()
+{
+	int ret = cynara_initialize(&p_cynara, NULL);
+	if (CYNARA_API_SUCCESS != ret)
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] fail to initialize");
+	
+	return ret == CYNARA_API_SUCCESS;
+}
+
+static int __check_privilege(const char* uid, const char * privilege)
+{
+	FILE *fp = NULL;
+	char smack_label[1024] = "/proc/self/attr/current";
+
+	if (!p_cynara) {
+	    return false;
+	}
+
+	fp = fopen(smack_label, "r");
+	if (fp != NULL) {
+	    if (fread(smack_label, 1, sizeof(smack_label), fp) <= 0)
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] fail to fread");
+
+	    fclose(fp);
+	}
+
+	pid_t pid = getpid();
+	char *session = cynara_session_from_pid(pid);
+	int ret = cynara_check(p_cynara, smack_label, session, uid, privilege);
+	SLOG(LOG_DEBUG, TAG_STTC, "[Client]cynara_check returned %d(%s)", ret, (CYNARA_API_ACCESS_ALLOWED == ret) ? "Allowed" : "Denied");
+	if (session)
+	    free(session);
+
+	if (ret != CYNARA_API_ACCESS_ALLOWED)
+	    return false;
+	return true;
+}
+
+static void __check_privilege_deinitialize()
+{
+	if (p_cynara)
+		cynara_finish(p_cynara);
+	p_cynara = NULL;
+}
+
+static int __stt_check_privilege()
+{
+	char uid[16];
+
+	if (0 == g_privilege_allowed) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Permission is denied");
+		return STT_ERROR_PERMISSION_DENIED;
+	} else if (-1 == g_privilege_allowed) {
+		if (false == __check_privilege_initialize()){
+			SLOG(LOG_ERROR, TAG_STTC, "[ERROR] privilege initialize is failed");
+			return STT_ERROR_PERMISSION_DENIED;
+		}
+		snprintf(uid, 16, "%d", getuid());
+		if (false == __check_privilege(uid, STT_PRIVILEGE)) {
+			SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Permission is denied");
+			g_privilege_allowed = 0;
+			__check_privilege_deinitialize();
+			return STT_ERROR_PERMISSION_DENIED;
+		}
+		__check_privilege_deinitialize();
+	}
+
+	g_privilege_allowed = 1;
+	return STT_ERROR_NONE;	
 }
 
 static const char* __stt_get_error_code(stt_error_e err)
@@ -176,6 +253,9 @@ int stt_create(stt_h* stt)
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
+	if (0 != __stt_check_privilege()) {
+		return STT_ERROR_PERMISSION_DENIED;
+	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== Create STT");
 
@@ -231,6 +311,9 @@ int stt_destroy(stt_h stt)
 {
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
+	}
+	if (0 != __stt_check_privilege()) {
+		return STT_ERROR_PERMISSION_DENIED;
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== Destroy STT");
@@ -320,6 +403,9 @@ int stt_foreach_supported_engines(stt_h stt, stt_supported_engine_cb callback, v
 {
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
+	}
+	if (0 != __stt_check_privilege()) {
+		return STT_ERROR_PERMISSION_DENIED;
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== Foreach Supported engine");
@@ -414,6 +500,9 @@ int stt_set_engine(stt_h stt, const char* engine_id)
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
+	if (0 != __stt_check_privilege()) {
+		return STT_ERROR_PERMISSION_DENIED;
+	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== Set current engine");
 
@@ -452,6 +541,9 @@ int stt_set_credential(stt_h stt, const char* credential)
 {
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
+	}
+	if (0 != __stt_check_privilege()) {
+		return STT_ERROR_PERMISSION_DENIED;
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== Set credential");
@@ -588,6 +680,9 @@ int stt_prepare(stt_h stt)
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
+	if (0 != __stt_check_privilege()) {
+		return STT_ERROR_PERMISSION_DENIED;
+	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== Prepare STT");
 
@@ -617,6 +712,9 @@ int stt_unprepare(stt_h stt)
 {
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
+	}
+	if (0 != __stt_check_privilege()) {
+		return STT_ERROR_PERMISSION_DENIED;
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== Unprepare STT");
@@ -705,6 +803,9 @@ int stt_foreach_supported_languages(stt_h stt, stt_supported_language_cb callbac
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
+	if (0 != __stt_check_privilege()) {
+		return STT_ERROR_PERMISSION_DENIED;
+	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== Foreach Supported Language");
 
@@ -766,6 +867,9 @@ int stt_get_default_language(stt_h stt, char** language)
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
+	if (0 != __stt_check_privilege()) {
+		return STT_ERROR_PERMISSION_DENIED;
+	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== Get Default Language");
 
@@ -800,6 +904,9 @@ int stt_get_state(stt_h stt, stt_state_e* state)
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
+	if (0 != __stt_check_privilege()) {
+		return STT_ERROR_PERMISSION_DENIED;
+	}
 
 	if (NULL == stt || NULL == state) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL");
@@ -829,6 +936,9 @@ int stt_get_error_message(stt_h stt, char** err_msg)
 {
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
+	}
+	if (0 != __stt_check_privilege()) {
+		return STT_ERROR_PERMISSION_DENIED;
 	}
 
 	if (NULL == stt || NULL == err_msg) {
@@ -864,6 +974,9 @@ int stt_is_recognition_type_supported(stt_h stt, const char* type, bool* support
 {
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
+	}
+	if (0 != __stt_check_privilege()) {
+		return STT_ERROR_PERMISSION_DENIED;
 	}
 
 	if (NULL == stt || NULL == type || NULL == support) {
@@ -914,6 +1027,9 @@ int stt_set_silence_detection(stt_h stt, stt_option_silence_detection_e type)
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
+	if (0 != __stt_check_privilege()) {
+		return STT_ERROR_PERMISSION_DENIED;
+	}
 
 	if (NULL == stt) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL");
@@ -950,6 +1066,9 @@ int stt_set_start_sound(stt_h stt, const char* filename)
 {
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
+	}
+	if (0 != __stt_check_privilege()) {
+		return STT_ERROR_PERMISSION_DENIED;
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== STT SET START SOUND");
@@ -1007,6 +1126,9 @@ int stt_unset_start_sound(stt_h stt)
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
+	if (0 != __stt_check_privilege()) {
+		return STT_ERROR_PERMISSION_DENIED;
+	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== STT UNSET START SOUND");
 
@@ -1058,6 +1180,9 @@ int stt_set_stop_sound(stt_h stt, const char* filename)
 {
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
+	}
+	if (0 != __stt_check_privilege()) {
+		return STT_ERROR_PERMISSION_DENIED;
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== STT SET STOP SOUND");
@@ -1116,6 +1241,9 @@ int stt_unset_stop_sound(stt_h stt)
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
+	if (0 != __stt_check_privilege()) {
+		return STT_ERROR_PERMISSION_DENIED;
+	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== STT UNSET STOP SOUND");
 
@@ -1167,6 +1295,9 @@ int stt_start(stt_h stt, const char* language, const char* type)
 {
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
+	}
+	if (0 != __stt_check_privilege()) {
+		return STT_ERROR_PERMISSION_DENIED;
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== STT START");
@@ -1284,6 +1415,9 @@ int stt_stop(stt_h stt)
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
+	if (0 != __stt_check_privilege()) {
+		return STT_ERROR_PERMISSION_DENIED;
+	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== STT STOP");
 
@@ -1371,6 +1505,9 @@ int stt_cancel(stt_h stt)
 {
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
+	}
+	if (0 != __stt_check_privilege()) {
+		return STT_ERROR_PERMISSION_DENIED;
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== STT CANCEL");
@@ -1475,6 +1612,9 @@ int stt_get_recording_volume(stt_h stt, float* volume)
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
+	if (0 != __stt_check_privilege()) {
+		return STT_ERROR_PERMISSION_DENIED;
+	}
 
 	if (NULL == stt || NULL == volume) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL");
@@ -1526,6 +1666,9 @@ int stt_foreach_detailed_result(stt_h stt, stt_result_time_cb callback, void* us
 {
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
+	}
+	if (0 != __stt_check_privilege()) {
+		return STT_ERROR_PERMISSION_DENIED;
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== STT FOREACH DETAILED RESULT");
@@ -1800,6 +1943,9 @@ int stt_set_recognition_result_cb(stt_h stt, stt_recognition_result_cb callback,
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
+	if (0 != __stt_check_privilege()) {
+		return STT_ERROR_PERMISSION_DENIED;
+	}
 
 	if (stt == NULL || callback == NULL)
 		return STT_ERROR_INVALID_PARAMETER;
@@ -1827,6 +1973,9 @@ int stt_unset_recognition_result_cb(stt_h stt)
 {
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
+	}
+	if (0 != __stt_check_privilege()) {
+		return STT_ERROR_PERMISSION_DENIED;
 	}
 
 	if (NULL == stt)
@@ -1856,6 +2005,9 @@ int stt_set_state_changed_cb(stt_h stt, stt_state_changed_cb callback, void* use
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
+	if (0 != __stt_check_privilege()) {
+		return STT_ERROR_PERMISSION_DENIED;
+	}
 
 	if (NULL == stt || NULL == callback)
 		return STT_ERROR_INVALID_PARAMETER;
@@ -1883,6 +2035,9 @@ int stt_unset_state_changed_cb(stt_h stt)
 {
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
+	}
+	if (0 != __stt_check_privilege()) {
+		return STT_ERROR_PERMISSION_DENIED;
 	}
 
 	if (NULL == stt)
@@ -1912,6 +2067,9 @@ int stt_set_error_cb(stt_h stt, stt_error_cb callback, void* user_data)
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
+	if (0 != __stt_check_privilege()) {
+		return STT_ERROR_PERMISSION_DENIED;
+	}
 
 	if (NULL == stt || NULL == callback)
 		return STT_ERROR_INVALID_PARAMETER;
@@ -1939,6 +2097,9 @@ int stt_unset_error_cb(stt_h stt)
 {
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
+	}
+	if (0 != __stt_check_privilege()) {
+		return STT_ERROR_PERMISSION_DENIED;
 	}
 
 	if (NULL == stt)
@@ -1968,6 +2129,9 @@ int stt_set_default_language_changed_cb(stt_h stt, stt_default_language_changed_
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
+	if (0 != __stt_check_privilege()) {
+		return STT_ERROR_PERMISSION_DENIED;
+	}
 
 	if (NULL == stt || NULL == callback)
 		return STT_ERROR_INVALID_PARAMETER;
@@ -1995,6 +2159,9 @@ int stt_unset_default_language_changed_cb(stt_h stt)
 {
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
+	}
+	if (0 != __stt_check_privilege()) {
+		return STT_ERROR_PERMISSION_DENIED;
 	}
 
 	if (NULL == stt)
@@ -2024,6 +2191,9 @@ int stt_set_engine_changed_cb(stt_h stt, stt_engine_changed_cb callback, void* u
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
+	if (0 != __stt_check_privilege()) {
+		return STT_ERROR_PERMISSION_DENIED;
+	}
 
 	if (NULL == stt || NULL == callback)
 		return STT_ERROR_INVALID_PARAMETER;
@@ -2051,6 +2221,9 @@ int stt_unset_engine_changed_cb(stt_h stt)
 {
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
+	}
+	if (0 != __stt_check_privilege()) {
+		return STT_ERROR_PERMISSION_DENIED;
 	}
 
 	if (NULL == stt)
