@@ -248,6 +248,26 @@ void __stt_config_engine_changed_cb(const char* engine_id, const char* setting, 
 	return;
 }
 
+static int __stt_check_handle(stt_h stt, stt_client_s** client)
+{
+	if (NULL == stt) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input handle is null");
+		return STT_ERROR_INVALID_PARAMETER;
+	}
+
+	stt_client_s* temp = NULL;
+	temp = stt_client_get(stt);
+
+	/* check handle */
+	if (NULL == temp) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not available");
+		return STT_ERROR_INVALID_PARAMETER;
+	}
+	*client = temp;
+
+	return STT_ERROR_NONE;
+}
+
 int stt_create(stt_h* stt)
 {
 	if (0 != __stt_get_feature_enabled()) {
@@ -575,6 +595,111 @@ int stt_set_credential(stt_h stt, const char* credential)
 	return STT_ERROR_NONE;
 }
 
+int stt_set_private_data(stt_h stt, const char* key, const char* data)
+{
+	stt_client_s* client = NULL;
+
+	if (0 != __stt_get_feature_enabled()) {
+		return STT_ERROR_NOT_SUPPORTED;
+	}
+	if (0 != __stt_check_privilege()) {
+		return STT_ERROR_PERMISSION_DENIED;
+	}
+	if (0 != __stt_check_handle(stt, &client)) {
+		return STT_ERROR_INVALID_PARAMETER;
+	}
+
+	SLOG(LOG_DEBUG, TAG_STTC, "===== Set private data");
+
+	if (NULL == key || NULL == data) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid parameter");
+		return STT_ERROR_INVALID_PARAMETER;
+	}
+
+	/* check state */
+	if (STT_STATE_READY != client->current_state) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State: Current state(%d) is not READY", client->current_state);
+		return STT_ERROR_INVALID_STATE;
+	}
+
+	int ret = -1;
+	int count = 0;
+	while (0 != ret) {
+		ret = stt_dbus_request_set_private_data(client->uid, key, data);
+		if (0 != ret) {
+			if (STT_ERROR_TIMED_OUT != ret) {
+				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to set private data : %s", __stt_get_error_code(ret));
+				return ret;
+			} else {
+				SLOG(LOG_WARN, TAG_STTC, "[WARNING] retry : %s", __stt_get_error_code(ret));
+				usleep(10000);
+				count++;
+				if (STT_RETRY_COUNT == count) {
+					SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to request");
+					return ret;
+				}
+			}
+		}
+	}
+
+	SLOG(LOG_DEBUG, TAG_STTC, "=====");
+	SLOG(LOG_DEBUG, TAG_STTC, "");
+
+	return STT_ERROR_NONE;
+
+}
+int stt_get_private_data(stt_h stt, const char* key, char** data)
+{
+	stt_client_s* client = NULL;
+
+	if (0 != __stt_get_feature_enabled()) {
+		return STT_ERROR_NOT_SUPPORTED;
+	}
+	if (0 != __stt_check_privilege()) {
+		return STT_ERROR_PERMISSION_DENIED;
+	}
+	if (0 != __stt_check_handle(stt, &client)) {
+		return STT_ERROR_INVALID_PARAMETER;
+	}
+
+	SLOG(LOG_DEBUG, TAG_STTC, "===== Get private data");
+
+	if (NULL == key || NULL == data) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid parameter");
+		return STT_ERROR_INVALID_PARAMETER;
+	}
+
+	/* check state */
+	if (STT_STATE_READY != client->current_state) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State: Current state(%d) is not READY", client->current_state);
+		return STT_ERROR_INVALID_STATE;
+	}
+
+	int ret = -1;
+	int count = 0;
+	while (0 != ret) {
+		ret = stt_dbus_request_get_private_data(client->uid, key, data);
+		if (0 != ret) {
+			if (STT_ERROR_TIMED_OUT != ret) {
+				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to get private data : %s", __stt_get_error_code(ret));
+				return ret;
+			} else {
+				SLOG(LOG_WARN, TAG_STTC, "[WARNING] retry : %s", __stt_get_error_code(ret));
+				usleep(10000);
+				count++;
+				if (STT_RETRY_COUNT == count) {
+					SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to request");
+					return ret;
+				}
+			}
+		}
+	}
+
+	SLOG(LOG_DEBUG, TAG_STTC, "=====");
+	SLOG(LOG_DEBUG, TAG_STTC, "");
+
+	return STT_ERROR_NONE;
+}
 static Eina_Bool __stt_connect_daemon(void *data)
 {
 	stt_client_s* client = (stt_client_s*)data;

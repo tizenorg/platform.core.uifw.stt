@@ -46,6 +46,8 @@ extern "C" {
 #define STT_METHOD_GET_CURRENT_LANG	"stt_method_get_current_lang"
 #define STT_METHOD_IS_TYPE_SUPPORTED	"stt_method_is_recognition_type_supported"
 #define STT_METHOD_CHECK_APP_AGREED	"stt_method_check_app_agreed"
+#define STT_METHOD_SET_PRIVATE_DATA	"stt_method_set_private_data"
+#define STT_METHOD_GET_PRIVATE_DATA	"stt_method_get_private_data"
 
 #define STT_METHOD_SET_START_SOUND	"stt_method_set_start_sound"
 #define STT_METHOD_UNSET_START_SOUND	"stt_method_unset_start_sound"

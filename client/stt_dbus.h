@@ -41,6 +41,10 @@ int stt_dbus_request_get_support_langs(int uid, stt_h stt, stt_supported_languag
 
 int stt_dbus_request_get_default_lang(int uid, char** language);
 
+int stt_dbus_request_set_private_data(int uid, const char* key, const char* data);
+
+int stt_dbus_request_get_private_data(int uid, const char* key, char** data);
+
 int stt_dbus_request_is_recognition_type_supported(int uid, const char* type, bool* support);
 
 int stt_dbus_request_set_start_sound(int uid, const char* file);

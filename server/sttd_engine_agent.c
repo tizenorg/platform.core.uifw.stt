@@ -923,6 +923,78 @@ int sttd_engine_agent_get_default_lang(int uid, char** lang)
 	return 0;
 }
 
+int sttd_engine_agent_set_private_data(int uid, const char* key, const char* data)
+{
+	if (false == g_agent_init) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized");
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+	if (NULL == key || NULL == data) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Invalid Parameter");
+		return STTD_ERROR_INVALID_PARAMETER;
+	}
+
+	sttengine_info_s* engine = NULL;
+	engine = __engine_agent_get_engine_by_uid(uid);
+
+	if (NULL == engine) {
+		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] The engine of uid(%d) is not valid", uid);
+		return STTD_ERROR_INVALID_PARAMETER;
+	}
+
+	if (false == engine->is_loaded) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not loaded engine");
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+	/* set private data */
+	int ret = -1;
+	ret = stt_engine_set_private_data(engine->engine_id, key, data);
+	if (0 != ret) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to set private data");
+		return ret;
+	}
+
+	return 0;
+}
+
+int sttd_engine_agent_get_private_data(int uid, const char* key, char** data)
+{
+	if (false == g_agent_init) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not Initialized");
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+	if (NULL == key || NULL == data) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Invalid Parameter");
+		return STTD_ERROR_INVALID_PARAMETER;
+	}
+
+	sttengine_info_s* engine = NULL;
+	engine = __engine_agent_get_engine_by_uid(uid);
+
+	if (NULL == engine) {
+		SECURE_SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] The engine of uid(%d) is not valid", uid);
+		return STTD_ERROR_INVALID_PARAMETER;
+	}
+
+	if (false == engine->is_loaded) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Not loaded engine");
+		return STTD_ERROR_OPERATION_FAILED;
+	}
+
+	/* get default language */
+	int ret = -1;
+	ret = stt_engine_get_private_data(engine->engine_id, key, data);
+	if (0 != ret) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to get private data");
+		return ret;
+	}
+
+	return 0;
+}
+
 int sttd_engine_agent_get_option_supported(int uid, bool* silence)
 {
 	if (false == g_agent_init) {

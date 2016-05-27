@@ -445,6 +445,48 @@ int stt_set_engine(stt_h stt, const char* engine_id);
 int stt_set_credential(stt_h stt, const char* credential);
 
 /**
+ * @brief Sets the private data to stt engine.
+ * @since_tizen 3.0
+ *
+ * @param[in] stt The STT handle
+ * @param[in] key The field name of private data
+ * @param[in] data The data for set
+ *
+ * @return 0 on success, otherwise a negative error value
+ * @retval #STT_ERROR_NONE Successful
+ * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #STT_ERROR_INVALID_STATE Invalid state
+ * @retval #STT_ERROR_PERMISSION_DENIED Permission denied
+ * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
+ *
+ * @pre The state should be #STT_STATE_READY.
+ *
+ * @see stt_get_private_data()
+*/
+int stt_set_private_data(stt_h stt, const char* key, const char* data);
+
+/**
+ * @brief Gets the private data from stt engine.
+ * @since_tizen 3.0
+ *
+ * @param[in] stt The STT handle
+ * @param[in] key The field name of private data
+ * @param[out] data The data
+ *
+ * @return 0 on success, otherwise a negative error value
+ * @retval #STT_ERROR_NONE Successful
+ * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #STT_ERROR_INVALID_STATE Invalid state
+ * @retval #STT_ERROR_PERMISSION_DENIED Permission denied
+ * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
+ *
+ * @pre The state should be #STT_STATE_READY.
+ *
+ * @see stt_set_private_data()
+*/
+int stt_get_private_data(stt_h stt, const char* key, char** data);
+
+/**
  * @brief Connects the daemon asynchronously.
  * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @privlevel public

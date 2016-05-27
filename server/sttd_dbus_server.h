@@ -46,6 +46,10 @@ int sttd_dbus_server_get_support_lang(DBusConnection* conn, DBusMessage* msg);
 
 int sttd_dbus_server_get_default_lang(DBusConnection* conn, DBusMessage* msg);
 
+int sttd_dbus_server_set_private_data(DBusConnection* conn, DBusMessage* msg);
+
+int sttd_dbus_server_get_private_data(DBusConnection* conn, DBusMessage* msg);
+
 int sttd_dbus_server_is_recognition_type_supported(DBusConnection* conn, DBusMessage* msg);
 
 
