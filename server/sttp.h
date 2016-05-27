@@ -459,6 +459,38 @@ typedef int (*sttpe_start_file)(const char* language, const char* type, const ch
 typedef int (*sttpe_cancel_file)(void);
 
 /**
+* @brief Set private data.
+* @since_tizen 3.0
+*
+* @param[in] key Key field of private data.
+* @param[in] data Data field of private data.
+*
+* @return 0 on success, otherwise a negative error value
+* @retval #STTP_ERROR_NONE Successful
+* @retval #STTP_ERROR_INVALID_PARAMETER Invalid parameter
+* @retval #STTP_ERROR_OPERATION_FAILED Operation failed
+*
+* @see sttpe_get_private_data()
+*/
+typedef int (* sttpe_set_private_data)(const char* key, const char* data);
+
+/**
+* @brief Get private data.
+* @since_tizen 3.0
+*
+* @param[out] key Key field of private data.
+* @param[out] data Data field of private data.
+*
+* @return 0 on success, otherwise a negative error value
+* @retval #STTP_ERROR_NONE Successful
+* @retval #STTP_ERROR_INVALID_PARAMETER Invalid parameter
+* @retval #STTP_ERROR_OPERATION_FAILED Operation failed
+*
+* @see sttpe_set_private_data()
+*/
+typedef int (* sttpe_get_private_data)(const char* key, char** data);
+
+/**
 * @brief A structure of the engine functions.
 */
 typedef struct {
@@ -492,6 +524,10 @@ typedef struct {
 	/* Control file recognition */
 	sttpe_start_file		start_file;		/**< Start recognition */
 	sttpe_cancel_file		cancel_file;		/**< Cancel recognition */
+
+	/* Set/Get private data */
+	sttpe_set_private_data		set_private_data;	/**< Set private data */
+	sttpe_get_private_data		get_private_data;	/**< Get private data */
 } sttpe_funcs_s;
 
 /**

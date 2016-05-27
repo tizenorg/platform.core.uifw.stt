@@ -45,6 +45,10 @@ int stt_engine_get_supported_langs(int engine_id, GSList** lang_list);
 
 int stt_engine_is_valid_language(int engine_id, const char* language, bool *is_valid);
 
+int stt_engine_set_private_data(int engine_id, const char* key, const char* data);
+
+int stt_engine_get_private_data(int engine_id, const char* key, char** data);
+
 int stt_engine_get_first_language(int engine_id, char** language);
 
 int stt_engine_support_silence(int engine_id, bool* support);

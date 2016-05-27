@@ -73,6 +73,10 @@ int sttd_engine_agent_supported_langs(int uid, GSList** lang_list);
 
 int sttd_engine_agent_get_default_lang(int uid, char** lang);
 
+int sttd_engine_agent_set_private_data(int uid, const char* key, const char* data);
+
+int sttd_engine_agent_get_private_data(int uid, const char* key, char** data);
+
 int sttd_engine_agent_get_option_supported(int uid, bool* silence);
 
 int sttd_engine_agent_is_credential_needed(int uid, bool* credential);

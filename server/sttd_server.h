@@ -54,6 +54,10 @@ int sttd_server_get_supported_languages(int uid, GSList** lang_list);
 
 int sttd_server_get_current_langauage(int uid, char** current_lang);
 
+int sttd_server_set_private_data(int uid, const char* key, const char* data);
+
+int sttd_server_get_private_data(int uid, const char* key, char** data);
+
 int sttd_server_set_engine_data(int uid, const char* key, const char* value);
 
 int sttd_server_is_recognition_type_supported(int uid, const char* type, int* support);
