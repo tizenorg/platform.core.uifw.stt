@@ -881,6 +881,60 @@ int sttd_server_get_current_langauage(int uid, char** current_lang)
 	return STTD_ERROR_NONE;
 }
 
+int sttd_server_set_private_data(int uid, const char* key, const char* data)
+{
+	/* check if uid is valid */
+	app_state_e state;
+	if (0 != sttd_client_get_state(uid, &state)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] uid is NOT valid ");
+		return STTD_ERROR_INVALID_PARAMETER;
+	}
+
+	if (NULL == key || NULL == data) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Input parameter is NULL");
+		return STTD_ERROR_INVALID_PARAMETER;
+	}
+
+	/* set private data to engine */
+	int ret = -1;
+	ret = sttd_engine_agent_set_private_data(uid, key, data);
+	if (0 != ret) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to set private data :result(%d)", ret);
+		return ret;
+	}
+
+	SLOG(LOG_DEBUG, TAG_STTD, "[Server SUCCESS] Set private data");
+
+	return STTD_ERROR_NONE;
+}
+
+int sttd_server_get_private_data(int uid, const char* key, char** data)
+{
+	/* check if uid is valid */
+	app_state_e state;
+	if (0 != sttd_client_get_state(uid, &state)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] uid is NOT valid ");
+		return STTD_ERROR_INVALID_PARAMETER;
+	}
+
+	if (NULL == key || NULL == data) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Input parameter is NULL");
+		return STTD_ERROR_INVALID_PARAMETER;
+	}
+
+	/* get private data to engine */
+	int ret = -1;
+	ret = sttd_engine_agent_get_private_data(uid, key, data);
+	if (0 != ret) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to get private data :result(%d)", ret);
+		return ret;
+	}
+
+	SLOG(LOG_DEBUG, TAG_STTD, "[Server SUCCESS] Get private data");
+
+	return STTD_ERROR_NONE;
+}
+
 int sttd_server_is_recognition_type_supported(int uid, const char* type, int* support)
 {
 	/* check if uid is valid */

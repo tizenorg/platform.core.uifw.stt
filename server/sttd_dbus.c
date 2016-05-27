@@ -384,6 +384,12 @@ static Eina_Bool listener_event_callback(void* data, Ecore_Fd_Handler *fd_handle
 	else if (dbus_message_is_method_call(msg, STT_SERVER_SERVICE_INTERFACE, STT_METHOD_GET_CURRENT_LANG))
 		sttd_dbus_server_get_default_lang(g_conn_listener, msg);
 
+	else if (dbus_message_is_method_call(msg, STT_SERVER_SERVICE_INTERFACE, STT_METHOD_SET_PRIVATE_DATA))
+		sttd_dbus_server_set_private_data(g_conn_listener, msg);
+
+	else if (dbus_message_is_method_call(msg, STT_SERVER_SERVICE_INTERFACE, STT_METHOD_GET_PRIVATE_DATA))
+		sttd_dbus_server_get_private_data(g_conn_listener, msg);
+
 	else if (dbus_message_is_method_call(msg, STT_SERVER_SERVICE_INTERFACE, STT_METHOD_IS_TYPE_SUPPORTED))
 		sttd_dbus_server_is_recognition_type_supported(g_conn_listener, msg);
 
