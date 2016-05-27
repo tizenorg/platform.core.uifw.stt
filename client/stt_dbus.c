@@ -889,6 +889,154 @@ int stt_dbus_request_get_default_lang(int uid, char** language)
 	return result;
 }
 
+int stt_dbus_request_set_private_data(int uid, const char* key, const char* data)
+{
+	if (NULL == key || NULL == data) {
+		SLOG(LOG_ERROR, TAG_STTC, "Input parameter is NULL");
+		return STT_ERROR_INVALID_PARAMETER;
+	}
+
+	DBusMessage* msg;
+
+	msg = dbus_message_new_method_call(
+		STT_SERVER_SERVICE_NAME, 
+		STT_SERVER_SERVICE_OBJECT_PATH, 
+		STT_SERVER_SERVICE_INTERFACE, 
+		STT_METHOD_SET_PRIVATE_DATA);
+
+	if (NULL == msg) {
+		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt set private data : Fail to make message");
+		return STT_ERROR_OPERATION_FAILED;
+	} else {
+		SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt set private data : uid(%d)", uid);
+	}
+
+	if (true != dbus_message_append_args(msg,
+			DBUS_TYPE_INT32, &uid,
+			DBUS_TYPE_STRING, &key,
+			DBUS_TYPE_STRING, &data,
+			DBUS_TYPE_INVALID)) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to append args");
+		return STT_ERROR_OPERATION_FAILED;
+	}
+
+	DBusError err;
+	dbus_error_init(&err);
+
+	DBusMessage* result_msg;
+	int result = STT_ERROR_OPERATION_FAILED;
+
+	result_msg = dbus_connection_send_with_reply_and_block(g_conn_sender, msg, g_waiting_time, &err);
+	dbus_message_unref(msg);
+	if (dbus_error_is_set(&err)) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Send Error (%s)", err.message);
+		dbus_error_free(&err);
+	}
+
+	if (NULL != result_msg) {
+		dbus_message_get_args(result_msg, &err,
+			DBUS_TYPE_INT32, &result,
+			DBUS_TYPE_INVALID);
+
+		if (dbus_error_is_set(&err)) {
+			SLOG(LOG_ERROR, TAG_STTC, "<<<< Get arguments error (%s)", err.message);
+			dbus_error_free(&err);
+			result = STT_ERROR_OPERATION_FAILED;
+		}
+		dbus_message_unref(result_msg);
+
+		if (0 == result) {
+			SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt set private data : result = %d", result);
+		} else {
+			SLOG(LOG_ERROR, TAG_STTC, "<<<< stt set private data : result = %d", result);
+		}
+	} else {
+		SLOG(LOG_ERROR, TAG_STTC, "<<<< Result message is NULL");
+		stt_dbus_reconnect();
+		result = STT_ERROR_TIMED_OUT;
+	}
+
+	return result;
+}
+
+int stt_dbus_request_get_private_data(int uid, const char* key, char** data)
+{
+	if (NULL == key || NULL == data) {
+		SLOG(LOG_ERROR, TAG_STTC, "Input parameter is NULL");
+		return STT_ERROR_INVALID_PARAMETER;
+	}
+
+	DBusMessage* msg;
+
+	msg = dbus_message_new_method_call(
+		STT_SERVER_SERVICE_NAME, 
+		STT_SERVER_SERVICE_OBJECT_PATH, 
+		STT_SERVER_SERVICE_INTERFACE, 
+		STT_METHOD_GET_PRIVATE_DATA);
+
+	if (NULL == msg) {
+		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt get private data : Fail to make message");
+		return STT_ERROR_OPERATION_FAILED;
+	} else {
+		SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt get private data : uid(%d)", uid);
+	}
+
+	if (true != dbus_message_append_args(msg,
+			DBUS_TYPE_INT32, &uid,
+			DBUS_TYPE_STRING, &key,
+			DBUS_TYPE_INVALID)) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to append args");
+		return STT_ERROR_OPERATION_FAILED;
+	}
+
+	DBusError err;
+	dbus_error_init(&err);
+
+	DBusMessage* result_msg;
+	int result = STT_ERROR_OPERATION_FAILED;
+
+	result_msg = dbus_connection_send_with_reply_and_block(g_conn_sender, msg, g_waiting_time, &err);
+	dbus_message_unref(msg);
+	if (dbus_error_is_set(&err)) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Send Error (%s)", err.message);
+		dbus_error_free(&err);
+	}
+
+	char* temp = NULL;
+	if (NULL != result_msg) {
+		dbus_message_get_args(result_msg, &err,
+			DBUS_TYPE_INT32, &result,
+			DBUS_TYPE_STRING, &temp,
+			DBUS_TYPE_INVALID);
+
+		if (dbus_error_is_set(&err)) {
+			SLOG(LOG_ERROR, TAG_STTC, "<<<< Get arguments error (%s)", err.message);
+			dbus_error_free(&err);
+			result = STT_ERROR_OPERATION_FAILED;
+		}
+		dbus_message_unref(result_msg);
+
+		if (0 == result) {
+			SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt get private data : result = %d", result);
+			if (NULL != temp) {
+				*data = strdup(temp);
+				free(temp);
+				temp = NULL;
+			}
+		} else {
+			SLOG(LOG_ERROR, TAG_STTC, "<<<< stt get private data : result = %d", result);
+		}
+	} else {
+		SLOG(LOG_ERROR, TAG_STTC, "<<<< Result message is NULL");
+		stt_dbus_reconnect();
+		result = STT_ERROR_TIMED_OUT;
+	}
+
+	return result;
+}
+
+
+
 int stt_dbus_request_is_recognition_type_supported(int uid, const char* type, bool* support)
 {
 	if (NULL == support || NULL == type) {

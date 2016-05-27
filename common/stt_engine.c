@@ -350,6 +350,52 @@ int stt_engine_is_valid_language(int engine_id, const char* language, bool *is_v
 	return 0;
 }
 
+int stt_engine_set_private_data(int engine_id, const char* key, const char* data)
+{
+	if (NULL == key || NULL == data) {
+		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Invalid Parameter");
+		return STTP_ERROR_INVALID_PARAMETER;
+	}
+
+	sttengine_s* engine = NULL;
+	engine = __get_engine(engine_id);
+	if (NULL == engine) {
+		SECURE_SLOG(LOG_WARN, stt_tag(), "[Engine WARNING] engine id(%d) is invalid", engine_id);
+		return STTP_ERROR_INVALID_PARAMETER;
+	}
+
+	int ret = engine->pefuncs->set_private_data(key, data);
+	if (0 != ret) {
+		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Fail to set private data(%d)", ret);
+	}
+	return STTP_ERROR_NONE;
+}
+
+int stt_engine_get_private_data(int engine_id, const char* key, char** data)
+{
+	if (NULL == key || NULL == data) {
+		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Invalid Parameter");
+		return STTP_ERROR_INVALID_PARAMETER;
+	}
+
+	sttengine_s* engine = NULL;
+	engine = __get_engine(engine_id);
+	if (NULL == engine) {
+		SECURE_SLOG(LOG_WARN, stt_tag(), "[Engine WARNING] engine id(%d) is invalid", engine_id);
+		return STTP_ERROR_INVALID_PARAMETER;
+	}
+
+	char* temp = NULL;
+	int ret = engine->pefuncs->get_private_data(key, &temp);
+	if (0 != ret) {
+		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Fail to set private data(%d)", ret);
+	}
+
+	*data = strdup(temp);
+
+	return STTP_ERROR_NONE;
+}
+		
 int stt_engine_get_first_language(int engine_id, char** language)
 {
 	if (NULL == language) {
