@@ -1446,7 +1446,7 @@ int stt_start(stt_h stt, const char* language, const char* type)
 
 	if (STT_INTERNAL_STATE_NONE != client->internal_state) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State : Internal state is NOT none : %d", client->internal_state);
-		return STT_ERROR_INVALID_STATE;
+		return STT_ERROR_IN_PROGRESS_TO_RECORDING;
 	}
 
 	int ret = -1;
@@ -1466,54 +1466,6 @@ int stt_start(stt_h stt, const char* language, const char* type)
 		temp = strdup(language);
 	}
 
-#if 0
-	ret = -1;
-	/* do request */
-	int count = 0;
-	while (0 != ret) {
-		ret = stt_dbus_request_start(client->uid, temp, type, client->silence, appid);
-		if (0 > ret) {
-			/* Failure */
-			if (STT_ERROR_TIMED_OUT != ret) {
-				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to start : %s", __stt_get_error_code(ret));
-				if (NULL != temp)	free(temp);
-				return ret;
-			} else {
-				SLOG(LOG_WARN, TAG_STTC, "[WARNING] retry to start");
-				usleep(10000);
-				count++;
-				if (STT_RETRY_COUNT == count) {
-					SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to request");
-					if (NULL != temp)	free(temp);
-					return ret;
-				}
-			}
-		} else {
-			/* Success */
-			if (NULL != temp)	free(temp);
-
-			if (STT_RESULT_STATE_DONE == ret) {
-				SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] Start is done : %d", ret);
-				client->before_state = client->current_state;
-				client->current_state = STT_STATE_RECORDING;
-
-				if (NULL != client->state_changed_cb) {
-					ecore_main_loop_thread_safe_call_async(__stt_notify_state_changed, client);
-				} else {
-					SLOG(LOG_WARN, TAG_STTC, "[WARNING] State changed callback is null");
-				}
-			} else if (STT_RESULT_STATE_NOT_DONE == ret) {
-				SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] Start is not done : %d", ret);
-				client->internal_state = STT_INTERNAL_STATE_STARTING;
-			} else {
-				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid result : %d", ret);
-			}
-
-			ret = STT_ERROR_NONE;
-			break;
-		}
-	}
-#else
 	if (true == client->credential_needed && NULL == client->credential) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Do not have app credential for this engine(%s)", client->current_engine_id);
 		return STT_ERROR_PERMISSION_DENIED;
@@ -1528,7 +1480,7 @@ int stt_start(stt_h stt, const char* language, const char* type)
 	}
 
 	if (NULL != temp)	free(temp);
-#endif
+
 	SLOG(LOG_DEBUG, TAG_STTC, "=====");
 	SLOG(LOG_DEBUG, TAG_STTC, " ");
 
@@ -1565,51 +1517,9 @@ int stt_stop(stt_h stt)
 
 	if (STT_INTERNAL_STATE_NONE != client->internal_state) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State : Internal state is NOT none : %d", client->internal_state);
-		return STT_ERROR_INVALID_STATE;
+		return STT_ERROR_IN_PROGRESS_TO_PROCESSING;
 	}
-#if 0
-	int ret = -1;
-	/* do request */
-	int count = 0;
-	while (0 != ret) {
-		ret = stt_dbus_request_stop(client->uid);
-		if (0 > ret) {
-			/* Failure */
-			if (STT_ERROR_TIMED_OUT != ret) {
-				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to stop : %s", __stt_get_error_code(ret));
-				return ret;
-			} else {
-				SLOG(LOG_WARN, TAG_STTC, "[WARNING] retry stop");
-				usleep(10000);
-				count++;
-				if (STT_RETRY_COUNT == count) {
-					SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to request");
-					return ret;
-				}
-			}
-		} else {
-			if (STT_RESULT_STATE_DONE == ret) {
-				SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] Stop is done : %d", ret);
-				client->before_state = client->current_state;
-				client->current_state = STT_STATE_PROCESSING;
 
-				if (NULL != client->state_changed_cb) {
-					ecore_main_loop_thread_safe_call_async(__stt_notify_state_changed, client);
-					SLOG(LOG_DEBUG, TAG_STTC, "State changed callback is called");
-				} else {
-					SLOG(LOG_WARN, TAG_STTC, "[WARNING] State changed callback is null");
-				}
-			} else if (STT_RESULT_STATE_NOT_DONE == ret) {
-				SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] Stop is not done : %d", ret);
-				client->internal_state = STT_INTERNAL_STATE_STOPING;
-			} else {
-				SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid result : %d", ret);
-			}
-			ret = STT_ERROR_NONE;
-			break;
-		}
-	}
-#else
 	int ret = stt_dbus_request_stop(client->uid);
 
 	if (0 != ret) {
@@ -1618,7 +1528,7 @@ int stt_stop(stt_h stt)
 		SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] Stop is successful but not done");
 		client->internal_state = STT_INTERNAL_STATE_STOPING;
 	}
-#endif
+
 	SLOG(LOG_DEBUG, TAG_STTC, "=====");
 	SLOG(LOG_DEBUG, TAG_STTC, " ");
 
@@ -1658,45 +1568,9 @@ int stt_cancel(stt_h stt)
 
 	if (STT_INTERNAL_STATE_NONE != client->internal_state) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State : Internal state is NOT none : %d", client->internal_state);
-		return STT_ERROR_INVALID_STATE;
+		return STT_ERROR_IN_PROGRESS_TO_READY;
 	}
-#if 0
-	int ret = -1;
-	/* do request */
-	int count = 0;
-	while (0 != ret) {
-		ret = stt_dbus_request_cancel(client->uid);
-		if (0 != ret) {
-			/* Failure */
-			if (STT_ERROR_TIMED_OUT != ret) {
-				SLOG(LOG_DEBUG, TAG_STTC, "[ERROR] Fail to cancel : %s", __stt_get_error_code(ret));
-				return ret;
-			} else {
-				SLOG(LOG_WARN, TAG_STTC, "[WARNING] retry");
-				usleep(10000);
-				count++;
-				if (STT_RETRY_COUNT == count) {
-					SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to request");
-					return ret;
-				}
-			}
-		} else {
-			SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS]");
 
-			client->before_state = client->current_state;
-			client->current_state = STT_STATE_READY;
-
-			if (NULL != client->state_changed_cb) {
-				ecore_main_loop_thread_safe_call_async(__stt_notify_state_changed, client);
-				SLOG(LOG_DEBUG, TAG_STTC, "State changed callback is called");
-			} else {
-				SLOG(LOG_WARN, TAG_STTC, "[WARNING] State changed callback is null");
-			}
-			ret = STT_ERROR_NONE;
-			break;
-		}
-	}
-#else
 	int ret = stt_dbus_request_cancel(client->uid);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to cancel : %s", __stt_get_error_code(ret));
@@ -1704,7 +1578,7 @@ int stt_cancel(stt_h stt)
 		SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] Cancel is successful but not done");
 		client->internal_state = STT_INTERNAL_STATE_CANCELING;
 	}
-#endif
+
 	SLOG(LOG_DEBUG, TAG_STTC, "=====");
 	SLOG(LOG_DEBUG, TAG_STTC, " ");
 
