@@ -329,27 +329,18 @@ int stt_create(stt_h* stt)
 
 int stt_destroy(stt_h stt)
 {
+	stt_client_s* client = NULL;
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
 	if (0 != __stt_check_privilege()) {
 		return STT_ERROR_PERMISSION_DENIED;
 	}
+	if (0 != __stt_check_handle(stt, &client)) {
+		return STT_ERROR_INVALID_PARAMETER;
+	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== Destroy STT");
-
-	if (NULL == stt) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input handle is null");
-		return STT_ERROR_INVALID_PARAMETER;
-	}
-
-	stt_client_s* client = stt_client_get(stt);
-
-	/* check handle */
-	if (NULL == client) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not available");
-		return STT_ERROR_INVALID_PARAMETER;
-	}
 
 	/* check used callback */
 	if (0 != stt_client_get_use_callback(client)) {
@@ -421,25 +412,21 @@ bool __stt_config_supported_engine_cb(const char* engine_id, const char* engine_
 
 int stt_foreach_supported_engines(stt_h stt, stt_supported_engine_cb callback, void* user_data)
 {
+	stt_client_s* client = NULL;
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
 	if (0 != __stt_check_privilege()) {
 		return STT_ERROR_PERMISSION_DENIED;
 	}
-
-	SLOG(LOG_DEBUG, TAG_STTC, "===== Foreach Supported engine");
-
-	if (NULL == stt || NULL == callback) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL");
+	if (0 != __stt_check_handle(stt, &client)) {
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
-	stt_client_s* client = stt_client_get(stt);
+	SLOG(LOG_DEBUG, TAG_STTC, "===== Foreach Supported engine");
 
-	/* check handle */
-	if (NULL == client) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not available");
+	if (NULL == callback) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL");
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
@@ -469,22 +456,21 @@ int stt_foreach_supported_engines(stt_h stt, stt_supported_engine_cb callback, v
 
 int stt_get_engine(stt_h stt, char** engine_id)
 {
+	stt_client_s* client = NULL;
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
+	}
+	if (0 != __stt_check_privilege()) {
+		return STT_ERROR_PERMISSION_DENIED;
+	}
+	if (0 != __stt_check_handle(stt, &client)) {
+		return STT_ERROR_INVALID_PARAMETER;
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== Get current engine");
 
 	if (NULL == stt || NULL == engine_id) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL");
-		return STT_ERROR_INVALID_PARAMETER;
-	}
-
-	stt_client_s* client = stt_client_get(stt);
-
-	/* check handle */
-	if (NULL == client) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not available");
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
@@ -517,25 +503,21 @@ int stt_get_engine(stt_h stt, char** engine_id)
 
 int stt_set_engine(stt_h stt, const char* engine_id)
 {
+	stt_client_s* client = NULL;
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
 	if (0 != __stt_check_privilege()) {
 		return STT_ERROR_PERMISSION_DENIED;
 	}
-
-	SLOG(LOG_DEBUG, TAG_STTC, "===== Set current engine");
-
-	if (NULL == stt || NULL == engine_id) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL");
+	if (0 != __stt_check_handle(stt, &client)) {
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
-	stt_client_s* client = stt_client_get(stt);
+	SLOG(LOG_DEBUG, TAG_STTC, "===== Set current engine");
 
-	/* check handle */
-	if (NULL == client) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not available");
+	if (NULL == engine_id) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL");
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
@@ -559,25 +541,21 @@ int stt_set_engine(stt_h stt, const char* engine_id)
 
 int stt_set_credential(stt_h stt, const char* credential)
 {
+	stt_client_s* client = NULL;
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
 	if (0 != __stt_check_privilege()) {
 		return STT_ERROR_PERMISSION_DENIED;
 	}
-
-	SLOG(LOG_DEBUG, TAG_STTC, "===== Set credential");
-
-	if (NULL == stt || NULL == credential) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL, stt(%s), credential(%a)", stt, credential);
+	if (0 != __stt_check_handle(stt, &client)) {
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
-	stt_client_s* client = stt_client_get(stt);
+	SLOG(LOG_DEBUG, TAG_STTC, "===== Set credential");
 
-	/* check handle */
-	if (NULL == client) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not available");
+	if (NULL == credential) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL, stt(%s), credential(%a)", stt, credential);
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
@@ -598,7 +576,6 @@ int stt_set_credential(stt_h stt, const char* credential)
 int stt_set_private_data(stt_h stt, const char* key, const char* data)
 {
 	stt_client_s* client = NULL;
-
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
@@ -651,7 +628,6 @@ int stt_set_private_data(stt_h stt, const char* key, const char* data)
 int stt_get_private_data(stt_h stt, const char* key, char** data)
 {
 	stt_client_s* client = NULL;
-
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
@@ -802,20 +778,14 @@ static Eina_Bool __stt_connect_daemon(void *data)
 
 int stt_prepare(stt_h stt)
 {
+	stt_client_s* client = NULL;
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
 	if (0 != __stt_check_privilege()) {
 		return STT_ERROR_PERMISSION_DENIED;
 	}
-
-	SLOG(LOG_DEBUG, TAG_STTC, "===== Prepare STT");
-
-	stt_client_s* client = stt_client_get(stt);
-
-	/* check handle */
-	if (NULL == client) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not available");
+	if (0 != __stt_check_handle(stt, &client)) {
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
@@ -835,22 +805,18 @@ int stt_prepare(stt_h stt)
 
 int stt_unprepare(stt_h stt)
 {
+	stt_client_s* client = NULL;
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
 	if (0 != __stt_check_privilege()) {
 		return STT_ERROR_PERMISSION_DENIED;
 	}
-
-	SLOG(LOG_DEBUG, TAG_STTC, "===== Unprepare STT");
-
-	stt_client_s* client = stt_client_get(stt);
-
-	/* check handle */
-	if (NULL == client) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not available");
+	if (0 != __stt_check_handle(stt, &client)) {
 		return STT_ERROR_INVALID_PARAMETER;
 	}
+
+	SLOG(LOG_DEBUG, TAG_STTC, "===== Unprepare STT");
 
 	/* check state */
 	if (client->current_state != STT_STATE_READY) {
@@ -925,25 +891,21 @@ bool __stt_config_supported_language_cb(const char* engine_id, const char* langu
 
 int stt_foreach_supported_languages(stt_h stt, stt_supported_language_cb callback, void* user_data)
 {
+	stt_client_s* client = NULL;
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
 	if (0 != __stt_check_privilege()) {
 		return STT_ERROR_PERMISSION_DENIED;
 	}
-
-	SLOG(LOG_DEBUG, TAG_STTC, "===== Foreach Supported Language");
-
-	if (NULL == stt || NULL == callback) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL");
+	if (0 != __stt_check_handle(stt, &client)) {
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
-	stt_client_s* client = stt_client_get(stt);
+	SLOG(LOG_DEBUG, TAG_STTC, "===== Foreach Supported Language");
 
-	/* check handle */
-	if (NULL == client) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not available");
+	if (NULL == callback) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL");
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
@@ -989,23 +951,21 @@ int stt_foreach_supported_languages(stt_h stt, stt_supported_language_cb callbac
 
 int stt_get_default_language(stt_h stt, char** language)
 {
+	stt_client_s* client = NULL;
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
 	if (0 != __stt_check_privilege()) {
 		return STT_ERROR_PERMISSION_DENIED;
 	}
-
-	SLOG(LOG_DEBUG, TAG_STTC, "===== Get Default Language");
-
-	if (NULL == stt || NULL == language) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL");
+	if (0 != __stt_check_handle(stt, &client)) {
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
-	stt_client_s* client = stt_client_get(stt);
-	if (NULL == client) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not available");
+	SLOG(LOG_DEBUG, TAG_STTC, "===== Get Default Language");
+
+	if (NULL == language) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL");
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
@@ -1026,21 +986,19 @@ int stt_get_default_language(stt_h stt, char** language)
 
 int stt_get_state(stt_h stt, stt_state_e* state)
 {
+	stt_client_s* client = NULL;
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
 	if (0 != __stt_check_privilege()) {
 		return STT_ERROR_PERMISSION_DENIED;
 	}
-
-	if (NULL == stt || NULL == state) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL");
+	if (0 != __stt_check_handle(stt, &client)) {
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
-	stt_client_s* client = stt_client_get(stt);
-	if (NULL == client) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Get state : A handle is not valid");
+	if (NULL == state) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL");
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
@@ -1059,14 +1017,18 @@ int stt_get_state(stt_h stt, stt_state_e* state)
 
 int stt_get_error_message(stt_h stt, char** err_msg)
 {
+	stt_client_s* client = NULL;
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
 	if (0 != __stt_check_privilege()) {
 		return STT_ERROR_PERMISSION_DENIED;
 	}
+	if (0 != __stt_check_handle(stt, &client)) {
+		return STT_ERROR_INVALID_PARAMETER;
+	}
 
-	if (NULL == stt || NULL == err_msg) {
+	if (NULL == err_msg) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL");
 		return STT_ERROR_INVALID_PARAMETER;
 	}
@@ -1074,12 +1036,6 @@ int stt_get_error_message(stt_h stt, char** err_msg)
 	if (false == g_err_callback_status) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] This callback should be called during an err_callback");
 		return STT_ERROR_OPERATION_FAILED;
-	}
-
-	stt_client_s* client = stt_client_get(stt);
-	if (NULL == client) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Get error msg : A handle is not valid");
-		return STT_ERROR_INVALID_PARAMETER;
 	}
 
 	if (NULL != client->err_msg) {
@@ -1097,21 +1053,19 @@ int stt_get_error_message(stt_h stt, char** err_msg)
 
 int stt_is_recognition_type_supported(stt_h stt, const char* type, bool* support)
 {
+	stt_client_s* client = NULL;
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
 	if (0 != __stt_check_privilege()) {
 		return STT_ERROR_PERMISSION_DENIED;
 	}
-
-	if (NULL == stt || NULL == type || NULL == support) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL");
+	if (0 != __stt_check_handle(stt, &client)) {
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
-	stt_client_s* client = stt_client_get(stt);
-	if (NULL == client) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not valid");
+	if (NULL == type || NULL == support) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL");
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
@@ -1149,21 +1103,14 @@ int stt_is_recognition_type_supported(stt_h stt, const char* type, bool* support
 
 int stt_set_silence_detection(stt_h stt, stt_option_silence_detection_e type)
 {
+	stt_client_s* client = NULL;
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
 	if (0 != __stt_check_privilege()) {
 		return STT_ERROR_PERMISSION_DENIED;
 	}
-
-	if (NULL == stt) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL");
-		return STT_ERROR_INVALID_PARAMETER;
-	}
-
-	stt_client_s* client = stt_client_get(stt);
-	if (NULL == client) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Get state : A handle is not valid");
+	if (0 != __stt_check_handle(stt, &client)) {
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
@@ -1189,28 +1136,26 @@ int stt_set_silence_detection(stt_h stt, stt_option_silence_detection_e type)
 
 int stt_set_start_sound(stt_h stt, const char* filename)
 {
+	stt_client_s* client = NULL;
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
 	if (0 != __stt_check_privilege()) {
 		return STT_ERROR_PERMISSION_DENIED;
 	}
+	if (0 != __stt_check_handle(stt, &client)) {
+		return STT_ERROR_INVALID_PARAMETER;
+	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== STT SET START SOUND");
 
-	if (NULL == stt || NULL == filename) {
+	if (NULL == filename) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL");
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
 	if (0 != access(filename, F_OK)) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] File does not exist");
-		return STT_ERROR_INVALID_PARAMETER;
-	}
-
-	stt_client_s* client = stt_client_get(stt);
-	if (NULL == client) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Get state : A handle is not valid");
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
@@ -1248,26 +1193,18 @@ int stt_set_start_sound(stt_h stt, const char* filename)
 
 int stt_unset_start_sound(stt_h stt)
 {
+	stt_client_s* client = NULL;
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
 	if (0 != __stt_check_privilege()) {
 		return STT_ERROR_PERMISSION_DENIED;
 	}
+	if (0 != __stt_check_handle(stt, &client)) {
+		return STT_ERROR_INVALID_PARAMETER;
+	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== STT UNSET START SOUND");
-
-	if (NULL == stt) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL");
-		return STT_ERROR_INVALID_PARAMETER;
-	}
-
-	stt_client_s* client = stt_client_get(stt);
-
-	if (NULL == client) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Get state : A handle is not valid");
-		return STT_ERROR_INVALID_PARAMETER;
-	}
 
 	/* check state */
 	if (client->current_state != STT_STATE_READY) {
@@ -1303,29 +1240,26 @@ int stt_unset_start_sound(stt_h stt)
 
 int stt_set_stop_sound(stt_h stt, const char* filename)
 {
+	stt_client_s* client = NULL;
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
 	if (0 != __stt_check_privilege()) {
 		return STT_ERROR_PERMISSION_DENIED;
 	}
+	if (0 != __stt_check_handle(stt, &client)) {
+		return STT_ERROR_INVALID_PARAMETER;
+	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== STT SET STOP SOUND");
 
-	if (NULL == stt || NULL == filename) {
+	if (NULL == filename) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL");
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
 	if (0 != access(filename, F_OK)) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] File does not exist");
-		return STT_ERROR_INVALID_PARAMETER;
-	}
-
-	stt_client_s* client = stt_client_get(stt);
-
-	if (NULL == client) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Get state : A handle is not valid");
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
@@ -1363,26 +1297,18 @@ int stt_set_stop_sound(stt_h stt, const char* filename)
 
 int stt_unset_stop_sound(stt_h stt)
 {
+	stt_client_s* client = NULL;
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
 	if (0 != __stt_check_privilege()) {
 		return STT_ERROR_PERMISSION_DENIED;
 	}
+	if (0 != __stt_check_handle(stt, &client)) {
+		return STT_ERROR_INVALID_PARAMETER;
+	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== STT UNSET STOP SOUND");
-
-	if (NULL == stt) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL");
-		return STT_ERROR_INVALID_PARAMETER;
-	}
-
-	stt_client_s* client = stt_client_get(stt);
-
-	if (NULL == client) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Get state : A handle is not valid");
-		return STT_ERROR_INVALID_PARAMETER;
-	}
 
 	/* check state */
 	if (client->current_state != STT_STATE_READY) {
@@ -1418,25 +1344,18 @@ int stt_unset_stop_sound(stt_h stt)
 
 int stt_start(stt_h stt, const char* language, const char* type)
 {
+	stt_client_s* client = NULL;
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
 	if (0 != __stt_check_privilege()) {
 		return STT_ERROR_PERMISSION_DENIED;
 	}
+	if (0 != __stt_check_handle(stt, &client)) {
+		return STT_ERROR_INVALID_PARAMETER;
+	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== STT START");
-
-	if (NULL == stt) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL");
-		return STT_ERROR_INVALID_PARAMETER;
-	}
-
-	stt_client_s* client = stt_client_get(stt);
-	if (NULL == client) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not available");
-		return STT_ERROR_INVALID_PARAMETER;
-	}
 
 	/* check state */
 	if (client->current_state != STT_STATE_READY) {
@@ -1489,25 +1408,18 @@ int stt_start(stt_h stt, const char* language, const char* type)
 
 int stt_stop(stt_h stt)
 {
+	stt_client_s* client = NULL;
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
 	if (0 != __stt_check_privilege()) {
 		return STT_ERROR_PERMISSION_DENIED;
 	}
+	if (0 != __stt_check_handle(stt, &client)) {
+		return STT_ERROR_INVALID_PARAMETER;
+	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== STT STOP");
-
-	if (NULL == stt) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL");
-		return STT_ERROR_INVALID_PARAMETER;
-	}
-
-	stt_client_s* client = stt_client_get(stt);
-	if (NULL == client) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not available");
-		return STT_ERROR_INVALID_PARAMETER;
-	}
 
 	/* check state */
 	if (client->current_state != STT_STATE_RECORDING) {
@@ -1538,27 +1450,18 @@ int stt_stop(stt_h stt)
 
 int stt_cancel(stt_h stt)
 {
+	stt_client_s* client = NULL;
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
 	if (0 != __stt_check_privilege()) {
 		return STT_ERROR_PERMISSION_DENIED;
 	}
+	if (0 != __stt_check_handle(stt, &client)) {
+		return STT_ERROR_INVALID_PARAMETER;
+	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== STT CANCEL");
-
-	if (NULL == stt) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input handle is null");
-		return STT_ERROR_INVALID_PARAMETER;
-	}
-
-	stt_client_s* client = stt_client_get(stt);
-
-	/* check handle */
-	if (NULL == client) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not available");
-		return STT_ERROR_INVALID_PARAMETER;
-	}
 
 	/* check state */
 	if (STT_STATE_RECORDING != client->current_state && STT_STATE_PROCESSING != client->current_state) {
@@ -1608,23 +1511,19 @@ int __stt_cb_set_volume(int uid, float volume)
 
 int stt_get_recording_volume(stt_h stt, float* volume)
 {
+	stt_client_s* client = NULL;
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
 	if (0 != __stt_check_privilege()) {
 		return STT_ERROR_PERMISSION_DENIED;
 	}
-
-	if (NULL == stt || NULL == volume) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL");
+	if (0 != __stt_check_handle(stt, &client)) {
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
-	stt_client_s* client = stt_client_get(stt);
-
-	/* check handle */
-	if (NULL == client) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not available");
+	if (NULL == volume) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL");
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
@@ -1663,25 +1562,21 @@ bool __stt_result_time_cb(int index, int event, const char* text, long start_tim
 
 int stt_foreach_detailed_result(stt_h stt, stt_result_time_cb callback, void* user_data)
 {
+	stt_client_s* client = NULL;
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
 	if (0 != __stt_check_privilege()) {
 		return STT_ERROR_PERMISSION_DENIED;
 	}
+	if (0 != __stt_check_handle(stt, &client)) {
+		return STT_ERROR_INVALID_PARAMETER;
+	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== STT FOREACH DETAILED RESULT");
 
 	if (NULL == callback) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL");
-		return STT_ERROR_INVALID_PARAMETER;
-	}
-
-	stt_client_s* client = stt_client_get(stt);
-
-	/* check handle */
-	if (NULL == client) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail : A handle is not valid");
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
@@ -1939,23 +1834,19 @@ int __stt_cb_set_state(int uid, int state)
 
 int stt_set_recognition_result_cb(stt_h stt, stt_recognition_result_cb callback, void* user_data)
 {
+	stt_client_s* client = NULL;
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
 	if (0 != __stt_check_privilege()) {
 		return STT_ERROR_PERMISSION_DENIED;
 	}
-
-	if (stt == NULL || callback == NULL)
-		return STT_ERROR_INVALID_PARAMETER;
-
-	stt_client_s* client = stt_client_get(stt);
-
-	/* check handle */
-	if (NULL == client) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not available");
+	if (0 != __stt_check_handle(stt, &client)) {
 		return STT_ERROR_INVALID_PARAMETER;
 	}
+
+	if (callback == NULL)
+		return STT_ERROR_INVALID_PARAMETER;
 
 	if (STT_STATE_CREATED != client->current_state) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Current state(%d) is not 'Created'", client->current_state);
@@ -1970,21 +1861,14 @@ int stt_set_recognition_result_cb(stt_h stt, stt_recognition_result_cb callback,
 
 int stt_unset_recognition_result_cb(stt_h stt)
 {
+	stt_client_s* client = NULL;
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
 	if (0 != __stt_check_privilege()) {
 		return STT_ERROR_PERMISSION_DENIED;
 	}
-
-	if (NULL == stt)
-		return STT_ERROR_INVALID_PARAMETER;
-
-	stt_client_s* client = stt_client_get(stt);
-
-	/* check handle */
-	if (NULL == client) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not available");
+	if (0 != __stt_check_handle(stt, &client)) {
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
@@ -2001,23 +1885,19 @@ int stt_unset_recognition_result_cb(stt_h stt)
 
 int stt_set_state_changed_cb(stt_h stt, stt_state_changed_cb callback, void* user_data)
 {
+	stt_client_s* client = NULL;
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
 	if (0 != __stt_check_privilege()) {
 		return STT_ERROR_PERMISSION_DENIED;
 	}
-
-	if (NULL == stt || NULL == callback)
-		return STT_ERROR_INVALID_PARAMETER;
-
-	stt_client_s* client = stt_client_get(stt);
-
-	/* check handle */
-	if (NULL == client) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not available");
+	if (0 != __stt_check_handle(stt, &client)) {
 		return STT_ERROR_INVALID_PARAMETER;
 	}
+
+	if (NULL == callback)
+		return STT_ERROR_INVALID_PARAMETER;
 
 	if (STT_STATE_CREATED != client->current_state) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Current state(%d) is not 'Created'", client->current_state);
@@ -2032,21 +1912,14 @@ int stt_set_state_changed_cb(stt_h stt, stt_state_changed_cb callback, void* use
 
 int stt_unset_state_changed_cb(stt_h stt)
 {
+	stt_client_s* client = NULL;
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
 	if (0 != __stt_check_privilege()) {
 		return STT_ERROR_PERMISSION_DENIED;
 	}
-
-	if (NULL == stt)
-		return STT_ERROR_INVALID_PARAMETER;
-
-	stt_client_s* client = stt_client_get(stt);
-
-	/* check handle */
-	if (NULL == client) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not available");
+	if (0 != __stt_check_handle(stt, &client)) {
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
@@ -2063,23 +1936,19 @@ int stt_unset_state_changed_cb(stt_h stt)
 
 int stt_set_error_cb(stt_h stt, stt_error_cb callback, void* user_data)
 {
+	stt_client_s* client = NULL;
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
 	if (0 != __stt_check_privilege()) {
 		return STT_ERROR_PERMISSION_DENIED;
 	}
-
-	if (NULL == stt || NULL == callback)
-		return STT_ERROR_INVALID_PARAMETER;
-
-	stt_client_s* client = stt_client_get(stt);
-
-	/* check handle */
-	if (NULL == client) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not available");
+	if (0 != __stt_check_handle(stt, &client)) {
 		return STT_ERROR_INVALID_PARAMETER;
 	}
+
+	if (NULL == callback)
+		return STT_ERROR_INVALID_PARAMETER;
 
 	if (STT_STATE_CREATED != client->current_state) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Current state(%d) is not 'Created'", client->current_state);
@@ -2094,21 +1963,14 @@ int stt_set_error_cb(stt_h stt, stt_error_cb callback, void* user_data)
 
 int stt_unset_error_cb(stt_h stt)
 {
+	stt_client_s* client = NULL;
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
 	if (0 != __stt_check_privilege()) {
 		return STT_ERROR_PERMISSION_DENIED;
 	}
-
-	if (NULL == stt)
-		return STT_ERROR_INVALID_PARAMETER;
-
-	stt_client_s* client = stt_client_get(stt);
-
-	/* check handle */
-	if (NULL == client) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not available");
+	if (0 != __stt_check_handle(stt, &client)) {
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
@@ -2125,23 +1987,19 @@ int stt_unset_error_cb(stt_h stt)
 
 int stt_set_default_language_changed_cb(stt_h stt, stt_default_language_changed_cb callback, void* user_data)
 {
+	stt_client_s* client = NULL;
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
 	if (0 != __stt_check_privilege()) {
 		return STT_ERROR_PERMISSION_DENIED;
 	}
-
-	if (NULL == stt || NULL == callback)
-		return STT_ERROR_INVALID_PARAMETER;
-
-	stt_client_s* client = stt_client_get(stt);
-
-	/* check handle */
-	if (NULL == client) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not available");
+	if (0 != __stt_check_handle(stt, &client)) {
 		return STT_ERROR_INVALID_PARAMETER;
 	}
+
+	if (NULL == callback)
+		return STT_ERROR_INVALID_PARAMETER;
 
 	if (STT_STATE_CREATED != client->current_state) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Current state(%d) is not 'Created'", client->current_state);
@@ -2156,21 +2014,14 @@ int stt_set_default_language_changed_cb(stt_h stt, stt_default_language_changed_
 
 int stt_unset_default_language_changed_cb(stt_h stt)
 {
+	stt_client_s* client = NULL;
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
 	if (0 != __stt_check_privilege()) {
 		return STT_ERROR_PERMISSION_DENIED;
 	}
-
-	if (NULL == stt)
-		return STT_ERROR_INVALID_PARAMETER;
-
-	stt_client_s* client = stt_client_get(stt);
-
-	/* check handle */
-	if (NULL == client) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not available");
+	if (0 != __stt_check_handle(stt, &client)) {
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
@@ -2187,23 +2038,19 @@ int stt_unset_default_language_changed_cb(stt_h stt)
 
 int stt_set_engine_changed_cb(stt_h stt, stt_engine_changed_cb callback, void* user_data)
 {
+	stt_client_s* client = NULL;
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
 	if (0 != __stt_check_privilege()) {
 		return STT_ERROR_PERMISSION_DENIED;
 	}
-
-	if (NULL == stt || NULL == callback)
-		return STT_ERROR_INVALID_PARAMETER;
-
-	stt_client_s* client = stt_client_get(stt);
-
-	/* check handle */
-	if (NULL == client) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not available");
+	if (0 != __stt_check_handle(stt, &client)) {
 		return STT_ERROR_INVALID_PARAMETER;
 	}
+
+	if (NULL == callback)
+		return STT_ERROR_INVALID_PARAMETER;
 
 	if (STT_STATE_CREATED != client->current_state) {
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Current state(%d) is not 'Created'", client->current_state);
@@ -2218,21 +2065,14 @@ int stt_set_engine_changed_cb(stt_h stt, stt_engine_changed_cb callback, void* u
 
 int stt_unset_engine_changed_cb(stt_h stt)
 {
+	stt_client_s* client = NULL;
 	if (0 != __stt_get_feature_enabled()) {
 		return STT_ERROR_NOT_SUPPORTED;
 	}
 	if (0 != __stt_check_privilege()) {
 		return STT_ERROR_PERMISSION_DENIED;
 	}
-
-	if (NULL == stt)
-		return STT_ERROR_INVALID_PARAMETER;
-
-	stt_client_s* client = stt_client_get(stt);
-
-	/* check handle */
-	if (NULL == client) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] A handle is not available");
+	if (0 != __stt_check_handle(stt, &client)) {
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
