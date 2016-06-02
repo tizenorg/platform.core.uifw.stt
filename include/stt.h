@@ -52,7 +52,10 @@ typedef enum {
 	STT_ERROR_ENGINE_NOT_FOUND		= TIZEN_ERROR_STT | 0x03,	/**< No available engine  */
 	STT_ERROR_OPERATION_FAILED		= TIZEN_ERROR_STT | 0x04,	/**< Operation failed  */
 	STT_ERROR_NOT_SUPPORTED_FEATURE		= TIZEN_ERROR_STT | 0x05,	/**< Not supported feature of current engine */
-	STT_ERROR_NO_SPEECH			= TIZEN_ERROR_STT | 0x06	/**< No speech while recording */
+	STT_ERROR_NO_SPEECH			= TIZEN_ERROR_STT | 0x06,	/**< No speech while recording */
+	STT_ERROR_IN_PROGRESS_TO_READY		= TIZEN_ERROR_STT | 0x07,	/**< Progress to ready is not finished */
+	STT_ERROR_IN_PROGRESS_TO_RECORDING	= TIZEN_ERROR_STT | 0x08,	/**< Progress to recording is not finished */
+	STT_ERROR_IN_PROGRESS_TO_PROCESSING	= TIZEN_ERROR_STT | 0x09	/**< Progress to processing is not finished */
 } stt_error_e;
 
 /**
@@ -764,10 +767,12 @@ int stt_unset_stop_sound(stt_h stt);
  * @retval #STT_ERROR_RECORDER_BUSY Recorder busy
  * @retval #STT_ERROR_INVALID_LANGUAGE Invalid language
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
+ * @retval #STT_ERROR_IN_PROGRESS_TO_RECORDING Progress to recording is not finished
  *
  * @pre The state should be #STT_STATE_READY.
  * @post It will invoke stt_state_changed_cb(), if you register a callback with stt_state_changed_cb(). \n
  * If this function succeeds, the STT state will be #STT_STATE_RECORDING.
+ * If you call this function again before state changes, you will receive STT_ERROR_IN_PROGRESS_TO_RECORDING.
  *
  * @see stt_stop()
  * @see stt_cancel()
@@ -789,10 +794,12 @@ int stt_start(stt_h stt, const char* language, const char* type);
  * @retval #STT_ERROR_INVALID_STATE Invalid state
  * @retval #STT_ERROR_OPERATION_FAILED Operation failure
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
+ * @retval #STT_ERROR_IN_PROGRESS_TO_PROCESSING Progress to processing is not finished
  *
  * @pre The state should be #STT_STATE_RECORDING.
  * @post It will invoke stt_state_changed_cb(), if you register a callback with stt_state_changed_cb(). \n
  * If this function succeeds, the STT state will be #STT_STATE_PROCESSING. \n
+ * If you call this function again before state changes, you will receive STT_ERROR_IN_PROGRESS_TO_PROCESSING.
  * After processing of engine, stt_result_cb() is called.
  *
  * @see stt_start()
@@ -818,10 +825,12 @@ int stt_stop(stt_h stt);
  * @retval #STT_ERROR_INVALID_STATE Invalid state
  * @retval #STT_ERROR_OPERATION_FAILED Operation failure
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
+ * @retval #STT_ERROR_IN_PROGRESS_TO_READY Progress to ready is not finished
  *
  * @pre The state should be #STT_STATE_RECORDING or #STT_STATE_PROCESSING.
  * @post It will invoke stt_state_changed_cb(), if you register a callback with stt_state_changed_cb(). \n
  * If this function succeeds, the STT state will be #STT_STATE_READY.
+ * If you call this function again before state changes, you will receive STT_ERROR_IN_PROGRESS_TO_READY.
  *
  * @see stt_start()
  * @see stt_stop()
