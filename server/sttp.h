@@ -1,5 +1,5 @@
 /*
-*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved
+*  Copyright (c) 2011-2016 Samsung Electronics Co., Ltd All Rights Reserved
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -44,7 +44,8 @@ typedef enum {
 	STTP_ERROR_ENGINE_NOT_FOUND		= TIZEN_ERROR_STT | 0x03,	/**< No available engine  */
 	STTP_ERROR_OPERATION_FAILED		= TIZEN_ERROR_STT | 0x04,	/**< Operation failed  */
 	STTP_ERROR_NOT_SUPPORTED_FEATURE	= TIZEN_ERROR_STT | 0x05,	/**< Not supported feature of current engine */
-	STTP_ERROR_NO_SPEECH			= TIZEN_ERROR_STT | 0x06	/**< No speech while recording */
+	STTP_ERROR_NO_SPEECH			= TIZEN_ERROR_STT | 0x06,	/**< No speech while recording */
+	STTP_ERROR_RECORDING_TIMED_OUT		= TIZEN_ERROR_STT | 0x10	/**< Recording timed out */
 }sttp_error_e;
 
 /**
@@ -357,6 +358,7 @@ typedef int (*sttpe_foreach_result_time)(void* time_info, sttpe_result_time_cb c
 * @retval #STTP_ERROR_INVALID_LANGUAGE Invalid language
 * @retval #STTP_ERROR_OPERATION_FAILED Operation failed
 * @retval #STTP_ERROR_OUT_OF_NETWORK Out of network
+* @retval #STTP_ERROR_PERMISSION_DENIED Permission denied
 *
 * @pre The engine is not in recognition processing.
 *

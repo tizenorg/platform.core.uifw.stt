@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved
+ * Copyright (c) 2011-2016 Samsung Electronics Co., Ltd All Rights Reserved
  *
  * Licensed under the Apache License, Version 2.0 (the License);
  * you may not use this file except in compliance with the License.
@@ -55,7 +55,8 @@ typedef enum {
 	STT_ERROR_NO_SPEECH			= TIZEN_ERROR_STT | 0x06,	/**< No speech while recording */
 	STT_ERROR_IN_PROGRESS_TO_READY		= TIZEN_ERROR_STT | 0x07,	/**< Progress to ready is not finished */
 	STT_ERROR_IN_PROGRESS_TO_RECORDING	= TIZEN_ERROR_STT | 0x08,	/**< Progress to recording is not finished */
-	STT_ERROR_IN_PROGRESS_TO_PROCESSING	= TIZEN_ERROR_STT | 0x09	/**< Progress to processing is not finished */
+	STT_ERROR_IN_PROGRESS_TO_PROCESSING	= TIZEN_ERROR_STT | 0x09,	/**< Progress to processing is not finished */
+	STT_ERROR_RECORDING_TIMED_OUT		= TIZEN_ERROR_STT | 0x10	/**< Recording timed out */
 } stt_error_e;
 
 /**
@@ -794,6 +795,8 @@ int stt_start(stt_h stt, const char* language, const char* type);
  * @retval #STT_ERROR_INVALID_STATE Invalid state
  * @retval #STT_ERROR_OPERATION_FAILED Operation failure
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
+ * @retval #STT_ERROR_IN_PROGRESS_TO_READY Progress to ready is not finished
+ * @retval #STT_ERROR_IN_PROGRESS_TO_RECORDING Progress to recording is not finished
  * @retval #STT_ERROR_IN_PROGRESS_TO_PROCESSING Progress to processing is not finished
  *
  * @pre The state should be #STT_STATE_RECORDING.
@@ -826,6 +829,8 @@ int stt_stop(stt_h stt);
  * @retval #STT_ERROR_OPERATION_FAILED Operation failure
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
  * @retval #STT_ERROR_IN_PROGRESS_TO_READY Progress to ready is not finished
+ * @retval #STT_ERROR_IN_PROGRESS_TO_RECORDING Progress to recording is not finished
+ * @retval #STT_ERROR_IN_PROGRESS_TO_PROCESSING Progress to processing is not finished
  *
  * @pre The state should be #STT_STATE_RECORDING or #STT_STATE_PROCESSING.
  * @post It will invoke stt_state_changed_cb(), if you register a callback with stt_state_changed_cb(). \n
