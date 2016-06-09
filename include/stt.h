@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved
+ * Copyright (c) 2011-2016 Samsung Electronics Co., Ltd All Rights Reserved
  *
  * Licensed under the Apache License, Version 2.0 (the License);
  * you may not use this file except in compliance with the License.
@@ -55,7 +55,8 @@ typedef enum {
 	STT_ERROR_NO_SPEECH			= TIZEN_ERROR_STT | 0x06,	/**< No speech while recording */
 	STT_ERROR_IN_PROGRESS_TO_READY		= TIZEN_ERROR_STT | 0x07,	/**< Progress to ready is not finished */
 	STT_ERROR_IN_PROGRESS_TO_RECORDING	= TIZEN_ERROR_STT | 0x08,	/**< Progress to recording is not finished */
-	STT_ERROR_IN_PROGRESS_TO_PROCESSING	= TIZEN_ERROR_STT | 0x09	/**< Progress to processing is not finished */
+	STT_ERROR_IN_PROGRESS_TO_PROCESSING	= TIZEN_ERROR_STT | 0x09,	/**< Progress to processing is not finished */
+	STT_ERROR_RECORDING_TIMED_OUT		= TIZEN_ERROR_STT | 0x10	/**< Recording timed out */
 } stt_error_e;
 
 /**
@@ -301,7 +302,7 @@ typedef void (*stt_default_language_changed_cb)(stt_h stt, const char* previous_
 
 /**
  * @brief Called when the engine is changed.
- * @since_tizen 3.0
+ * @since_tizen @if MOBILE 3.0 @elseif WEARABLE 2.3.2 @endif
  *
  * @param[in] stt The STT handle
  * @param[in] engine_id Engine id
@@ -428,7 +429,7 @@ int stt_set_engine(stt_h stt, const char* engine_id);
 
 /**
  * @brief Sets the app credential.
- * @since_tizen 3.0
+ * @since_tizen @if MOBILE 3.0 @elseif WEARABLE 2.3.2 @endif
  * @privlevel public
  * @privilege %http://tizen.org/privilege/recorder
  *
@@ -449,7 +450,7 @@ int stt_set_credential(stt_h stt, const char* credential);
 
 /**
  * @brief Sets the private data to stt engine.
- * @since_tizen 3.0
+ * @since_tizen @if MOBILE 3.0 @elseif WEARABLE 2.3.2 @endif
  *
  * @param[in] stt The STT handle
  * @param[in] key The field name of private data
@@ -471,7 +472,7 @@ int stt_set_private_data(stt_h stt, const char* key, const char* data);
 
 /**
  * @brief Gets the private data from stt engine.
- * @since_tizen 3.0
+ * @since_tizen @if MOBILE 3.0 @elseif WEARABLE 2.3.2 @endif
  *
  * @param[in] stt The STT handle
  * @param[in] key The field name of private data
@@ -603,7 +604,7 @@ int stt_get_state(stt_h stt, stt_state_e* state);
 
 /**
  * @brief Gets the current error message.
- * @since_tizen 3.0
+ * @since_tizen @if MOBILE 3.0 @elseif WEARABLE 2.3.2 @endif
  * @privlevel public
  * @privilege %http://tizen.org/privilege/recorder
  * @remarks This function should be called during an stt error callback. If not, the error as operation failure will be returned. \n
@@ -794,6 +795,8 @@ int stt_start(stt_h stt, const char* language, const char* type);
  * @retval #STT_ERROR_INVALID_STATE Invalid state
  * @retval #STT_ERROR_OPERATION_FAILED Operation failure
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
+ * @retval #STT_ERROR_IN_PROGRESS_TO_READY Progress to ready is not finished
+ * @retval #STT_ERROR_IN_PROGRESS_TO_RECORDING Progress to recording is not finished
  * @retval #STT_ERROR_IN_PROGRESS_TO_PROCESSING Progress to processing is not finished
  *
  * @pre The state should be #STT_STATE_RECORDING.
@@ -826,6 +829,8 @@ int stt_stop(stt_h stt);
  * @retval #STT_ERROR_OPERATION_FAILED Operation failure
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
  * @retval #STT_ERROR_IN_PROGRESS_TO_READY Progress to ready is not finished
+ * @retval #STT_ERROR_IN_PROGRESS_TO_RECORDING Progress to recording is not finished
+ * @retval #STT_ERROR_IN_PROGRESS_TO_PROCESSING Progress to processing is not finished
  *
  * @pre The state should be #STT_STATE_RECORDING or #STT_STATE_PROCESSING.
  * @post It will invoke stt_state_changed_cb(), if you register a callback with stt_state_changed_cb(). \n

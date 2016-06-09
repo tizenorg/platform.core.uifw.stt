@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved
+* Copyright (c) 2011-2016 Samsung Electronics Co., Ltd All Rights Reserved
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -640,7 +640,7 @@ int sttd_dbus_server_get_private_data(DBusConnection* conn, DBusMessage* msg)
 		dbus_error_free(&err);
 		ret = STTD_ERROR_OPERATION_FAILED;
 	} else {
-		SLOG(LOG_DEBUG, TAG_STTD, "[IN] stt get private data : uid(%d)", uid);
+		SLOG(LOG_DEBUG, TAG_STTD, "[IN] stt get private data : uid(%d), key(%s)", uid, (NULL == key) ? "NULL" : key);
 		ret = sttd_server_get_private_data(uid, key, &data);
 	}
 
@@ -655,7 +655,7 @@ int sttd_dbus_server_get_private_data(DBusConnection* conn, DBusMessage* msg)
 			DBUS_TYPE_INVALID);
 
 		if (0 == ret) {
-			SLOG(LOG_DEBUG, TAG_STTD, "[OUT SUCCESS] Result(%d)", ret);
+			SLOG(LOG_DEBUG, TAG_STTD, "[OUT SUCCESS] Result(%d), data(%s)", ret, (NULL == data) ? "NULL" : data);
 		} else {
 			SLOG(LOG_ERROR, TAG_STTD, "[OUT ERROR] Result(%d)", ret);
 		}
