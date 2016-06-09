@@ -302,13 +302,13 @@ typedef void (*stt_default_language_changed_cb)(stt_h stt, const char* previous_
 
 /**
  * @brief Called when the engine is changed.
- * @since_tizen 3.0
+ * @since_tizen @if MOBILE 3.0 @elseif WEARABLE 2.3.2 @endif
  *
  * @param[in] stt The STT handle
  * @param[in] engine_id Engine id
  * @param[in] language The default language
- * @param[in] support_silence support silence detection
- * @param[in] need_credential necessity of credential
+ * @param[in] support_silence Whether the silence detection is supported or not
+ * @param[in] need_credential The necessity of credential
  * @param[in] user_data The user data passed from the callback registration function
  *
  * @see stt_set_engine_changed_cb()
@@ -332,6 +332,7 @@ typedef bool (*stt_engine_changed_cb)(stt_h stt, const char* engine_id, const ch
  * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
  * @retval #STT_ERROR_OPERATION_FAILED Operation failure
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
+ * @retval #STT_ERROR_PERMISSION_DENIED Permission denied
  *
  * @post If this function is called, the STT state will be #STT_STATE_CREATED.
  *
@@ -352,6 +353,7 @@ int stt_create(stt_h* stt);
  * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
  * @retval #STT_ERROR_OPERATION_FAILED Operation failure
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
+ * @retval #STT_ERROR_PERMISSION_DENIED Permission denied
  *
  * @see stt_create()
 */
@@ -373,6 +375,7 @@ int stt_destroy(stt_h stt);
  * @retval #STT_ERROR_INVALID_STATE STT Not initialized
  * @retval #STT_ERROR_OPERATION_FAILED Operation failure
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
+ * @retval #STT_ERROR_PERMISSION_DENIED Permission denied
  *
  * @pre The state should be #STT_STATE_CREATED.
  * @post This function invokes stt_supported_engine_cb() repeatedly for getting engine information.
@@ -398,6 +401,7 @@ int stt_foreach_supported_engines(stt_h stt, stt_supported_engine_cb callback, v
  * @retval #STT_ERROR_INVALID_STATE STT Not initialized
  * @retval #STT_ERROR_OPERATION_FAILED Operation failure
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
+ * @retval #STT_ERROR_PERMISSION_DENIED Permission denied
  *
  * @pre The state should be #STT_STATE_CREATED.
  *
@@ -420,6 +424,7 @@ int stt_get_engine(stt_h stt, char** engine_id);
  * @retval #STT_ERROR_INVALID_STATE STT Not initialized
  * @retval #STT_ERROR_OPERATION_FAILED Operation failure
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
+ * @retval #STT_ERROR_PERMISSION_DENIED Permission denied
  *
  * @pre The state should be #STT_STATE_CREATED.
  *
@@ -429,7 +434,7 @@ int stt_set_engine(stt_h stt, const char* engine_id);
 
 /**
  * @brief Sets the app credential.
- * @since_tizen 3.0
+ * @since_tizen @if MOBILE 3.0 @elseif WEARABLE 2.3.2 @endif
  * @privlevel public
  * @privilege %http://tizen.org/privilege/recorder
  *
@@ -439,7 +444,9 @@ int stt_set_engine(stt_h stt, const char* engine_id);
  * @return 0 on success, otherwise a negative error value
  * @retval #STT_ERROR_NONE Success
  * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #STT_ERROR_INVALID_STATE Invalid state
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
+ * @retval #STT_ERROR_PERMISSION_DENIED Permission denied
  *
  * @pre The state should be #STT_STATE_CREATED or #STT_STATE_READY.
  *
@@ -450,7 +457,7 @@ int stt_set_credential(stt_h stt, const char* credential);
 
 /**
  * @brief Sets the private data to stt engine.
- * @since_tizen 3.0
+ * @since_tizen @if MOBILE 3.0 @elseif WEARABLE 2.3.2 @endif
  *
  * @param[in] stt The STT handle
  * @param[in] key The field name of private data
@@ -472,11 +479,13 @@ int stt_set_private_data(stt_h stt, const char* key, const char* data);
 
 /**
  * @brief Gets the private data from stt engine.
- * @since_tizen 3.0
+ * @since_tizen @if MOBILE 3.0 @elseif WEARABLE 2.3.2 @endif
  *
  * @param[in] stt The STT handle
  * @param[in] key The field name of private data
- * @param[out] data The data
+ * @param[out] data The data field of private data
+ *
+ * @remarks The @a data must be released using free() when it is no longer required.
  *
  * @return 0 on success, otherwise a negative error value
  * @retval #STT_ERROR_NONE Successful
@@ -505,6 +514,7 @@ int stt_get_private_data(stt_h stt, const char* key, char** data);
  * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
  * @retval #STT_ERROR_INVALID_STATE Invalid state
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
+ * @retval #STT_ERROR_PERMISSION_DENIED Permission denied
  *
  * @pre The state should be #STT_STATE_CREATED.
  * @post If this function is successful, the STT state will be #STT_STATE_READY. \n
@@ -527,6 +537,7 @@ int stt_prepare(stt_h stt);
  * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
  * @retval #STT_ERROR_INVALID_STATE Invalid state
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
+ * @retval #STT_ERROR_PERMISSION_DENIED Permission denied
  *
  * @pre The state should be #STT_STATE_READY.
  * @post If this function is called, the STT state will be #STT_STATE_CREATED.
@@ -548,9 +559,11 @@ int stt_unprepare(stt_h stt);
  * @return 0 on success, otherwise a negative error value
  * @retval #STT_ERROR_NONE Successful
  * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #STT_ERROR_OUT_OF_MEMORY Out of memory
  * @retval #STT_ERROR_OPERATION_FAILED Operation failure
  * @retval #STT_ERROR_ENGINE_NOT_FOUND No available engine
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
+ * @retval #STT_ERROR_PERMISSION_DENIED Permission denied
  *
  * @post This function invokes stt_supported_language_cb() repeatedly for getting languages.
  *
@@ -576,6 +589,7 @@ int stt_foreach_supported_languages(stt_h stt, stt_supported_language_cb callbac
  * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
  * @retval #STT_ERROR_OPERATION_FAILED Operation failure
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
+ * @retval #STT_ERROR_PERMISSION_DENIED Permission denied
  *
  * @see stt_foreach_supported_languages()
 */
@@ -594,6 +608,7 @@ int stt_get_default_language(stt_h stt, char** language);
  * @retval #STT_ERROR_NONE Successful
  * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
+ * @retval #STT_ERROR_PERMISSION_DENIED Permission denied
  *
  * @see stt_start()
  * @see stt_stop()
@@ -604,7 +619,7 @@ int stt_get_state(stt_h stt, stt_state_e* state);
 
 /**
  * @brief Gets the current error message.
- * @since_tizen 3.0
+ * @since_tizen @if MOBILE 3.0 @elseif WEARABLE 2.3.2 @endif
  * @privlevel public
  * @privilege %http://tizen.org/privilege/recorder
  * @remarks This function should be called during an stt error callback. If not, the error as operation failure will be returned. \n
@@ -618,6 +633,7 @@ int stt_get_state(stt_h stt, stt_state_e* state);
  * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
  * @retval #STT_ERROR_OPERATION_FAILED Operation failure
+ * @retval #STT_ERROR_PERMISSION_DENIED Permission denied
  *
  * @see stt_set_error_cb()
  * @see stt_unset_error_cb()
@@ -640,6 +656,7 @@ int stt_get_error_message(stt_h stt, char** err_msg);
  * @retval #STT_ERROR_OPERATION_FAILED Operation failure
  * @retval #STT_ERROR_INVALID_STATE Invalid state
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
+ * @retval #STT_ERROR_PERMISSION_DENIED Permission denied
  *
  * @pre The state should be #STT_STATE_READY.
 */
@@ -660,6 +677,7 @@ int stt_is_recognition_type_supported(stt_h stt, const char* type, bool* support
  * @retval #STT_ERROR_INVALID_STATE Invalid state
  * @retval #STT_ERROR_NOT_SUPPORTED_FEATURE Not supported feature of current engine
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
+ * @retval #STT_ERROR_PERMISSION_DENIED Permission denied
  *
  * @pre The state should be #STT_STATE_READY.
 */
@@ -682,6 +700,7 @@ int stt_set_silence_detection(stt_h stt, stt_option_silence_detection_e type);
  * @retval #STT_ERROR_INVALID_STATE Invalid state
  * @retval #STT_ERROR_OPERATION_FAILED Operation failure
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
+ * @retval #STT_ERROR_PERMISSION_DENIED Permission denied
  *
  * @pre The state should be #STT_STATE_READY.
 */
@@ -701,6 +720,7 @@ int stt_set_start_sound(stt_h stt, const char* filename);
  * @retval #STT_ERROR_INVALID_STATE Invalid state
  * @retval #STT_ERROR_OPERATION_FAILED Operation failure
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
+ * @retval #STT_ERROR_PERMISSION_DENIED Permission denied
  *
  * @pre The state should be #STT_STATE_READY.
 */
@@ -723,6 +743,7 @@ int stt_unset_start_sound(stt_h stt);
  * @retval #STT_ERROR_INVALID_STATE Invalid state
  * @retval #STT_ERROR_OPERATION_FAILED Operation failure
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
+ * @retval #STT_ERROR_PERMISSION_DENIED Permission denied
  *
  * @pre The state should be #STT_STATE_READY.
 */
@@ -742,6 +763,7 @@ int stt_set_stop_sound(stt_h stt, const char* filename);
  * @retval #STT_ERROR_INVALID_STATE Invalid state
  * @retval #STT_ERROR_OPERATION_FAILED Operation failure
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
+ * @retval #STT_ERROR_PERMISSION_DENIED Permission denied
  *
  * @pre The state should be #STT_STATE_READY.
 */
@@ -768,6 +790,7 @@ int stt_unset_stop_sound(stt_h stt);
  * @retval #STT_ERROR_RECORDER_BUSY Recorder busy
  * @retval #STT_ERROR_INVALID_LANGUAGE Invalid language
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
+ * @retval #STT_ERROR_PERMISSION_DENIED Permission denied
  * @retval #STT_ERROR_IN_PROGRESS_TO_RECORDING Progress to recording is not finished
  *
  * @pre The state should be #STT_STATE_READY.
@@ -795,6 +818,7 @@ int stt_start(stt_h stt, const char* language, const char* type);
  * @retval #STT_ERROR_INVALID_STATE Invalid state
  * @retval #STT_ERROR_OPERATION_FAILED Operation failure
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
+ * @retval #STT_ERROR_PERMISSION_DENIED Permission denied
  * @retval #STT_ERROR_IN_PROGRESS_TO_READY Progress to ready is not finished
  * @retval #STT_ERROR_IN_PROGRESS_TO_RECORDING Progress to recording is not finished
  * @retval #STT_ERROR_IN_PROGRESS_TO_PROCESSING Progress to processing is not finished
@@ -828,6 +852,7 @@ int stt_stop(stt_h stt);
  * @retval #STT_ERROR_INVALID_STATE Invalid state
  * @retval #STT_ERROR_OPERATION_FAILED Operation failure
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
+ * @retval #STT_ERROR_PERMISSION_DENIED Permission denied
  * @retval #STT_ERROR_IN_PROGRESS_TO_READY Progress to ready is not finished
  * @retval #STT_ERROR_IN_PROGRESS_TO_RECORDING Progress to recording is not finished
  * @retval #STT_ERROR_IN_PROGRESS_TO_PROCESSING Progress to processing is not finished
@@ -858,6 +883,7 @@ int stt_cancel(stt_h stt);
  * @retval #STT_ERROR_INVALID_STATE Invalid state
  * @retval #STT_ERROR_OPERATION_FAILED Operation failure
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
+ * @retval #STT_ERROR_PERMISSION_DENIED Permission denied
  *
  * @pre The state should be #STT_STATE_RECORDING.
  *
@@ -883,6 +909,7 @@ int stt_get_recording_volume(stt_h stt, float* volume);
  * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
  * @retval #STT_ERROR_OPERATION_FAILED Operation failure
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
+ * @retval #STT_ERROR_PERMISSION_DENIED Permission denied
  *
  * @pre This function should be called in stt_recognition_result_cb().
  * @post This function invokes stt_result_time_cb() repeatedly for getting time information.
@@ -907,6 +934,7 @@ int stt_foreach_detailed_result(stt_h stt, stt_result_time_cb callback, void* us
  * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
  * @retval #STT_ERROR_INVALID_STATE Invalid state
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
+ * @retval #STT_ERROR_PERMISSION_DENIED Permission denied
  *
  * @pre The state should be #STT_STATE_CREATED.
  *
@@ -928,6 +956,7 @@ int stt_set_recognition_result_cb(stt_h stt, stt_recognition_result_cb callback,
  * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
  * @retval #STT_ERROR_INVALID_STATE Invalid state
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
+ * @retval #STT_ERROR_PERMISSION_DENIED Permission denied
  *
  * @pre The state should be #STT_STATE_CREATED.
  *
@@ -950,6 +979,7 @@ int stt_unset_recognition_result_cb(stt_h stt);
  * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
  * @retval #STT_ERROR_INVALID_STATE Invalid state
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
+ * @retval #STT_ERROR_PERMISSION_DENIED Permission denied
  *
  * @pre The state should be #STT_STATE_CREATED.
  *
@@ -971,6 +1001,7 @@ int stt_set_state_changed_cb(stt_h stt, stt_state_changed_cb callback, void* use
  * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
  * @retval #STT_ERROR_INVALID_STATE Invalid state
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
+ * @retval #STT_ERROR_PERMISSION_DENIED Permission denied
  *
  * @pre The state should be #STT_STATE_CREATED.
  *
@@ -993,6 +1024,7 @@ int stt_unset_state_changed_cb(stt_h stt);
  * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
  * @retval #STT_ERROR_INVALID_STATE Invalid state
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
+ * @retval #STT_ERROR_PERMISSION_DENIED Permission denied
  *
  * @pre The state should be #STT_STATE_CREATED.
  *
@@ -1014,6 +1046,7 @@ int stt_set_error_cb(stt_h stt, stt_error_cb callback, void* user_data);
  * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
  * @retval #STT_ERROR_INVALID_STATE Invalid state
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
+ * @retval #STT_ERROR_PERMISSION_DENIED Permission denied
  *
  * @pre The state should be #STT_STATE_CREATED.
  *
@@ -1036,6 +1069,7 @@ int stt_unset_error_cb(stt_h stt);
  * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
  * @retval #STT_ERROR_INVALID_STATE Invalid state
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
+ * @retval #STT_ERROR_PERMISSION_DENIED Permission denied
  *
  * @pre The state should be #STT_STATE_CREATED.
  *
@@ -1057,12 +1091,59 @@ int stt_set_default_language_changed_cb(stt_h stt, stt_default_language_changed_
  * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
  * @retval #STT_ERROR_INVALID_STATE Invalid state
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
+ * @retval #STT_ERROR_PERMISSION_DENIED Permission denied
  *
  * @pre The state should be #STT_STATE_CREATED.
  *
  * @see stt_set_default_language_changed_cb()
 */
 int stt_unset_default_language_changed_cb(stt_h stt);
+
+/**
+ * @brief Registers a callback function to detect the engine change.
+ * @since_tizen @if MOBILE 3.0 @elseif WEARABLE 2.3.2 @endif
+ * @privlevel public
+ * @privilege %http://tizen.org/privilege/recorder
+ *
+ * @param[in] stt The STT handle
+ * @param]in] callback The callback function to register
+ * @param[in] user_data The user data to be passed to the callback function
+ *
+ * @return 0 on success, otherwise a negative error value
+ * @retval #STT_ERROR_NONE Successful
+ * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #STT_ERROR_INVALID_STATE Invalid state
+ * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
+ * @retval #STT_ERROR_PERMISSION_DENIED Permission denied
+ *
+ * @pre The state should be #STT_STATE_CREATED.
+ *
+ * @see stt_engine_changed_cb()
+ * @see stt_unset_engine_changed_cb()
+*/
+int stt_set_engine_changed_cb(stt_h stt, stt_engine_changed_cb callback, void* user_data);
+
+/**
+ * @brief Unregisters the callback function.
+ * @since_tizen @if MOBILE 3.0 @elseif WEARABLE 2.3.2 @endif
+ * @privlevel public
+ * @privilege %http://tizen.org/privilege/recorder
+ *
+ * @param[in] stt The STT handle
+ *
+ * @return 0 on success, otherwise a negative error value
+ * @retval #STT_ERROR_NONE Successful
+ * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #STT_ERROR_INVALID_STATE Invalid state
+ * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
+ * @retval #STT_ERROR_PERMISSION_DENIED Permission denied
+ *
+ * @pre The state should be #STT_STATE_CREATED.
+ *
+ * @see stt_set_engine_changed_cb()
+*/
+int stt_unset_engine_changed_cb(stt_h stt);
+
 
 #ifdef __cplusplus
 }
