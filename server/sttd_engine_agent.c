@@ -1,5 +1,5 @@
 /*
-*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved
+*  Copyright (c) 2011-2016 Samsung Electronics Co., Ltd All Rights Reserved
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -875,10 +875,9 @@ int sttd_engine_agent_supported_langs(int uid, GSList** lang_list)
 	int ret = stt_engine_get_supported_langs(engine->engine_id, lang_list);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] get language list error(%d)", ret);
-		return ret;
 	}
 
-	return 0;
+	return ret;
 }
 
 int sttd_engine_agent_get_default_lang(int uid, char** lang)
@@ -953,10 +952,9 @@ int sttd_engine_agent_set_private_data(int uid, const char* key, const char* dat
 	ret = stt_engine_set_private_data(engine->engine_id, key, data);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to set private data");
-		return ret;
 	}
 
-	return 0;
+	return ret;
 }
 
 int sttd_engine_agent_get_private_data(int uid, const char* key, char** data)
@@ -989,10 +987,9 @@ int sttd_engine_agent_get_private_data(int uid, const char* key, char** data)
 	ret = stt_engine_get_private_data(engine->engine_id, key, data);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Engine Agent ERROR] Fail to get private data");
-		return ret;
 	}
 
-	return 0;
+	return ret;
 }
 
 int sttd_engine_agent_get_option_supported(int uid, bool* silence)
@@ -1299,10 +1296,9 @@ int sttd_engine_agent_set_recording_data(int uid, const void* data, unsigned int
 	int ret = stt_engine_set_recording_data(engine->engine_id, data, length);
 	if (0 != ret) {
 		SLOG(LOG_WARN, TAG_STTD, "[Engine Agent WARNING] set recording error(%d)", ret);
-		return ret;
 	}
 
-	return 0;
+	return ret;
 }
 
 int sttd_engine_agent_recognize_stop_recorder(int uid)

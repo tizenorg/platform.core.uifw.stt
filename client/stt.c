@@ -1,5 +1,5 @@
 /*
-*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved
+*  Copyright (c) 2011-2016 Samsung Electronics Co., Ltd All Rights Reserved
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -555,7 +555,7 @@ int stt_set_credential(stt_h stt, const char* credential)
 	SLOG(LOG_DEBUG, TAG_STTC, "===== Set credential");
 
 	if (NULL == credential) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL, stt(%s), credential(%a)", stt, credential);
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Input parameter is NULL");
 		return STT_ERROR_INVALID_PARAMETER;
 	}
 
@@ -1427,8 +1427,14 @@ int stt_stop(stt_h stt)
 		return STT_ERROR_INVALID_STATE;
 	}
 
-	if (STT_INTERNAL_STATE_NONE != client->internal_state) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State : Internal state is NOT none : %d", client->internal_state);
+	if (STT_INTERNAL_STATE_STARTING == client->internal_state) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State : Internal state is STARTING : %d", client->internal_state);
+		return STT_ERROR_IN_PROGRESS_TO_RECORDING;
+	} else if (STT_INTERNAL_STATE_CANCELING == client->internal_state) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State : Internal state is CANCELING : %d", client->internal_state);
+		return STT_ERROR_IN_PROGRESS_TO_READY;
+	} else if (STT_INTERNAL_STATE_STOPPING == client->internal_state) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State : Internal state is STOPPING : %d", client->internal_state);
 		return STT_ERROR_IN_PROGRESS_TO_PROCESSING;
 	}
 
@@ -1438,7 +1444,7 @@ int stt_stop(stt_h stt)
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to stop : %s", __stt_get_error_code(ret));
 	} else {
 		SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] Stop is successful but not done");
-		client->internal_state = STT_INTERNAL_STATE_STOPING;
+		client->internal_state = STT_INTERNAL_STATE_STOPPING;
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "=====");
@@ -1469,8 +1475,14 @@ int stt_cancel(stt_h stt)
 		return STT_ERROR_INVALID_STATE;
 	}
 
-	if (STT_INTERNAL_STATE_NONE != client->internal_state) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State : Internal state is NOT none : %d", client->internal_state);
+	if (STT_INTERNAL_STATE_STARTING == client->internal_state) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State : Internal state is STARTING : %d", client->internal_state);
+		return STT_ERROR_IN_PROGRESS_TO_RECORDING;
+	} else if (STT_INTERNAL_STATE_STOPPING == client->internal_state) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State : Internal state is STOPPING : %d", client->internal_state);
+		return STT_ERROR_IN_PROGRESS_TO_PROCESSING;
+	} else if (STT_INTERNAL_STATE_CANCELING == client->internal_state) {
+		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Invalid State : Internal state is CANCELING : %d", client->internal_state);
 		return STT_ERROR_IN_PROGRESS_TO_READY;
 	}
 
@@ -1672,7 +1684,7 @@ static void __stt_notify_state_changed(void *data)
 	if (STT_INTERNAL_STATE_STARTING == client->internal_state && STT_STATE_RECORDING == client->current_state) {
 		client->internal_state = STT_INTERNAL_STATE_NONE;
 		SLOG(LOG_DEBUG, TAG_STTC, "Internal state change to NONE");
-	} else if (STT_INTERNAL_STATE_STOPING == client->internal_state && STT_STATE_PROCESSING == client->current_state) {
+	} else if (STT_INTERNAL_STATE_STOPPING == client->internal_state && STT_STATE_PROCESSING == client->current_state) {
 		client->internal_state = STT_INTERNAL_STATE_NONE;
 		SLOG(LOG_DEBUG, TAG_STTC, "Internal state change to NONE");
 	} else if (STT_INTERNAL_STATE_CANCELING == client->internal_state && STT_STATE_READY == client->current_state) {

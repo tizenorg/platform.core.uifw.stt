@@ -1,5 +1,5 @@
 /*
-*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved
+*  Copyright (c) 2011-2016 Samsung Electronics Co., Ltd All Rights Reserved
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -293,10 +293,12 @@ int stt_dbus_open_connection()
 	dbus_error_init(&err);
 
 	/* connect to the DBUS system bus, and check for errors */
-	g_conn_sender = dbus_bus_get_private(DBUS_BUS_SESSION, &err);
-	if (dbus_error_is_set(&err)) {
-		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Dbus Connection Error (%s)", err.message);
-		dbus_error_free(&err);
+	if (NULL == g_conn_sender) {
+		g_conn_sender = dbus_bus_get_private(DBUS_BUS_SESSION, &err);
+		if (dbus_error_is_set(&err)) {
+			SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Dbus Connection Error (%s)", err.message);
+			dbus_error_free(&err);
+		}
 	}
 
 	if (NULL == g_conn_sender) {
@@ -307,11 +309,12 @@ int stt_dbus_open_connection()
 	dbus_connection_set_exit_on_disconnect(g_conn_sender, false);
 
 	/* connect to the DBUS system bus, and check for errors */
-	g_conn_listener = dbus_bus_get_private(DBUS_BUS_SESSION, &err);
-
-	if (dbus_error_is_set(&err)) { 
-		SLOG(LOG_ERROR, TAG_STTC, "Dbus Connection Error (%s)", err.message); 
-		dbus_error_free(&err);
+	if (NULL == g_conn_listener) {
+		g_conn_listener = dbus_bus_get_private(DBUS_BUS_SESSION, &err);
+		if (dbus_error_is_set(&err)) {
+			SLOG(LOG_ERROR, TAG_STTC, "Dbus Connection Error (%s)", err.message);
+			dbus_error_free(&err);
+		}
 	}
 
 	if (NULL == g_conn_listener) {
@@ -389,6 +392,9 @@ int stt_dbus_close_connection()
 
 	dbus_connection_close(g_conn_sender);
 	dbus_connection_close(g_conn_listener);
+
+	dbus_connection_unref(g_conn_sender);
+	dbus_connection_unref(g_conn_listener);
 
 	g_conn_sender = NULL;
 	g_conn_listener = NULL;
@@ -899,9 +905,9 @@ int stt_dbus_request_set_private_data(int uid, const char* key, const char* data
 	DBusMessage* msg;
 
 	msg = dbus_message_new_method_call(
-		STT_SERVER_SERVICE_NAME, 
-		STT_SERVER_SERVICE_OBJECT_PATH, 
-		STT_SERVER_SERVICE_INTERFACE, 
+		STT_SERVER_SERVICE_NAME,
+		STT_SERVER_SERVICE_OBJECT_PATH,
+		STT_SERVER_SERVICE_INTERFACE,
 		STT_METHOD_SET_PRIVATE_DATA);
 
 	if (NULL == msg) {
@@ -969,9 +975,9 @@ int stt_dbus_request_get_private_data(int uid, const char* key, char** data)
 	DBusMessage* msg;
 
 	msg = dbus_message_new_method_call(
-		STT_SERVER_SERVICE_NAME, 
-		STT_SERVER_SERVICE_OBJECT_PATH, 
-		STT_SERVER_SERVICE_INTERFACE, 
+		STT_SERVER_SERVICE_NAME,
+		STT_SERVER_SERVICE_OBJECT_PATH,
+		STT_SERVER_SERVICE_INTERFACE,
 		STT_METHOD_GET_PRIVATE_DATA);
 
 	if (NULL == msg) {
@@ -1020,8 +1026,6 @@ int stt_dbus_request_get_private_data(int uid, const char* key, char** data)
 			SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt get private data : result = %d", result);
 			if (NULL != temp) {
 				*data = strdup(temp);
-				free(temp);
-				temp = NULL;
 			}
 		} else {
 			SLOG(LOG_ERROR, TAG_STTC, "<<<< stt get private data : result = %d", result);

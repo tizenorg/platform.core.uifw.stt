@@ -1,5 +1,5 @@
 /*
-*  Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved
+*  Copyright (c) 2011-2016 Samsung Electronics Co., Ltd All Rights Reserved
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -150,7 +150,7 @@ int __stt_config_mgr_select_lang(const char* engine_id, char** language)
 					/* Default language is STT_BASE_LANGUAGE */
 					if (0 == strcmp(STT_BASE_LANGUAGE, engine_lang)) {
 						*language = strdup(engine_lang);
-						SLOG(LOG_DEBUG, stt_tag(), "Selected language : %s", *language);
+						SLOG(LOG_DEBUG, stt_tag(), "Selected language : %s", (NULL == *language) ? "NULL" : *language);
 						return 0;
 					}
 				}
@@ -161,7 +161,7 @@ int __stt_config_mgr_select_lang(const char* engine_id, char** language)
 			/* Not support STT_BASE_LANGUAGE */
 			if (NULL != engine_lang) {
 				*language = strdup(engine_lang);
-				SLOG(LOG_DEBUG, stt_tag(), "Selected language : %s", *language);
+				SLOG(LOG_DEBUG, stt_tag(), "Selected language : %s", (NULL == *language) ? "NULL" : *language);
 				return 0;
 			}
 		}
@@ -1230,8 +1230,8 @@ int stt_config_mgr_get_language_list(const char* engine_id, stt_config_supported
 			/*Get handle data from list*/
 			lang = iter_lang->data;
 
-			SLOG(LOG_DEBUG, stt_tag(), " %s", lang);
 			if (NULL != lang) {
+				SLOG(LOG_DEBUG, stt_tag(), " %s", lang);
 				if (false == callback(engine_info->uuid, lang, user_data))
 					break;
 			}

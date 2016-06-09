@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2011-2014 Samsung Electronics Co., Ltd All Rights Reserved
+* Copyright (c) 2011-2016 Samsung Electronics Co., Ltd All Rights Reserved
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
 *  You may obtain a copy of the License at
@@ -514,6 +514,9 @@ int sttd_dbus_close_connection()
 
 	dbus_connection_close(g_conn_listener);
 	dbus_connection_close(g_conn_sender);
+
+	dbus_connection_unref(g_conn_sender);
+	dbus_connection_unref(g_conn_listener);
 
 	g_conn_listener = NULL;
 	g_conn_sender = NULL;
