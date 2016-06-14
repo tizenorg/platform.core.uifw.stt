@@ -52,11 +52,12 @@ typedef enum {
 	STT_ERROR_ENGINE_NOT_FOUND		= TIZEN_ERROR_STT | 0x03,	/**< No available engine  */
 	STT_ERROR_OPERATION_FAILED		= TIZEN_ERROR_STT | 0x04,	/**< Operation failed  */
 	STT_ERROR_NOT_SUPPORTED_FEATURE		= TIZEN_ERROR_STT | 0x05,	/**< Not supported feature of current engine */
-	STT_ERROR_NO_SPEECH			= TIZEN_ERROR_STT | 0x06,	/**< No speech while recording */
-	STT_ERROR_IN_PROGRESS_TO_READY		= TIZEN_ERROR_STT | 0x07,	/**< Progress to ready is not finished */
-	STT_ERROR_IN_PROGRESS_TO_RECORDING	= TIZEN_ERROR_STT | 0x08,	/**< Progress to recording is not finished */
-	STT_ERROR_IN_PROGRESS_TO_PROCESSING	= TIZEN_ERROR_STT | 0x09,	/**< Progress to processing is not finished */
-	STT_ERROR_RECORDING_TIMED_OUT		= TIZEN_ERROR_STT | 0x10	/**< Recording timed out */
+	STT_ERROR_RECORDING_TIMED_OUT		= TIZEN_ERROR_STT | 0x06,	/**< Recording timed out @if MOBILE (Since 3.0) @elseif WEARABLE (Since 2.3.2) @endif */	
+	STT_ERROR_NO_SPEECH			= TIZEN_ERROR_STT | 0x07,	/**< No speech while recording @if MOBILE (Since 3.0) @elseif WEARABLE (Since 2.3.2) @endif */
+	STT_ERROR_IN_PROGRESS_TO_READY		= TIZEN_ERROR_STT | 0x08,	/**< Progress to ready is not finished @if MOBILE (Since 3.0) @elseif WEARABLE (Since 2.3.2) @endif */
+	STT_ERROR_IN_PROGRESS_TO_RECORDING	= TIZEN_ERROR_STT | 0x09,	/**< Progress to recording is not finished @if MOBILE (Since 3.0) @elseif WEARABLE (Since 2.3.2) @endif */
+	STT_ERROR_IN_PROGRESS_TO_PROCESSING	= TIZEN_ERROR_STT | 0x10,	/**< Progress to processing is not finished @if MOBILE (Since 3.0) @elseif WEARABLE (Since 2.3.2) @endif */
+	STT_ERROR_SERVICE_RESET			= TIZEN_ERROR_STT | 0x11	/**< Service reset @if MOBILE (Since 3.0) @elseif WEARABLE (Since 2.3.2) @endif */
 } stt_error_e;
 
 /**
@@ -304,6 +305,8 @@ typedef void (*stt_default_language_changed_cb)(stt_h stt, const char* previous_
  * @brief Called when the engine is changed.
  * @since_tizen @if MOBILE 3.0 @elseif WEARABLE 2.3.2 @endif
  *
+ * @remarks The language is specified as an ISO 3166 alpha-2 two letter country-code followed by ISO 639-1 for the two-letter language code. For example, "ko_KR" for Korean, "en_US" for American English.
+ *
  * @param[in] stt The STT handle
  * @param[in] engine_id Engine id
  * @param[in] language The default language
@@ -313,7 +316,7 @@ typedef void (*stt_default_language_changed_cb)(stt_h stt, const char* previous_
  *
  * @see stt_set_engine_changed_cb()
 */
-typedef bool (*stt_engine_changed_cb)(stt_h stt, const char* engine_id, const char* language,
+typedef void (*stt_engine_changed_cb)(stt_h stt, const char* engine_id, const char* language,
 						bool support_silence, bool need_credential, void* user_data);
 
 /**
@@ -435,8 +438,6 @@ int stt_set_engine(stt_h stt, const char* engine_id);
 /**
  * @brief Sets the app credential.
  * @since_tizen @if MOBILE 3.0 @elseif WEARABLE 2.3.2 @endif
- * @privlevel public
- * @privilege %http://tizen.org/privilege/recorder
  *
  * @param[in] stt The STT handle
  * @param[in] credential The app credential
@@ -446,7 +447,6 @@ int stt_set_engine(stt_h stt, const char* engine_id);
  * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
  * @retval #STT_ERROR_INVALID_STATE Invalid state
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
- * @retval #STT_ERROR_PERMISSION_DENIED Permission denied
  *
  * @pre The state should be #STT_STATE_CREATED or #STT_STATE_READY.
  *
@@ -457,7 +457,14 @@ int stt_set_credential(stt_h stt, const char* credential);
 
 /**
  * @brief Sets the private data to stt engine.
+ * @details The private data is the setting parameter for applying keys provided by the engine.
+ *	Using this API, the application can set the private data and use the corresponding key of the engine.
+ *	For example, if the engine provides 'partial recognition' as a recognition type, the application can set the private data as the following. \n
+ *	int ret = stt_set_private_data(stt_h, "recognition_type", "PARTIAL");
+ *
  * @since_tizen @if MOBILE 3.0 @elseif WEARABLE 2.3.2 @endif
+ *
+ * @remarks If the engine is replaced with the other engine, the key may be ignored.
  *
  * @param[in] stt The STT handle
  * @param[in] key The field name of private data
@@ -467,7 +474,6 @@ int stt_set_credential(stt_h stt, const char* credential);
  * @retval #STT_ERROR_NONE Successful
  * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
  * @retval #STT_ERROR_INVALID_STATE Invalid state
- * @retval #STT_ERROR_PERMISSION_DENIED Permission denied
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
  * @retval #STT_ERROR_TIMED_OUT No answer from the daemon
  *
@@ -479,7 +485,12 @@ int stt_set_private_data(stt_h stt, const char* key, const char* data);
 
 /**
  * @brief Gets the private data from stt engine.
+ * @details The private data is the information provided by the engine.
+ *	Using this API, the application can get the private data which corresponds to the key from the engine.
+
  * @since_tizen @if MOBILE 3.0 @elseif WEARABLE 2.3.2 @endif
+ *
+ * @remarks If the engine is replaced with the other engine, the key may be ignored.
  *
  * @param[in] stt The STT handle
  * @param[in] key The field name of private data
@@ -491,7 +502,6 @@ int stt_set_private_data(stt_h stt, const char* key, const char* data);
  * @retval #STT_ERROR_NONE Successful
  * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
  * @retval #STT_ERROR_INVALID_STATE Invalid state
- * @retval #STT_ERROR_PERMISSION_DENIED Permission denied
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
  * @retval #STT_ERROR_TIMED_OUT No answer from the daemon
  *
@@ -620,10 +630,8 @@ int stt_get_state(stt_h stt, stt_state_e* state);
 /**
  * @brief Gets the current error message.
  * @since_tizen @if MOBILE 3.0 @elseif WEARABLE 2.3.2 @endif
- * @privlevel public
- * @privilege %http://tizen.org/privilege/recorder
  * @remarks This function should be called during an stt error callback. If not, the error as operation failure will be returned. \n
- * If the function succeeds, @a err_msg must be released using free() when it is no longer required.
+ *	If the function succeeds, @a err_msg must be released using free() when it is no longer required.
  *
  * @param[in] stt The STT handle
  * @param[out] err_msg The current error message
@@ -633,7 +641,6 @@ int stt_get_state(stt_h stt, stt_state_e* state);
  * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
  * @retval #STT_ERROR_OPERATION_FAILED Operation failure
- * @retval #STT_ERROR_PERMISSION_DENIED Permission denied
  *
  * @see stt_set_error_cb()
  * @see stt_unset_error_cb()
@@ -1102,8 +1109,6 @@ int stt_unset_default_language_changed_cb(stt_h stt);
 /**
  * @brief Registers a callback function to detect the engine change.
  * @since_tizen @if MOBILE 3.0 @elseif WEARABLE 2.3.2 @endif
- * @privlevel public
- * @privilege %http://tizen.org/privilege/recorder
  *
  * @param[in] stt The STT handle
  * @param]in] callback The callback function to register
@@ -1114,7 +1119,6 @@ int stt_unset_default_language_changed_cb(stt_h stt);
  * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
  * @retval #STT_ERROR_INVALID_STATE Invalid state
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
- * @retval #STT_ERROR_PERMISSION_DENIED Permission denied
  *
  * @pre The state should be #STT_STATE_CREATED.
  *
@@ -1126,8 +1130,6 @@ int stt_set_engine_changed_cb(stt_h stt, stt_engine_changed_cb callback, void* u
 /**
  * @brief Unregisters the callback function.
  * @since_tizen @if MOBILE 3.0 @elseif WEARABLE 2.3.2 @endif
- * @privlevel public
- * @privilege %http://tizen.org/privilege/recorder
  *
  * @param[in] stt The STT handle
  *
@@ -1136,7 +1138,6 @@ int stt_set_engine_changed_cb(stt_h stt, stt_engine_changed_cb callback, void* u
  * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
  * @retval #STT_ERROR_INVALID_STATE Invalid state
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
- * @retval #STT_ERROR_PERMISSION_DENIED Permission denied
  *
  * @pre The state should be #STT_STATE_CREATED.
  *
