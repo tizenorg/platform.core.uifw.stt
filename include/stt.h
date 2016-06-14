@@ -56,7 +56,8 @@ typedef enum {
 	STT_ERROR_IN_PROGRESS_TO_READY		= TIZEN_ERROR_STT | 0x07,	/**< Progress to ready is not finished */
 	STT_ERROR_IN_PROGRESS_TO_RECORDING	= TIZEN_ERROR_STT | 0x08,	/**< Progress to recording is not finished */
 	STT_ERROR_IN_PROGRESS_TO_PROCESSING	= TIZEN_ERROR_STT | 0x09,	/**< Progress to processing is not finished */
-	STT_ERROR_RECORDING_TIMED_OUT		= TIZEN_ERROR_STT | 0x10	/**< Recording timed out */
+	STT_ERROR_RECORDING_TIMED_OUT		= TIZEN_ERROR_STT | 0x10,	/**< Recording timed out */
+	STT_ERROR_SERVICE_RESET		= TIZEN_ERROR_STT | 0x11	/**< Service reset */
 } stt_error_e;
 
 /**
