@@ -54,7 +54,8 @@ typedef enum {
 	STTD_ERROR_OPERATION_FAILED		= TIZEN_ERROR_STT | 0x04,	/**< Operation failed  */
 	STTD_ERROR_NOT_SUPPORTED_FEATURE	= TIZEN_ERROR_STT | 0x05,	/**< Not supported feature of current engine */
 	STTD_ERROR_NO_SPEECH			= TIZEN_ERROR_STT | 0x06,	/**< No speech while recording */
-	STTD_ERROR_RECORDING_TIMED_OUT		= TIZEN_ERROR_STT | 0x10	/**< Recording timed out */
+	STTD_ERROR_RECORDING_TIMED_OUT		= TIZEN_ERROR_STT | 0x10,	/**< Recording timed out */
+	STTD_ERROR_SERVICE_RESET		= TIZEN_ERROR_STT | 0x11	/**< Service reset */
 } stt_error_e;
 
 typedef enum {

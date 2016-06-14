@@ -168,6 +168,7 @@ static const char* __stt_get_error_code(stt_error_e err)
 	case STT_ERROR_ENGINE_NOT_FOUND:	return "STT_ERROR_ENGINE_NOT_FOUND";
 	case STT_ERROR_OPERATION_FAILED:	return "STT_ERROR_OPERATION_FAILED";
 	case STT_ERROR_NOT_SUPPORTED_FEATURE:	return "STT_ERROR_NOT_SUPPORTED_FEATURE";
+	case STT_ERROR_SERVICE_RESET:		return "STT_ERROR_SERVICE_RESET";
 	default:
 		return "Invalid error code";
 	}
@@ -1662,6 +1663,15 @@ int __stt_cb_error(int uid, int reason, char* err_msg)
 		ecore_timer_add(0, __stt_notify_error, client);
 	} else {
 		SLOG(LOG_WARN, TAG_STTC, "[WARNING] Error callback is null");
+	}
+
+	if (STT_ERROR_SERVICE_RESET == reason) {
+		SLOG(LOG_WARN, TAG_STTC, "[WARNING] Service reset");
+
+		client->current_state = STT_STATE_CREATED;
+		if (0 != stt_prepare(client->stt)) {
+			SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Fail to prepare");
+		}
 	}
 
 	return 0;
