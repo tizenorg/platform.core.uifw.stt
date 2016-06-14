@@ -52,11 +52,12 @@ typedef enum {
 	STT_ERROR_ENGINE_NOT_FOUND		= TIZEN_ERROR_STT | 0x03,	/**< No available engine  */
 	STT_ERROR_OPERATION_FAILED		= TIZEN_ERROR_STT | 0x04,	/**< Operation failed  */
 	STT_ERROR_NOT_SUPPORTED_FEATURE		= TIZEN_ERROR_STT | 0x05,	/**< Not supported feature of current engine */
-	STT_ERROR_NO_SPEECH			= TIZEN_ERROR_STT | 0x06,	/**< No speech while recording */
-	STT_ERROR_IN_PROGRESS_TO_READY		= TIZEN_ERROR_STT | 0x07,	/**< Progress to ready is not finished */
-	STT_ERROR_IN_PROGRESS_TO_RECORDING	= TIZEN_ERROR_STT | 0x08,	/**< Progress to recording is not finished */
-	STT_ERROR_IN_PROGRESS_TO_PROCESSING	= TIZEN_ERROR_STT | 0x09,	/**< Progress to processing is not finished */
-	STT_ERROR_RECORDING_TIMED_OUT		= TIZEN_ERROR_STT | 0x10	/**< Recording timed out */
+	STT_ERROR_NO_SPEECH			= TIZEN_ERROR_STT | 0x06,	/**< No speech while recording @if MOBILE (Since 3.0) @elseif WEARABLE (Since 2.3.2) @endif */
+	STT_ERROR_IN_PROGRESS_TO_READY		= TIZEN_ERROR_STT | 0x07,	/**< Progress to ready is not finished @if MOBILE (Since 3.0) @elseif WEARABLE (Since 2.3.2) @endif */
+	STT_ERROR_IN_PROGRESS_TO_RECORDING	= TIZEN_ERROR_STT | 0x08,	/**< Progress to recording is not finished @if MOBILE (Since 3.0) @elseif WEARABLE (Since 2.3.2) @endif */
+	STT_ERROR_IN_PROGRESS_TO_PROCESSING	= TIZEN_ERROR_STT | 0x09,	/**< Progress to processing is not finished @if MOBILE (Since 3.0) @elseif WEARABLE (Since 2.3.2) @endif */
+	STT_ERROR_RECORDING_TIMED_OUT		= TIZEN_ERROR_STT | 0x10,	/**< Recording timed out @if MOBILE (Since 3.0) @elseif WEARABLE (Since 2.3.2) @endif */
+	STT_ERROR_SERVICE_RESET			= TIZEN_ERROR_STT | 0x11	/**< Service reset @if MOBILE (Since 3.0) @elseif WEARABLE (Since 2.3.2) @endif */
 } stt_error_e;
 
 /**
@@ -313,7 +314,7 @@ typedef void (*stt_default_language_changed_cb)(stt_h stt, const char* previous_
  *
  * @see stt_set_engine_changed_cb()
 */
-typedef bool (*stt_engine_changed_cb)(stt_h stt, const char* engine_id, const char* language,
+typedef void (*stt_engine_changed_cb)(stt_h stt, const char* engine_id, const char* language,
 						bool support_silence, bool need_credential, void* user_data);
 
 /**
