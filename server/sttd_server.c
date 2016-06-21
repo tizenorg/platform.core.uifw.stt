@@ -424,9 +424,45 @@ void __sttd_server_silence_changed_cb(bool value, void* user_data)
 * Daemon function
 */
 
+static void __sig_handler(int signo)
+{
+	/* restore signal handler */
+	signal(signo, SIG_DFL);
+
+	/* Send error signal to clients */
+	int* client_list = NULL;
+	int client_count = 0;
+	int i = 0;
+	if (0 != sttd_client_get_list(&client_list, &client_count)) {
+		if (NULL != client_list)
+			free(client_list);
+	}
+
+	if (NULL != client_list) {
+		for (i = 0; i < client_count; i++) {
+			sttdc_send_error_signal(client_list[i], STTD_ERROR_SERVICE_RESET, "Service Reset");
+		}
+		free(client_list);
+	}
+
+	/* invoke signal again */
+	raise(signo);
+}
+
+static void __register_sig_handler()
+{
+	signal(SIGSEGV, __sig_handler);
+	signal(SIGABRT, __sig_handler);
+	signal(SIGTERM, __sig_handler);
+	signal(SIGINT, __sig_handler);
+	signal(SIGQUIT, __sig_handler);
+}
+
 int sttd_initialize()
 {
 	int ret = 0;
+
+	__register_sig_handler();
 
 	if (0 != pthread_mutex_init(&sttpe_result_mutex, NULL)) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to initialize sttpe result mutex.");
