@@ -1087,6 +1087,11 @@ int stt_config_mgr_set_engine(const char* engine)
 				free(g_config_info->language);
 
 				iter_lang = g_slist_nth(engine_info->languages, 0);
+				if (NULL == iter_lang) {
+					SLOG(LOG_ERROR, stt_tag(), "Fail to get default language");
+					break;
+				}
+
 				lang = iter_lang->data;
 
 				g_config_info->language = strdup(lang);
