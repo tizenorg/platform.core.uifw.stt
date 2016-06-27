@@ -1085,8 +1085,14 @@ int stt_config_mgr_set_engine(const char* engine)
 		if (false == is_valid_lang) {
 			if (NULL != g_config_info->language) {
 				free(g_config_info->language);
+				g_info->language = NULL;
 
 				iter_lang = g_slist_nth(engine_info->languages, 0);
+				if (NULL == iter_lang) {
+					SLOG(LOG_ERROR, stt_tag(), "Fail to get default language");
+					break;
+				}
+
 				lang = iter_lang->data;
 
 				g_config_info->language = strdup(lang);
