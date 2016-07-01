@@ -1,4 +1,4 @@
-SET(SRCS 
+SET(SRCS
 	stt.c
 	stt_client.c
 	stt_dbus.c

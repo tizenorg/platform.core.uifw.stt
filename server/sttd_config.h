@@ -26,9 +26,9 @@ typedef void (*sttd_config_language_changed_cb)(const char* language, void* user
 typedef void (*sttd_config_silence_changed_cb)(bool value, void* user_data);
 
 
-int sttd_config_initialize(sttd_config_engine_changed_cb engine_cb, 
-			sttd_config_language_changed_cb lang_cb, 
-			sttd_config_silence_changed_cb silence_cb, 
+int sttd_config_initialize(sttd_config_engine_changed_cb engine_cb,
+			sttd_config_language_changed_cb lang_cb,
+			sttd_config_silence_changed_cb silence_cb,
 			void* user_data);
 
 int sttd_config_finalize();

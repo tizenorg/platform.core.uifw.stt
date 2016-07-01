@@ -33,7 +33,7 @@ typedef enum {
 typedef struct {
 	/* base info */
 	stt_h	stt;
-	int	pid; 
+	int	pid;
 	int	uid;	/*<< unique id = pid + handle */
 
 	stt_recognition_result_cb	recognition_result_cb;
@@ -77,7 +77,7 @@ typedef struct {
 	char**	data_list;
 	int	data_count;
 	char*	msg;
-	
+
 	/* error data */
 	int	reason;
 	char*	err_msg;

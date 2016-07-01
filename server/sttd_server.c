@@ -591,7 +591,7 @@ Eina_Bool sttd_cleanup_client(void *data)
 
 	if (NULL != client_list) {
 		SLOG(LOG_DEBUG, TAG_STTD, "===== Clean up client ");
-		
+
 		__read_proc();
 
 		for (i = 0; i < client_count; i++) {

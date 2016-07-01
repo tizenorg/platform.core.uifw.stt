@@ -30,7 +30,7 @@
 extern "C" {
 #endif
 
-/** 
+/**
 * @brief Enumerations of error codes.
 */
 typedef enum {
@@ -44,12 +44,12 @@ typedef enum {
 	STT_SETTING_ERROR_NOT_SUPPORTED		= TIZEN_ERROR_NOT_SUPPORTED,	/**< STT is NOT supported */
 	STT_SETTING_ERROR_INVALID_STATE		= TIZEN_ERROR_STT | 0x01,	/**< Invalid state */
 	STT_SETTING_ERROR_INVALID_LANGUAGE	= TIZEN_ERROR_STT | 0x02,	/**< Invalid language */
-	STT_SETTING_ERROR_ENGINE_NOT_FOUND	= TIZEN_ERROR_STT | 0x03,	/**< No available engine  */	
+	STT_SETTING_ERROR_ENGINE_NOT_FOUND	= TIZEN_ERROR_STT | 0x03,	/**< No available engine  */
 	STT_SETTING_ERROR_OPERATION_FAILED	= TIZEN_ERROR_STT | 0x04,	/**< Operation failed  */
 	STT_SETTING_ERROR_NOT_SUPPORTED_FEATURE	= TIZEN_ERROR_STT | 0x05	/**< Not supported feature of current engine */
 } stt_setting_error_e;
 
-/** 
+/**
 * @brief Enumerations of setting state.
 */
 typedef enum {
@@ -67,7 +67,7 @@ typedef enum {
 * @param[in] user_data User data passed from the stt_setting_foreach_supported_engines().
 *
 * @return @c true to continue with the next iteration of the loop, \n @c false to break out of the loop.
-* @pre stt_setting_foreach_supported_engines() will invoke this callback. 
+* @pre stt_setting_foreach_supported_engines() will invoke this callback.
 *
 * @see stt_setting_foreach_supported_engines()
 */
@@ -78,12 +78,12 @@ typedef bool(*stt_setting_supported_engine_cb)(const char* engine_id, const char
 *
 * @param[in] engine_id Engine id.
 * @param[in] language A language is specified as an ISO 3166 alpha-2 two letter country-code
-*		followed by ISO 639-1 for the two-letter language code. 
+*		followed by ISO 639-1 for the two-letter language code.
 *		For example, "ko_KR" for Korean, "en_US" for American English..
 * @param[in] user_data User data passed from the stt_setting_foreach_supported_languages().
 *
 * @return @c true to continue with the next iteration of the loop, \n @c false to break out of the loop.
-* @pre stt_setting_foreach_supported_languages() will invoke this callback. 
+* @pre stt_setting_foreach_supported_languages() will invoke this callback.
 *
 * @see stt_setting_foreach_supported_languages()
 */
@@ -121,7 +121,7 @@ typedef void (*stt_setting_config_changed_cb)(void *user_data);
 * @return 0 on success, otherwise a negative error value.
 * @retval #STT_SETTING_ERROR_NONE Success.
 * @retval #STT_SETTING_ERROR_TIMED_OUT stt daemon is blocked or stt daemon do not exist.
-* @retval #STT_SETTING_ERROR_INVALID_STATE STT setting has Already been initialized. 
+* @retval #STT_SETTING_ERROR_INVALID_STATE STT setting has Already been initialized.
 * @retval #STT_SETTING_ERROR_ENGINE_NOT_FOUND No available stt-engine. Engine should be installed.
 * @retval #STT_SETTING_ERROR_NOT_SUPPORTED STT NOT supported
 *
@@ -130,11 +130,11 @@ typedef void (*stt_setting_config_changed_cb)(void *user_data);
 int stt_setting_initialize(void);
 
 /**
-* @brief finalize stt setting and disconnect to stt-daemon. 
+* @brief finalize stt setting and disconnect to stt-daemon.
 *
 * @return 0 on success, otherwise a negative error value.
 * @retval #STT_SETTING_ERROR_NONE Success.
-* @retval #STT_SETTING_ERROR_INVALID_STATE STT Not initialized. 
+* @retval #STT_SETTING_ERROR_INVALID_STATE STT Not initialized.
 * @retval #STT_SETTING_ERROR_OPERATION_FAILED Operation failure.
 * @retval #STT_SETTING_ERROR_NOT_SUPPORTED STT NOT supported
 *
@@ -154,7 +154,7 @@ int stt_setting_finalize(void);
 * @retval #STT_SETTING_ERROR_INVALID_STATE STT Not initialized.
 * @retval #STT_SETTING_ERROR_NOT_SUPPORTED STT NOT supported
 *
-* @post	This function invokes stt_setting_supported_engine_cb() repeatedly for getting engine information. 
+* @post	This function invokes stt_setting_supported_engine_cb() repeatedly for getting engine information.
 *
 * @see stt_setting_supported_engine_cb()
 */
@@ -171,7 +171,7 @@ int stt_setting_foreach_supported_engines(stt_setting_supported_engine_cb callba
 * @retval #STT_SETTING_ERROR_NONE Success.
 * @retval #STT_SETTING_ERROR_OUT_OF_MEMORY Out of memory.
 * @retval #STT_SETTING_ERROR_INVALID_PARAMETER Invalid parameter.
-* @retval #STT_SETTING_ERROR_INVALID_STATE STT Not initialized. 
+* @retval #STT_SETTING_ERROR_INVALID_STATE STT Not initialized.
 * @retval #STT_SETTING_ERROR_OPERATION_FAILED Operation failure.
 * @retval #STT_SETTING_ERROR_NOT_SUPPORTED STT NOT supported
 *
@@ -187,7 +187,7 @@ int stt_setting_get_engine(char** engine_id);
 * @return 0 on success, otherwise a negative error value.
 * @retval #STT_SETTING_ERROR_NONE Success.
 * @retval #STT_SETTING_ERROR_INVALID_PARAMETER Invalid parameter.
-* @retval #STT_SETTING_ERROR_INVALID_STATE STT Not initialized. 
+* @retval #STT_SETTING_ERROR_INVALID_STATE STT Not initialized.
 * @retval #STT_SETTING_ERROR_OPERATION_FAILED Operation failure.
 * @retval #STT_SETTING_ERROR_NOT_SUPPORTED STT NOT supported
 *
@@ -204,11 +204,11 @@ int stt_setting_set_engine(const char* engine_id);
 * @return 0 on success, otherwise a negative error value.
 * @retval #STT_SETTING_ERROR_NONE Success.
 * @retval #STT_SETTING_ERROR_INVALID_PARAMETER Invalid parameter.
-* @retval #STT_SETTING_ERROR_INVALID_STATE STT Not initialized. 
+* @retval #STT_SETTING_ERROR_INVALID_STATE STT Not initialized.
 * @retval #STT_SETTING_ERROR_OPERATION_FAILED Operation failure.
 * @retval #STT_SETTING_ERROR_NOT_SUPPORTED STT NOT supported
 *
-* @post	This function invokes stt_setting_supported_language_cb() repeatedly for getting supported languages. 
+* @post	This function invokes stt_setting_supported_language_cb() repeatedly for getting supported languages.
 *
 * @see stt_setting_supported_language_cb()
 */
@@ -225,7 +225,7 @@ int stt_setting_foreach_supported_languages(stt_setting_supported_language_cb ca
 * @retval #STT_SETTING_ERROR_NONE Success.
 * @retval #STT_SETTING_ERROR_OUT_OF_MEMORY Out of memory.
 * @retval #STT_SETTING_ERROR_INVALID_PARAMETER Invalid parameter.
-* @retval #STT_SETTING_ERROR_INVALID_STATE STT Not initialized. 
+* @retval #STT_SETTING_ERROR_INVALID_STATE STT Not initialized.
 * @retval #STT_SETTING_ERROR_OPERATION_FAILED Operation failure.
 * @retval #STT_SETTING_ERROR_NOT_SUPPORTED STT NOT supported
 *
@@ -241,7 +241,7 @@ int stt_setting_get_default_language(char** language);
 * @return 0 on success, otherwise a negative error value.
 * @retval #STT_SETTING_ERROR_NONE Success.
 * @retval #STT_SETTING_ERROR_INVALID_PARAMETER Invalid parameter.
-* @retval #STT_SETTING_ERROR_INVALID_STATE STT Not initialized. 
+* @retval #STT_SETTING_ERROR_INVALID_STATE STT Not initialized.
 * @retval #STT_SETTING_ERROR_OPERATION_FAILED Operation failure.
 * @retval #STT_SETTING_ERROR_NOT_SUPPORTED STT NOT supported
 *
@@ -257,7 +257,7 @@ int stt_setting_set_default_language(const char* language);
 * @return 0 on success, otherwise a negative error value.
 * @retval #STT_SETTING_ERROR_NONE Success.
 * @retval #STT_SETTING_ERROR_INVALID_PARAMETER Invalid parameter.
-* @retval #STT_SETTING_ERROR_INVALID_STATE STT Not initialized. 
+* @retval #STT_SETTING_ERROR_INVALID_STATE STT Not initialized.
 * @retval #STT_SETTING_ERROR_OPERATION_FAILED Operation failure.
 * @retval #STT_SETTING_ERROR_NOT_SUPPORTED STT NOT supported
 *
@@ -273,7 +273,7 @@ int stt_setting_set_auto_language(bool value);
 * @return 0 on success, otherwise a negative error value.
 * @retval #STT_SETTING_ERROR_NONE Success.
 * @retval #STT_SETTING_ERROR_INVALID_PARAMETER Invalid parameter.
-* @retval #STT_SETTING_ERROR_INVALID_STATE STT Not initialized. 
+* @retval #STT_SETTING_ERROR_INVALID_STATE STT Not initialized.
 * @retval #STT_SETTING_ERROR_OPERATION_FAILED Operation failure.
 * @retval #STT_SETTING_ERROR_NOT_SUPPORTED STT NOT supported
 *
@@ -284,12 +284,12 @@ int stt_setting_get_auto_language(bool* value);
 /**
 * @brief Get silence detection.
 *
-* @param[out] value Value. 
+* @param[out] value Value.
 *
 * @return 0 on success, otherwise a negative error value
 * @retval #STT_SETTING_ERROR_NONE Success.
 * @retval #STT_SETTING_ERROR_INVALID_PARAMETER Invalid parameter.
-* @retval #STT_SETTING_ERROR_INVALID_STATE STT Not initialized. 
+* @retval #STT_SETTING_ERROR_INVALID_STATE STT Not initialized.
 * @retval #STT_SETTING_ERROR_OPERATION_FAILED Operation failure.
 * @retval #STT_SETTING_ERROR_NOT_SUPPORTED STT NOT supported
 *
@@ -300,12 +300,12 @@ int stt_setting_get_silence_detection(bool* value);
 /**
 * @brief Set silence detection.
 *
-* @param[in] value Value. 
+* @param[in] value Value.
 *
 * @return 0 on success, otherwise a negative error value
 * @retval #STT_SETTING_ERROR_NONE Success.
 * @retval #STT_SETTING_ERROR_INVALID_PARAMETER Invalid parameter.
-* @retval #STT_SETTING_ERROR_INVALID_STATE STT Not initialized. 
+* @retval #STT_SETTING_ERROR_INVALID_STATE STT Not initialized.
 * @retval #STT_SETTING_ERROR_OPERATION_FAILED Operation failure.
 * @retval #STT_SETTING_ERROR_NOT_SUPPORTED STT NOT supported
 *

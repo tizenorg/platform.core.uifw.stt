@@ -390,7 +390,10 @@ int stt_engine_get_private_data(int engine_id, const char* key, char** data)
 		return ret;
 	}
 
-	*data = strdup(temp);
+	if (NULL == temp)
+		*data = strdup("NULL");
+	else
+		*data = strdup(temp);
 
 	return STTP_ERROR_NONE;
 }
@@ -686,7 +689,7 @@ int stt_engine_foreach_result_time(int engine_id, void* time_info, sttpe_result_
 	return ret;
 }
 
-int stt_engine_recognize_start_file(int engine_id, const char* lang, const char* recognition_type, 
+int stt_engine_recognize_start_file(int engine_id, const char* lang, const char* recognition_type,
 				     const char* filepath, sttp_audio_type_e audio_type, int sample_rate, void* user_param)
 {
 	if (NULL == filepath || NULL == lang || NULL == recognition_type) {

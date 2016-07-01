@@ -28,7 +28,7 @@ int sttd_dbus_server_hello(DBusConnection* conn, DBusMessage* msg);
 
 /*
 * Dbus Server functions for APIs
-*/ 
+*/
 
 int sttd_dbus_server_initialize(DBusConnection* conn, DBusMessage* msg);
 

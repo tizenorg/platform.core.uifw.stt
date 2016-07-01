@@ -78,7 +78,7 @@ int stt_engine_foreach_result_time(int engine_id, void* time_info, sttpe_result_
 
 
 /* File recognition */
-int stt_engine_recognize_start_file(int engine_id, const char* lang, const char* recognition_type, 
+int stt_engine_recognize_start_file(int engine_id, const char* lang, const char* recognition_type,
 				const char* filepath, sttp_audio_type_e audio_type, int sample_rate, void* user_param);
 
 int stt_engine_recognize_cancel_file(int engine_id);

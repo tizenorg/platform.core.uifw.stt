@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an AS IS BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 
@@ -22,10 +22,10 @@
  * @defgroup CAPI_UIX_STT_MODULE STT
  * @ingroup CAPI_UIX_FRAMEWORK
  * @brief The @ref CAPI_UIX_STT_MODULE API provides functions to recognize the speech.
- * 
+ *
  * @section CAPI_UIX_STT_MODULE_HEADER Required Header
  *   \#include <stt.h>
- * 
+ *
  * @section CAPI_UIX_STT_MODULE_OVERVIEW Overview
  * A main function of Speech-To-Text (below STT) API recognizes sound data recorded by users.
  * After choosing a language, applications will start recording and recognizing.
@@ -33,7 +33,7 @@
  *
  * To use of STT, use the following steps:<br>
  * 1. Create a handle <br>
- * 2. Register callback functions for notifications <br> 
+ * 2. Register callback functions for notifications <br>
  * 3. Prepare stt-daemon asynchronously <br>
  * 4. Start recording for recognition <br>
  * 5. Stop recording <br>
@@ -52,7 +52,7 @@
  * @image html capi_uix_stt_state_diagram.png "State diagram"
  *
  * @section CAPI_STT_MODULE_STATE_TRANSITIONS State Transitions
- * 
+ *
  * <table>
  * <tr>
  * <th>FUNCTION</th>
@@ -86,11 +86,11 @@
  * <td>ASYNC</td>
  * </tr>
  * </table>
- * 
+ *
  * @section CAPI_STT_MODULE_STATE_DEPENDENT_FUNCTION_FUNCTION_CALLS State Dependent Function Calls
  * The following table shows state-dependent function calls. It is forbidden to call functions listed below in wrong states.
  * Violation of this rule may result in an unpredictable behavior.
- * 
+ *
  * <table>
  * <tr>
  * <th>FUNCTION</th>
@@ -196,7 +196,7 @@
  * <td>All callback function should be registered / unregistered in Created state</td>
  * </tr>
  * </table>
- * 
+ *
  * @section CAPI_UIX_STT_MODULE_FEATURE Related Features
  * This API is related with the following features:<br>
  *  - http://tizen.org/feature/speech.recognition<br>
@@ -206,7 +206,7 @@
  * You can check if a device supports the related features for this API by using @ref CAPI_SYSTEM_SYSTEM_INFO_MODULE, thereby controlling the procedure of your application.<br>
  * To ensure your application is only running on the device with specific features, please define the features in your manifest file using the manifest editor in the SDK.<br>
  * More details on featuring your application can be found from <a href="https://developer.tizen.org/development/tools/native-tools/manifest-text-editor#feature"><b>Feature Element</b>.</a>
- * 
+ *
  */
 
 #endif /* __TIZEN_UIX_STT_DOC_H__ */

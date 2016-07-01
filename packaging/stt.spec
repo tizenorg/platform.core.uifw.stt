@@ -96,7 +96,7 @@ install LICENSE.APLv2 %{buildroot}%{TZ_SYS_RO_SHARE}/license/%{name}
 
 %make_install
 
-%post 
+%post
 /sbin/ldconfig
 
 mkdir -p %{_libdir}/voice/

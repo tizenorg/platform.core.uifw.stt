@@ -51,7 +51,7 @@ typedef struct _sttengine_info {
 	char*	first_lang;
 	bool	silence_detection;
 	bool	support_silence_detection;
-	bool 	need_credential;
+	bool	need_credential;
 } sttengine_info_s;
 
 /** stt engine agent init */
@@ -1553,7 +1553,7 @@ static void __recorder_destroy(void* data)
 	if (0 != sttd_recorder_destroy(g_recording_engine_id)) {
 		SECURE_SLOG(LOG_WARN, TAG_STTD, "[Engine Agent] Fail to destroy recorder(%d)", g_recording_engine_id);
 	}
-	
+
 	if (event == STTP_RESULT_EVENT_FINAL_RESULT || event == STTP_RESULT_EVENT_ERROR) {
 		g_recording_engine_id = -1;
 	}

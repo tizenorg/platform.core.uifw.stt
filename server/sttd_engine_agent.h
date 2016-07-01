@@ -24,7 +24,7 @@ extern "C" {
 #endif
 
 /*
-* Constants & Structures	
+* Constants & Structures
 */
 
 #define	ENGINE_PATH_SIZE 256

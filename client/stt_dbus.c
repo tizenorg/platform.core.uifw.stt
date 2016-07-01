@@ -150,7 +150,7 @@ static Eina_Bool listener_event_callback(void* data, Ecore_Fd_Handler *fd_handle
 				dbus_error_free(&err);
 			}
 
-			SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt set volume : uid(%d), volume(%f)", uid, volume); 
+			SLOG(LOG_DEBUG, TAG_STTC, "<<<< stt set volume : uid(%d), volume(%f)", uid, volume);
 			__stt_cb_set_volume(uid, volume);
 
 			/* SLOG(LOG_DEBUG, TAG_STTC, "====="); */
@@ -334,8 +334,8 @@ int stt_dbus_open_connection()
 	dbus_bus_request_name(g_conn_listener, service_name, DBUS_NAME_FLAG_REPLACE_EXISTING , &err);
 
 	if (dbus_error_is_set(&err)) {
-		SLOG(LOG_ERROR, TAG_STTC, "Name Error (%s)", err.message); 
-		dbus_error_free(&err); 
+		SLOG(LOG_ERROR, TAG_STTC, "Name Error (%s)", err.message);
+		dbus_error_free(&err);
 	}
 
 	char rule[128] = {0, };
@@ -428,9 +428,9 @@ int stt_dbus_request_hello()
 	DBusMessage* msg;
 
 	msg = dbus_message_new_method_call(
-		STT_SERVER_SERVICE_NAME, 
-		STT_SERVER_SERVICE_OBJECT_PATH, 
-		STT_SERVER_SERVICE_INTERFACE, 
+		STT_SERVER_SERVICE_NAME,
+		STT_SERVER_SERVICE_OBJECT_PATH,
+		STT_SERVER_SERVICE_INTERFACE,
 		STT_METHOD_HELLO);
 
 	if (NULL == msg) {
@@ -483,9 +483,9 @@ int stt_dbus_request_initialize(int uid, bool* silence_supported, bool* credenti
 	DBusMessage* msg;
 
 	msg = dbus_message_new_method_call(
-		STT_SERVER_SERVICE_NAME, 
-		STT_SERVER_SERVICE_OBJECT_PATH, 
-		STT_SERVER_SERVICE_INTERFACE, 
+		STT_SERVER_SERVICE_NAME,
+		STT_SERVER_SERVICE_OBJECT_PATH,
+		STT_SERVER_SERVICE_INTERFACE,
 		STT_METHOD_INITIALIZE);
 
 	if (NULL == msg) {
@@ -554,9 +554,9 @@ int stt_dbus_request_finalize(int uid)
 	DBusMessage* msg;
 
 	msg = dbus_message_new_method_call(
-		STT_SERVER_SERVICE_NAME, 
-		STT_SERVER_SERVICE_OBJECT_PATH, 
-		STT_SERVER_SERVICE_INTERFACE, 
+		STT_SERVER_SERVICE_NAME,
+		STT_SERVER_SERVICE_OBJECT_PATH,
+		STT_SERVER_SERVICE_INTERFACE,
 		STT_METHOD_FINALIZE);
 
 	if (NULL == msg) {
@@ -582,7 +582,7 @@ int stt_dbus_request_finalize(int uid)
 	}
 
 	if (NULL != result_msg) {
-		dbus_message_get_args(result_msg, &err, 
+		dbus_message_get_args(result_msg, &err,
 				DBUS_TYPE_INT32, &result,
 				DBUS_TYPE_INVALID);
 
@@ -613,16 +613,16 @@ int stt_dbus_request_set_current_engine(int uid, const char* engine_id, bool* si
 	DBusMessage* msg;
 
 	msg = dbus_message_new_method_call(
-		STT_SERVER_SERVICE_NAME, 
-		STT_SERVER_SERVICE_OBJECT_PATH, 
-		STT_SERVER_SERVICE_INTERFACE, 
+		STT_SERVER_SERVICE_NAME,
+		STT_SERVER_SERVICE_OBJECT_PATH,
+		STT_SERVER_SERVICE_INTERFACE,
 		STT_METHOD_SET_CURRENT_ENGINE);
 
 	if (NULL == msg) {
 		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt set engine : Fail to make message");
 		return STT_ERROR_OPERATION_FAILED;
 	} else {
-		SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt set engine : uid(%d)", uid);
+		SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt set engine : uid(%d), engine_id(%s)", uid, (NULL == engine_id) ? "NULL" : engine_id);
 	}
 
 	dbus_message_append_args(msg,
@@ -644,15 +644,15 @@ int stt_dbus_request_set_current_engine(int uid, const char* engine_id, bool* si
 	}
 
 	if (NULL != result_msg) {
-		dbus_message_get_args(result_msg, &err, 
-			DBUS_TYPE_INT32, &result, 
+		dbus_message_get_args(result_msg, &err,
+			DBUS_TYPE_INT32, &result,
 			DBUS_TYPE_INT32, silence_supported,
 			DBUS_TYPE_INT32, credential_needed,
 			DBUS_TYPE_INVALID);
 
 		if (dbus_error_is_set(&err)) {
 			SLOG(LOG_ERROR, TAG_STTC, "<<<< Get arguments error (%s)", err.message);
-			dbus_error_free(&err); 
+			dbus_error_free(&err);
 			result = STT_ERROR_OPERATION_FAILED;
 		}
 
@@ -683,9 +683,9 @@ int stt_dbus_request_check_app_agreed(int uid, const char* appid, bool* value)
 	DBusMessage* msg;
 
 	msg = dbus_message_new_method_call(
-		STT_SERVER_SERVICE_NAME, 
-		STT_SERVER_SERVICE_OBJECT_PATH, 
-		STT_SERVER_SERVICE_INTERFACE, 
+		STT_SERVER_SERVICE_NAME,
+		STT_SERVER_SERVICE_OBJECT_PATH,
+		STT_SERVER_SERVICE_INTERFACE,
 		STT_METHOD_CHECK_APP_AGREED);
 
 	if (NULL == msg) {
@@ -752,9 +752,9 @@ int stt_dbus_request_get_support_langs(int uid, stt_h stt, stt_supported_languag
 	DBusMessage* msg;
 
 	msg = dbus_message_new_method_call(
-		STT_SERVER_SERVICE_NAME, 
-		STT_SERVER_SERVICE_OBJECT_PATH, 
-		STT_SERVER_SERVICE_INTERFACE, 
+		STT_SERVER_SERVICE_NAME,
+		STT_SERVER_SERVICE_OBJECT_PATH,
+		STT_SERVER_SERVICE_INTERFACE,
 		STT_METHOD_GET_SUPPORT_LANGS);
 
 	if (NULL == msg) {
@@ -837,9 +837,9 @@ int stt_dbus_request_get_default_lang(int uid, char** language)
 	DBusMessage* msg;
 
 	msg = dbus_message_new_method_call(
-		STT_SERVER_SERVICE_NAME, 
-		STT_SERVER_SERVICE_OBJECT_PATH, 
-		STT_SERVER_SERVICE_INTERFACE, 
+		STT_SERVER_SERVICE_NAME,
+		STT_SERVER_SERVICE_OBJECT_PATH,
+		STT_SERVER_SERVICE_INTERFACE,
 		STT_METHOD_GET_CURRENT_LANG);
 
 	if (NULL == msg) {
@@ -1051,9 +1051,9 @@ int stt_dbus_request_is_recognition_type_supported(int uid, const char* type, bo
 	DBusMessage* msg;
 
 	msg = dbus_message_new_method_call(
-		   STT_SERVER_SERVICE_NAME, 
-		   STT_SERVER_SERVICE_OBJECT_PATH, 
-		   STT_SERVER_SERVICE_INTERFACE, 
+		   STT_SERVER_SERVICE_NAME,
+		   STT_SERVER_SERVICE_OBJECT_PATH,
+		   STT_SERVER_SERVICE_INTERFACE,
 		   STT_METHOD_IS_TYPE_SUPPORTED);
 
 	if (NULL == msg) {
@@ -1120,9 +1120,9 @@ int stt_dbus_request_set_start_sound(int uid, const char* file)
 	DBusMessage* msg;
 
 	msg = dbus_message_new_method_call(
-		   STT_SERVER_SERVICE_NAME, 
-		   STT_SERVER_SERVICE_OBJECT_PATH, 
-		   STT_SERVER_SERVICE_INTERFACE, 
+		   STT_SERVER_SERVICE_NAME,
+		   STT_SERVER_SERVICE_OBJECT_PATH,
+		   STT_SERVER_SERVICE_INTERFACE,
 		   STT_METHOD_SET_START_SOUND);
 
 	if (NULL == msg) {
@@ -1181,9 +1181,9 @@ int stt_dbus_request_unset_start_sound(int uid)
 	DBusMessage* msg;
 
 	msg = dbus_message_new_method_call(
-		   STT_SERVER_SERVICE_NAME, 
-		   STT_SERVER_SERVICE_OBJECT_PATH, 
-		   STT_SERVER_SERVICE_INTERFACE, 
+		   STT_SERVER_SERVICE_NAME,
+		   STT_SERVER_SERVICE_OBJECT_PATH,
+		   STT_SERVER_SERVICE_INTERFACE,
 		   STT_METHOD_UNSET_START_SOUND);
 
 	if (NULL == msg) {
@@ -1246,9 +1246,9 @@ int stt_dbus_request_set_stop_sound(int uid, const char* file)
 	DBusMessage* msg;
 
 	msg = dbus_message_new_method_call(
-		   STT_SERVER_SERVICE_NAME, 
-		   STT_SERVER_SERVICE_OBJECT_PATH, 
-		   STT_SERVER_SERVICE_INTERFACE, 
+		   STT_SERVER_SERVICE_NAME,
+		   STT_SERVER_SERVICE_OBJECT_PATH,
+		   STT_SERVER_SERVICE_INTERFACE,
 		   STT_METHOD_SET_STOP_SOUND);
 
 	if (NULL == msg) {
@@ -1307,9 +1307,9 @@ int stt_dbus_request_unset_stop_sound(int uid)
 	DBusMessage* msg;
 
 	msg = dbus_message_new_method_call(
-		   STT_SERVER_SERVICE_NAME, 
-		   STT_SERVER_SERVICE_OBJECT_PATH, 
-		   STT_SERVER_SERVICE_INTERFACE, 
+		   STT_SERVER_SERVICE_NAME,
+		   STT_SERVER_SERVICE_OBJECT_PATH,
+		   STT_SERVER_SERVICE_INTERFACE,
 		   STT_METHOD_UNSET_STOP_SOUND);
 
 	if (NULL == msg) {
@@ -1479,8 +1479,8 @@ int stt_dbus_request_stop(int uid)
 	/* create a signal & check for errors */
 	msg = dbus_message_new_method_call(
 		STT_SERVER_SERVICE_NAME,
-		STT_SERVER_SERVICE_OBJECT_PATH,	
-		STT_SERVER_SERVICE_INTERFACE,	
+		STT_SERVER_SERVICE_OBJECT_PATH,
+		STT_SERVER_SERVICE_INTERFACE,
 		STT_METHOD_STOP);
 
 	if (NULL == msg) {
@@ -1490,8 +1490,8 @@ int stt_dbus_request_stop(int uid)
 		SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt stop : uid(%d)", uid);
 	}
 
-	dbus_message_append_args(msg, 
-		DBUS_TYPE_INT32, &uid, 
+	dbus_message_append_args(msg,
+		DBUS_TYPE_INT32, &uid,
 		DBUS_TYPE_INVALID);
 #if 1
 	if (g_conn_sender) {
@@ -1570,8 +1570,8 @@ int stt_dbus_request_cancel(int uid)
 		SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt cancel : uid(%d)", uid);
 	}
 
-	dbus_message_append_args(msg, 
-		DBUS_TYPE_INT32, &uid, 
+	dbus_message_append_args(msg,
+		DBUS_TYPE_INT32, &uid,
 		DBUS_TYPE_INVALID);
 #if 1
 	if (g_conn_sender) {

@@ -75,7 +75,7 @@ static const char* __stt_file_get_error_code(stt_file_error_e err)
 	}
 }
 
-void __stt_file_engine_info_cb(const char* engine_uuid, const char* engine_name, const char* setting_ug_name, 
+void __stt_file_engine_info_cb(const char* engine_uuid, const char* engine_name, const char* setting_ug_name,
 		      bool use_network, void* user_data)
 {
 	sttengine_info_s* temp = (sttengine_info_s*)user_data;

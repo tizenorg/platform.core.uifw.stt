@@ -114,7 +114,7 @@ static void _bt_hid_audio_data_receive_cb(bt_hid_voice_data_s *voice_data, void 
 			SLOG(LOG_ERROR, TAG_STTD, "[Recorder] Fail to send recording volume(%f)", vol_db);
 		}
 	}
-	
+
 	if (0 == g_buffer_count || 0 == g_buffer_count % 50) {
 		SLOG(LOG_WARN, TAG_STTD, "[Recorder][%d] Recording... : read_size(%d)", g_buffer_count, voice_data->length);
 
@@ -127,7 +127,7 @@ static void _bt_hid_audio_data_receive_cb(bt_hid_voice_data_s *voice_data, void 
 			}
 		}
 		g_bt_extend_count++;
-		
+
 		if (100000 == g_buffer_count) {
 			g_buffer_count = 0;
 		}
@@ -180,7 +180,7 @@ void __recorder_focus_state_cb(sound_stream_info_h stream_info, sound_stream_foc
 	}
 
 	SLOG(LOG_WARN, TAG_STTD, "[Recorder] focus state changed to (%d) with reason(%s)", (int)state_for_recording, __stt_get_focus_changed_reason_code(reason));
-	
+
 	if (STTD_RECORDER_STATE_RECORDING == g_recorder_state && SOUND_STREAM_FOCUS_STATE_RELEASED == state_for_recording) {
 		SLOG(LOG_WARN, TAG_STTD, "[Recorder] Focus released as interrupt");
 		if (NULL != g_interrupt_cb) {
@@ -407,7 +407,7 @@ int sttd_recorder_destroy(int engine_id)
 		}
 		recorder->audio_h = NULL;
 	}
-#else 
+#else
 	if (STTD_RECORDER_STATE_RECORDING == g_recorder_state) {
 		g_recorder_state = STTD_RECORDER_STATE_READY;
 	}
@@ -550,7 +550,7 @@ int sttd_recorder_start(int engine_id)
 			SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to set stream info");
 		}
 	}
-	
+
 	ret = audio_in_prepare(recorder->audio_h);
 	if (AUDIO_IO_ERROR_NONE != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to start audio : %d", ret);
@@ -625,7 +625,7 @@ int sttd_recorder_stop(int engine_id)
 	if (AUDIO_IO_ERROR_NONE != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to unprepare audioin : %d", ret);
 	}
-#else 
+#else
 	int bt_retry = 0;
 	bool stopped = false;
 	while (5 > bt_retry) {

@@ -31,7 +31,7 @@ int main(int argc, char** argv)
 	SLOG(LOG_DEBUG, TAG_STTD, "===== STT Daemon Initialize");
 
 	if (!ecore_init()) {
-		SLOG(LOG_ERROR, TAG_STTD, "[ERROR] Fail to initialize Ecore"); 
+		SLOG(LOG_ERROR, TAG_STTD, "[ERROR] Fail to initialize Ecore");
 		return EXIT_FAILURE;
 	}
 
@@ -52,7 +52,7 @@ int main(int argc, char** argv)
 		SLOG(LOG_WARN, TAG_STTD, "[Main Warning] Fail to create timer of client check");
 	}
 
-	SLOG(LOG_DEBUG, TAG_STTD, "[Main] stt-daemon start..."); 
+	SLOG(LOG_DEBUG, TAG_STTD, "[Main] stt-daemon start...");
 
 	SLOG(LOG_DEBUG, TAG_STTD, "=====");
 	SLOG(LOG_DEBUG, TAG_STTD, "  ");

@@ -31,9 +31,9 @@
 extern "C" {
 #endif
 
-#define TAG_STTC "sttc" 
+#define TAG_STTC "sttc"
 
-/** 
+/**
 * @brief A structure of handle for identification
 */
 struct stt_s {

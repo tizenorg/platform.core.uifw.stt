@@ -45,13 +45,13 @@ int stt_file_client_new()
 	g_client_info->current_engine_id = -1;
 
 	g_client_info->time_info = NULL;
-	
+
 	g_client_info->before_state = STT_FILE_STATE_READY;
 	g_client_info->current_state = STT_FILE_STATE_READY;
 
 	g_client_info->cb_ref_count = 0;
 
-	return 0;	
+	return 0;
 }
 
 int stt_file_client_destroy()
@@ -63,7 +63,7 @@ int stt_file_client_destroy()
 		while (0 != g_client_info->cb_ref_count) {
 			/* wait for release callback function */
 		}
-		
+
 		free(g_client_info);
 
 		g_client_info = NULL;

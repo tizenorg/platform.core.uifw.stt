@@ -361,7 +361,7 @@ int __stt_config_set_auto_language()
 		SLOG(LOG_ERROR, stt_tag(), "Current config info is NULL");
 		return STT_CONFIG_ERROR_OPERATION_FAILED;
 	}
-	
+
 	/* Check current language */
 	if (NULL == g_config_info->language) {
 		SLOG(LOG_ERROR, stt_tag(), "Current config language is NULL");
@@ -962,7 +962,7 @@ int stt_config_mgr_get_engine_list(stt_config_supported_engine_cb callback, void
 			return STT_CONFIG_ERROR_OPERATION_FAILED;
 		}
 
-		if (false == callback(engine_info->uuid, engine_info->name, 
+		if (false == callback(engine_info->uuid, engine_info->name,
 			engine_info->setting, engine_info->support_silence_detection, user_data)) {
 			break;
 		}
@@ -1067,7 +1067,7 @@ int stt_config_mgr_set_engine(const char* engine)
 
 			SLOG(LOG_DEBUG, stt_tag(), " %s", lang);
 			if (NULL != lang && NULL != g_config_info->language) {
-				if (0 == strcmp(lang, g_config_info->language)) {	
+				if (0 == strcmp(lang, g_config_info->language)) {
 					/* language is valid */
 					is_valid_lang = true;
 
@@ -1512,7 +1512,7 @@ int __stt_config_mgr_print_engine_info()
 		} else {
 			SLOG(LOG_ERROR, stt_tag(), "  language is NONE");
 		}
-		SLOG(LOG_DEBUG, stt_tag(), " silence support : %s", 
+		SLOG(LOG_DEBUG, stt_tag(), " silence support : %s",
 			engine_info->support_silence_detection ? "true" : "false");
 		iter = g_slist_next(iter);
 		i++;
@@ -1606,7 +1606,7 @@ int stt_config_mgr_foreach_time_info(stt_config_result_time_cb callback, void* u
 	while (NULL != iter) {
 		data = iter->data;
 
-		if (false == callback(data->index, data->event, data->text, 
+		if (false == callback(data->index, data->event, data->text,
 			data->start_time, data->end_time, user_data)) {
 			break;
 		}

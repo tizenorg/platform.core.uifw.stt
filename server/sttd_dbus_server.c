@@ -62,7 +62,7 @@ int sttd_dbus_server_initialize(DBusConnection* conn, DBusMessage* msg)
 		DBUS_TYPE_INT32, &pid,
 		DBUS_TYPE_INT32, &uid,
 		DBUS_TYPE_INVALID);
-	
+
 	SLOG(LOG_DEBUG, TAG_STTD, ">>>>> STT Initialize");
 
 	if (dbus_error_is_set(&err)) {
@@ -70,7 +70,7 @@ int sttd_dbus_server_initialize(DBusConnection* conn, DBusMessage* msg)
 		dbus_error_free(&err);
 		ret = STTD_ERROR_OPERATION_FAILED;
 	} else {
-		SLOG(LOG_DEBUG, TAG_STTD, "[IN] stt initialize : pid(%d), uid(%d)", pid , uid); 
+		SLOG(LOG_DEBUG, TAG_STTD, "[IN] stt initialize : pid(%d), uid(%d)", pid , uid);
 		ret =  sttd_server_initialize(pid, uid, &silence_supported, &credential_needed);
 	}
 
@@ -86,7 +86,7 @@ int sttd_dbus_server_initialize(DBusConnection* conn, DBusMessage* msg)
 
 		if (0 == ret) {
 			SLOG(LOG_DEBUG, TAG_STTD, "[OUT SUCCESS] Result(%d), silence(%d), credential(%d)", 
-				ret, silence_supported, credential_needed); 
+				ret, silence_supported, credential_needed);
 		} else {
 			SLOG(LOG_ERROR, TAG_STTD, "[OUT ERROR] Result(%d)", ret);
 		}
@@ -123,7 +123,7 @@ int sttd_dbus_server_finalize(DBusConnection* conn, DBusMessage* msg)
 		dbus_error_free(&err);
 		ret = STTD_ERROR_OPERATION_FAILED;
 	} else {
-		SLOG(LOG_DEBUG, TAG_STTD, "[IN] stt finalize : uid(%d)", uid); 
+		SLOG(LOG_DEBUG, TAG_STTD, "[IN] stt finalize : uid(%d)", uid);
 		ret =  sttd_server_finalize(uid);
 	}
 
@@ -174,7 +174,7 @@ int sttd_dbus_server_get_support_engines(DBusConnection* conn, DBusMessage* msg)
 		dbus_error_free(&err);
 		ret = STTD_ERROR_OPERATION_FAILED;
 	} else {
-		SLOG(LOG_DEBUG, TAG_STTD, "[IN] stt supported engines : uid(%d)", uid); 
+		SLOG(LOG_DEBUG, TAG_STTD, "[IN] stt supported engines : uid(%d)", uid);
 		ret = sttd_server_get_supported_engines(uid, &engine_list);
 	}
 
@@ -273,7 +273,7 @@ int sttd_dbus_server_set_current_engine(DBusConnection* conn, DBusMessage* msg)
 		dbus_error_free(&err);
 		ret = STTD_ERROR_OPERATION_FAILED;
 	} else {
-		SLOG(LOG_DEBUG, TAG_STTD, "[IN] stt set current engine : uid(%d)", uid); 
+		SLOG(LOG_DEBUG, TAG_STTD, "[IN] stt set current engine : uid(%d), engine_id(%s)", uid, (NULL == engine_id) ? "NULL" : engine_id);
 		ret = sttd_server_set_current_engine(uid, engine_id, &silence_supported, &credential_needed);
 	}
 
@@ -328,7 +328,7 @@ int sttd_dbus_server_get_current_engine(DBusConnection* conn, DBusMessage* msg)
 		dbus_error_free(&err);
 		ret = STTD_ERROR_OPERATION_FAILED;
 	} else {
-		SLOG(LOG_DEBUG, TAG_STTD, "[IN] stt get current engine : uid(%d)", uid); 
+		SLOG(LOG_DEBUG, TAG_STTD, "[IN] stt get current engine : uid(%d)", uid);
 		ret = sttd_server_get_current_engine(uid, &engine);
 	}
 
@@ -390,7 +390,7 @@ int sttd_dbus_server_check_app_agreed(DBusConnection* conn, DBusMessage* msg)
 		dbus_error_free(&err);
 		ret = STTD_ERROR_OPERATION_FAILED;
 	} else {
-		SLOG(LOG_DEBUG, TAG_STTD, "[IN] stt Is engine available : uid(%d)", uid); 
+		SLOG(LOG_DEBUG, TAG_STTD, "[IN] stt Is engine available : uid(%d)", uid);
 		ret = sttd_server_check_app_agreed(uid, appid, &available);
 	}
 
@@ -444,7 +444,7 @@ int sttd_dbus_server_get_support_lang(DBusConnection* conn, DBusMessage* msg)
 		dbus_error_free(&err);
 		ret = STTD_ERROR_OPERATION_FAILED;
 	} else {
-		SLOG(LOG_DEBUG, TAG_STTD, "[IN] stt supported langs : uid(%d)", uid); 
+		SLOG(LOG_DEBUG, TAG_STTD, "[IN] stt supported langs : uid(%d)", uid);
 		ret = sttd_server_get_supported_languages(uid, &lang_list);
 	}
 
@@ -523,7 +523,7 @@ int sttd_dbus_server_get_default_lang(DBusConnection* conn, DBusMessage* msg)
 		dbus_error_free(&err);
 		ret = STTD_ERROR_OPERATION_FAILED;
 	} else {
-		SLOG(LOG_DEBUG, TAG_STTD, "[IN] stt get default lang : uid(%d)", uid); 
+		SLOG(LOG_DEBUG, TAG_STTD, "[IN] stt get default lang : uid(%d)", uid);
 		ret = sttd_server_get_current_langauage(uid, &lang);
 	}
 
@@ -627,6 +627,7 @@ int sttd_dbus_server_get_private_data(DBusConnection* conn, DBusMessage* msg)
 	int uid;
 	char* key = NULL;
 	char* data = NULL;
+
 	int ret = 0;
 	dbus_message_get_args(msg, &err,
 		DBUS_TYPE_INT32, &uid,
@@ -712,7 +713,7 @@ int sttd_dbus_server_is_recognition_type_supported(DBusConnection* conn, DBusMes
 			DBUS_TYPE_INVALID);
 
 		if (0 == ret) {
-			SLOG(LOG_DEBUG, TAG_STTD, "[OUT SUCCESS] Result(%d), Support(%s)", ret, support ? "true" : "false"); 
+			SLOG(LOG_DEBUG, TAG_STTD, "[OUT SUCCESS] Result(%d), Support(%s)", ret, support ? "true" : "false");
 		} else {
 			SLOG(LOG_ERROR, TAG_STTD, "[OUT ERROR] Result(%d)", ret);
 		}
@@ -765,7 +766,7 @@ int sttd_dbus_server_set_start_sound(DBusConnection* conn, DBusMessage* msg)
 			DBUS_TYPE_INVALID);
 
 		if (0 == ret) {
-			SLOG(LOG_DEBUG, TAG_STTD, "[OUT SUCCESS] Result(%d)", ret); 
+			SLOG(LOG_DEBUG, TAG_STTD, "[OUT SUCCESS] Result(%d)", ret);
 		} else {
 			SLOG(LOG_ERROR, TAG_STTD, "[OUT ERROR] Result(%d)", ret);
 		}
@@ -817,7 +818,7 @@ int sttd_dbus_server_unset_start_sound(DBusConnection* conn, DBusMessage* msg)
 			DBUS_TYPE_INVALID);
 
 		if (0 == ret) {
-			SLOG(LOG_DEBUG, TAG_STTD, "[OUT SUCCESS] Result(%d)", ret); 
+			SLOG(LOG_DEBUG, TAG_STTD, "[OUT SUCCESS] Result(%d)", ret);
 		} else {
 			SLOG(LOG_ERROR, TAG_STTD, "[OUT ERROR] Result(%d)", ret);
 		}
@@ -922,7 +923,7 @@ int sttd_dbus_server_unset_stop_sound(DBusConnection* conn, DBusMessage* msg)
 			DBUS_TYPE_INVALID);
 
 		if (0 == ret) {
-			SLOG(LOG_DEBUG, TAG_STTD, "[OUT SUCCESS] Result(%d)", ret); 
+			SLOG(LOG_DEBUG, TAG_STTD, "[OUT SUCCESS] Result(%d)", ret);
 		} else {
 			SLOG(LOG_ERROR, TAG_STTD, "[OUT ERROR] Result(%d)", ret);
 		}
@@ -958,7 +959,7 @@ int sttd_dbus_server_start(DBusConnection* conn, DBusMessage* msg)
 
 	dbus_message_get_args(msg, &err, 
 		DBUS_TYPE_INT32, &uid, 
-		DBUS_TYPE_STRING, &lang,   
+		DBUS_TYPE_STRING, &lang,
 		DBUS_TYPE_STRING, &type,
 		DBUS_TYPE_INT32, &silence,
 		DBUS_TYPE_STRING, &appid,
@@ -973,7 +974,7 @@ int sttd_dbus_server_start(DBusConnection* conn, DBusMessage* msg)
 		ret = STTD_ERROR_OPERATION_FAILED;
 	} else {
 		SLOG(LOG_DEBUG, TAG_STTD, "[IN] stt start : uid(%d), lang(%s), type(%s), silence(%d) appid(%s) credential(%s)"
-			, uid, lang, type, silence, appid, credential); 
+			, uid, lang, type, silence, appid, credential);
 		ret = sttd_server_start(uid, lang, type, silence, appid, credential);
 	}
 
@@ -1032,7 +1033,7 @@ int sttd_dbus_server_stop(DBusConnection* conn, DBusMessage* msg)
 		dbus_error_free(&err);
 		ret = STTD_ERROR_OPERATION_FAILED;
 	} else {
-		SLOG(LOG_DEBUG, TAG_STTD, "[IN] stt stop : uid(%d)", uid); 
+		SLOG(LOG_DEBUG, TAG_STTD, "[IN] stt stop : uid(%d)", uid);
 		ret = sttd_server_stop(uid);
 	}
 
@@ -1090,7 +1091,7 @@ int sttd_dbus_server_cancel(DBusConnection* conn, DBusMessage* msg)
 		dbus_error_free(&err);
 		ret = STTD_ERROR_OPERATION_FAILED;
 	} else {
-		SLOG(LOG_DEBUG, TAG_STTD, "[IN] stt cancel : uid(%d)", uid); 
+		SLOG(LOG_DEBUG, TAG_STTD, "[IN] stt cancel : uid(%d)", uid);
 		ret = sttd_server_cancel(uid);
 	}
 
