@@ -273,7 +273,7 @@ int sttd_dbus_server_set_current_engine(DBusConnection* conn, DBusMessage* msg)
 		dbus_error_free(&err);
 		ret = STTD_ERROR_OPERATION_FAILED;
 	} else {
-		SLOG(LOG_DEBUG, TAG_STTD, "[IN] stt set current engine : uid(%d)", uid); 
+		SLOG(LOG_DEBUG, TAG_STTD, "[IN] stt set current engine : uid(%d), engine_id(%s)", uid, (NULL == engine_id) ? "NULL" : engine_id); 
 		ret = sttd_server_set_current_engine(uid, engine_id, &silence_supported, &credential_needed);
 	}
 
@@ -627,6 +627,7 @@ int sttd_dbus_server_get_private_data(DBusConnection* conn, DBusMessage* msg)
 	int uid;
 	char* key = NULL;
 	char* data = NULL;
+
 	int ret = 0;
 	dbus_message_get_args(msg, &err,
 		DBUS_TYPE_INT32, &uid,

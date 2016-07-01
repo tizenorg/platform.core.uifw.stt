@@ -622,7 +622,7 @@ int stt_dbus_request_set_current_engine(int uid, const char* engine_id, bool* si
 		SLOG(LOG_ERROR, TAG_STTC, ">>>> stt set engine : Fail to make message");
 		return STT_ERROR_OPERATION_FAILED;
 	} else {
-		SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt set engine : uid(%d)", uid);
+		SLOG(LOG_DEBUG, TAG_STTC, ">>>> stt set engine : uid(%d), engine_id(%s)", uid, (NULL == engine_id) ? "NULL" : engine_id);
 	}
 
 	dbus_message_append_args(msg,

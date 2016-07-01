@@ -390,7 +390,10 @@ int stt_engine_get_private_data(int engine_id, const char* key, char** data)
 		return ret;
 	}
 
-	*data = strdup(temp);
+	if (NULL == temp)
+		*data = strdup("NULL");
+	else
+		*data = strdup(temp);
 
 	return STTP_ERROR_NONE;
 }

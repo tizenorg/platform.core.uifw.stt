@@ -532,6 +532,8 @@ int stt_set_engine(stt_h stt, const char* engine_id)
 		free(client->current_engine_id);
 	}
 
+	SLOG(LOG_DEBUG, TAG_STTC, "===== engined_id(%s)", engine_id);
+
 	client->current_engine_id = strdup(engine_id);
 
 	SLOG(LOG_DEBUG, TAG_STTC, "=====");
@@ -672,6 +674,11 @@ int stt_get_private_data(stt_h stt, const char* key, char** data)
 		}
 	}
 
+	if (strcmp(*data, "NULL")) {
+		free(*data);
+		*data = NULL;
+	}
+
 	SLOG(LOG_DEBUG, TAG_STTC, "=====");
 	SLOG(LOG_DEBUG, TAG_STTC, "");
 
@@ -731,6 +738,8 @@ static Eina_Bool __stt_connect_daemon(void *data)
 		int count = 0;
 		silence_supported = false;
 		credential_needed = false;
+		SLOG(LOG_DEBUG, TAG_STTC, "[WARNING] current_engine_id(%s)", client->current_engine_id);
+
 		while (0 != ret) {
 			ret = stt_dbus_request_set_current_engine(client->uid, client->current_engine_id, &silence_supported, &credential_needed);
 			if (0 != ret) {
