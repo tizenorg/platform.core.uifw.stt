@@ -560,91 +560,96 @@ int __stt_config_mgr_check_engine_is_valid(const char* engine_id)
 
 	/* Change default engine */
 	iter = g_slist_nth(g_engine_list, 0);
-	engine_info = iter->data;
-	if (NULL == engine_info) {
-		SLOG(LOG_ERROR, stt_tag(), "[ERROR] Engine info is NULL");
-		return STT_CONFIG_ERROR_ENGINE_NOT_FOUND;
-	}
-
-	if (NULL != g_config_info->engine_id) {
-		free(g_config_info->engine_id);
-		g_config_info->engine_id = NULL;
-	}
-	if (NULL != g_config_info->setting) {
-		free(g_config_info->setting);
-		g_config_info->setting = NULL;
-	}
-
-	if (NULL != engine_info->uuid) {
-		g_config_info->engine_id = strdup(engine_info->uuid);
-	}
-
-	if (NULL != engine_info->setting) {
-		g_config_info->setting = strdup(engine_info->setting);
-	}
-
-	/* Engine is valid*/
-	GSList *iter_lang = NULL;
-	char* lang;
-	bool is_valid_lang = false;
-
-	if (0 >= g_slist_length(engine_info->languages)) {
-		SLOG(LOG_ERROR, stt_tag(), "[ERROR] Empty supported language");
-		return STT_CONFIG_ERROR_ENGINE_NOT_FOUND;
-	}
-
-	/* Get a first item */
-	iter_lang = g_slist_nth(engine_info->languages, 0);
-
-	while (NULL != iter_lang) {
-		/*Get handle data from list*/
-		lang = iter_lang->data;
-
-		SLOG(LOG_DEBUG, stt_tag(), " %s", lang);
-		if (NULL != lang) {
-			if (0 == strcmp(lang, g_config_info->language)) {
-				/* language is valid */
-				is_valid_lang = true;
-				break;
-			}
+	if (NULL != iter) {
+		engine_info = iter->data;
+		if (NULL == engine_info) {
+			SLOG(LOG_ERROR, stt_tag(), "[ERROR] Engine info is NULL");
+			return STT_CONFIG_ERROR_ENGINE_NOT_FOUND;
 		}
 
-		/*Get next item*/
-		iter_lang = g_slist_next(iter_lang);
-	}
+		if (NULL != g_config_info->engine_id) {
+			free(g_config_info->engine_id);
+			g_config_info->engine_id = NULL;
+		}
+		if (NULL != g_config_info->setting) {
+			free(g_config_info->setting);
+			g_config_info->setting = NULL;
+		}
 
-	if (false == is_valid_lang) {
+		if (NULL != engine_info->uuid) {
+			g_config_info->engine_id = strdup(engine_info->uuid);
+		}
+
+		if (NULL != engine_info->setting) {
+			g_config_info->setting = strdup(engine_info->setting);
+		}
+
+		/* Engine is valid*/
+		GSList *iter_lang = NULL;
+		char* lang;
+		bool is_valid_lang = false;
+
+		if (0 >= g_slist_length(engine_info->languages)) {
+			SLOG(LOG_ERROR, stt_tag(), "[ERROR] Empty supported language");
+			return STT_CONFIG_ERROR_ENGINE_NOT_FOUND;
+		}
+
+		/* Get a first item */
 		iter_lang = g_slist_nth(engine_info->languages, 0);
-		if (NULL != iter_lang) {
+
+		while (NULL != iter_lang) {
+			/*Get handle data from list*/
 			lang = iter_lang->data;
+
+			SLOG(LOG_DEBUG, stt_tag(), " %s", lang);
 			if (NULL != lang) {
-				if (NULL != g_config_info->language)
-					free(g_config_info->language);
-				g_config_info->language = strdup(lang);
+				if (0 == strcmp(lang, g_config_info->language)) {
+					/* language is valid */
+					is_valid_lang = true;
+					break;
+				}
+			}
+
+			/*Get next item*/
+			iter_lang = g_slist_next(iter_lang);
+		}
+
+		if (false == is_valid_lang) {
+			iter_lang = g_slist_nth(engine_info->languages, 0);
+			if (NULL != iter_lang) {
+				lang = iter_lang->data;
+				if (NULL != lang) {
+					if (NULL != g_config_info->language)
+						free(g_config_info->language);
+					g_config_info->language = strdup(lang);
+				}
 			}
 		}
+
+		/* Check options */
+		if (false == engine_info->support_silence_detection) {
+			if (true == g_config_info->silence_detection)
+				g_config_info->silence_detection = false;
+		}
+
+		SLOG(LOG_DEBUG, stt_tag(), "[Config] Engine changed");
+		SLOG(LOG_DEBUG, stt_tag(), "  Engine : %s", g_config_info->engine_id);
+		SLOG(LOG_DEBUG, stt_tag(), "  Setting : %s", g_config_info->setting);
+		SLOG(LOG_DEBUG, stt_tag(), "  language : %s", g_config_info->language);
+		SLOG(LOG_DEBUG, stt_tag(), "  Silence detection : %s", g_config_info->silence_detection ? "on" : "off");
+		SLOG(LOG_DEBUG, stt_tag(), "  Credential : %s", g_config_info->credential ? "true" : "false");
+
+		if (0 != stt_parser_set_engine(g_config_info->engine_id, g_config_info->setting, g_config_info->language,
+			g_config_info->silence_detection, g_config_info->credential)) {
+				SLOG(LOG_ERROR, stt_tag(), "Fail to save config");
+				return STT_CONFIG_ERROR_OPERATION_FAILED;
+		}
+
+		return STT_CONFIG_ERROR_NONE;
+	} else {
+		SLOG(LOG_ERROR, stt_tag(), "Operation failed - false engine");
+		return STT_CONFIG_ERROR_OPERATION_FAILED;
 	}
-
-	/* Check options */
-	if (false == engine_info->support_silence_detection) {
-		if (true == g_config_info->silence_detection)
-			g_config_info->silence_detection = false;
-	}
-
-	SLOG(LOG_DEBUG, stt_tag(), "[Config] Engine changed");
-	SLOG(LOG_DEBUG, stt_tag(), "  Engine : %s", g_config_info->engine_id);
-	SLOG(LOG_DEBUG, stt_tag(), "  Setting : %s", g_config_info->setting);
-	SLOG(LOG_DEBUG, stt_tag(), "  language : %s", g_config_info->language);
-	SLOG(LOG_DEBUG, stt_tag(), "  Silence detection : %s", g_config_info->silence_detection ? "on" : "off");
-	SLOG(LOG_DEBUG, stt_tag(), "  Credential : %s", g_config_info->credential ? "true" : "false");
-
-	if (0 != stt_parser_set_engine(g_config_info->engine_id, g_config_info->setting, g_config_info->language,
-		g_config_info->silence_detection, g_config_info->credential)) {
-			SLOG(LOG_ERROR, stt_tag(), " Fail to save config");
-			return STT_CONFIG_ERROR_OPERATION_FAILED;
-	}
-
-	return STT_CONFIG_ERROR_NONE;
 }
 
 int stt_config_mgr_initialize(int uid)
