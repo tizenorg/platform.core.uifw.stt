@@ -560,6 +560,11 @@ int __stt_config_mgr_check_engine_is_valid(const char* engine_id)
 
 	/* Change default engine */
 	iter = g_slist_nth(g_engine_list, 0);
+	if (NULL == iter) {
+		SLOG(LOG_ERROR, stt_tag(), "Operation failed - false engine");
+		return STT_CONFIG_ERROR_OPERATION_FAILED;
+	}
+
 	engine_info = iter->data;
 	if (NULL == engine_info) {
 		SLOG(LOG_ERROR, stt_tag(), "[ERROR] Engine info is NULL");
@@ -640,7 +645,7 @@ int __stt_config_mgr_check_engine_is_valid(const char* engine_id)
 
 	if (0 != stt_parser_set_engine(g_config_info->engine_id, g_config_info->setting, g_config_info->language,
 		g_config_info->silence_detection, g_config_info->credential)) {
-			SLOG(LOG_ERROR, stt_tag(), " Fail to save config");
+			SLOG(LOG_ERROR, stt_tag(), "Fail to save config");
 			return STT_CONFIG_ERROR_OPERATION_FAILED;
 	}
 

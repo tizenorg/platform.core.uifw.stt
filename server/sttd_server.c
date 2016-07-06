@@ -434,15 +434,19 @@ static void __sig_handler(int signo)
 	int client_count = 0;
 	int i = 0;
 	if (0 != sttd_client_get_list(&client_list, &client_count)) {
-		if (NULL != client_list)
+		if (NULL != client_list) {
 			free(client_list);
+			client_list = NULL;
+		}
 	}
 
 	if (NULL != client_list) {
 		for (i = 0; i < client_count; i++) {
 			sttdc_send_error_signal(client_list[i], STTD_ERROR_SERVICE_RESET, "Service Reset");
 		}
+
 		free(client_list);
+		client_list = NULL;
 	}
 
 	/* invoke signal again */
