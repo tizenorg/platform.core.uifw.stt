@@ -163,6 +163,21 @@
  * <td></td>
  * </tr>
  * <tr>
+ * <td>stt_set_credential()</td>
+ * <td>Created, Ready</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>stt_set_private_data()<br>stt_get_private_data()</td>
+ * <td>Ready</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>stt_get_error_message()</td>
+ * <td>Created, Ready, Recording, Processing</td>
+ * <td>This function should be called during STT error callback.</td>
+ * </tr>
+ * <tr>
  * <td>stt_start()</td>
  * <td>Ready</td>
  * <td></td>
@@ -185,15 +200,16 @@
  * <tr>
  * <td>stt_foreach_detailed_result()</td>
  * <td>Processing</td>
- * <td>This must be called in stt_recognition_result_cb()</td>
+ * <td>This must be called in stt_recognition_result_cb().</td>
  * </tr>
  * <tr>
  * <td>stt_set_recognition_result_cb()<br>stt_unset_recognition_result_cb()<br>
  * stt_set_state_changed_cb()<br>stt_unset_state_changed_cb()<br>stt_set_error_cb()<br>stt_unset_error_cb()<br>
- * stt_set_default_language_changed_cb()<br>stt_unset_default_language_changed_cb()
+ * stt_set_default_language_changed_cb()<br>stt_unset_default_language_changed_cb()<br>
+ * stt_set_engine_changed_cb()<br>stt_unset_engine_changed_cb()
  * </td>
  * <td>Created</td>
- * <td>All callback function should be registered / unregistered in Created state</td>
+ * <td>All callback function should be registered / unregistered in Created state.</td>
  * </tr>
  * </table>
  *
