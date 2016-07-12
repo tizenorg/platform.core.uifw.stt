@@ -571,7 +571,7 @@ int sttd_dbus_server_set_private_data(DBusConnection* conn, DBusMessage* msg)
 	int uid;
 	char* key;
 	char* data;
-	int ret = 0;
+	int ret = STTD_ERROR_OPERATION_FAILED;
 	dbus_message_get_args(msg, &err,
 		DBUS_TYPE_INT32, &uid,
 		DBUS_TYPE_STRING, &key,
@@ -604,7 +604,7 @@ int sttd_dbus_server_set_private_data(DBusConnection* conn, DBusMessage* msg)
 		}
 
 		if (!dbus_connection_send(conn, reply, NULL)) {
-			SLOG(LOG_ERROR, TAG_STTD, "[OUT ERROR] Fail to send reply");
+			SLOG(LOG_ERROR, TAG_STTD, "[OUT ERROR] Out Of Memory!");
 		}
 
 		dbus_connection_flush(conn);
@@ -627,8 +627,7 @@ int sttd_dbus_server_get_private_data(DBusConnection* conn, DBusMessage* msg)
 	int uid;
 	char* key = NULL;
 	char* data = NULL;
-
-	int ret = 0;
+	int ret = STTD_ERROR_OPERATION_FAILED;
 	dbus_message_get_args(msg, &err,
 		DBUS_TYPE_INT32, &uid,
 		DBUS_TYPE_STRING, &key,
@@ -662,7 +661,7 @@ int sttd_dbus_server_get_private_data(DBusConnection* conn, DBusMessage* msg)
 		}
 
 		if (!dbus_connection_send(conn, reply, NULL)) {
-			SLOG(LOG_ERROR, TAG_STTD, "[OUT ERROR] Fail to send reply");
+			SLOG(LOG_ERROR, TAG_STTD, "[OUT ERROR] Out Of Memory!");
 		}
 
 		dbus_connection_flush(conn);

@@ -73,9 +73,9 @@ void __config_bool_changed_cb(stt_config_type_e type, bool bool_value, void* use
 	return;
 }
 
-int sttd_config_initialize(sttd_config_engine_changed_cb engine_cb,
-			   sttd_config_language_changed_cb lang_cb,
-			   sttd_config_silence_changed_cb silence_cb,
+int sttd_config_initialize(sttd_config_engine_changed_cb engine_cb, 
+			   sttd_config_language_changed_cb lang_cb, 
+			   sttd_config_silence_changed_cb silence_cb, 
 			   void* user_data)
 {
 	if (NULL == engine_cb || NULL == lang_cb || NULL == silence_cb) {
@@ -90,7 +90,7 @@ int sttd_config_initialize(sttd_config_engine_changed_cb engine_cb,
 		return -1;
 	}
 
-	ret = stt_config_mgr_set_callback(getpid(), __sttd_config_engine_changed_cb, __sttd_config_lang_changed_cb,
+	ret = stt_config_mgr_set_callback(getpid(), __sttd_config_engine_changed_cb, __sttd_config_lang_changed_cb, 
 		__config_bool_changed_cb, NULL);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[ERROR] Fail to set config changed : %d", ret);

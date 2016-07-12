@@ -28,7 +28,6 @@
 #include "sttd_dbus.h"
 #include "sttd_recorder.h"
 #include "sttd_main.h"
-#include "sttp.h"
 
 
 #define FRAME_LENGTH 160
@@ -43,15 +42,12 @@ typedef enum {
 } sttd_recorder_state;
 
 typedef struct {
-	int			engine_id;
 	int			uid;
 	audio_in_h		audio_h;
-	sttp_audio_type_e	audio_type;
+	stte_audio_type_e	audio_type;
 } stt_recorder_s;
 
-static GSList *g_recorder_list;
-
-static int g_recording_engine_id;
+static stt_recorder_s* g_recorder = NULL;
 
 static stt_recorder_audio_cb	g_audio_cb;
 
@@ -100,17 +96,15 @@ static void _bt_hid_audio_data_receive_cb(bt_hid_voice_data_s *voice_data, void 
 	if (NULL != g_audio_cb) {
 		if (0 != g_audio_cb((void*)voice_data->audio_buf, (unsigned int)voice_data->length)) {
 			SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to read audio");
-			sttd_recorder_stop(g_recording_engine_id);
+			sttd_recorder_stop();
 		}
 
-		stt_recorder_s* recorder;
-		recorder = __get_recorder(g_recording_engine_id);
-		if (NULL == recorder) {
+		if (NULL == g_recorder) {
 			return;
 		}
 
-		float vol_db = get_volume_decibel((char*)voice_data->audio_buf, (int)voice_data->length, recorder->audio_type);
-		if (0 != sttdc_send_set_volume(recorder->uid, vol_db)) {
+		float vol_db = get_volume_decibel((char*)voice_data->audio_buf, (int)voice_data->length, g_recorder->audio_type);
+		if (0 != sttdc_send_set_volume(g_recorder->uid, vol_db)) {
 			SLOG(LOG_ERROR, TAG_STTD, "[Recorder] Fail to send recording volume(%f)", vol_db);
 		}
 	}
@@ -209,7 +203,7 @@ int sttd_recorder_initialize(stt_recorder_audio_cb audio_cb, stt_recorder_interr
 	g_audio_cb = audio_cb;
 	g_interrupt_cb = interrupt_cb;
 	g_recorder_state = STTD_RECORDER_STATE_NONE;
-	g_recording_engine_id = -1;
+	g_recorder = NULL;
 
 	if (0 != sound_manager_create_stream_information(SOUND_STREAM_TYPE_VOICE_RECOGNITION, __recorder_focus_state_cb, NULL, &g_stream_info_h)) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to create stream info");
@@ -240,6 +234,10 @@ int sttd_recorder_deinitialize()
 		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to destroy stream info");
 	}
 
+	free(g_recorder);
+	g_recorder = NULL;
+	
+#ifdef __UNUSED_CODES__
 	/* Remove all recorder */
 	GSList *iter = NULL;
 	stt_recorder_s *recorder = NULL;
@@ -260,6 +258,7 @@ int sttd_recorder_deinitialize()
 
 		iter = g_slist_nth(g_recorder_list, 0);
 	}
+#endif
 
 #ifdef TV_BT_MODE
 	bt_hid_host_deinitialize();
@@ -272,26 +271,6 @@ int sttd_recorder_deinitialize()
 	return 0;
 }
 
-static stt_recorder_s* __get_recorder(int engine_id)
-{
-	GSList *iter = NULL;
-	stt_recorder_s *recorder = NULL;
-
-	iter = g_slist_nth(g_recorder_list, 0);
-
-	while (NULL != iter) {
-		recorder = iter->data;
-
-		if (recorder->engine_id == engine_id) {
-			return recorder;
-		}
-
-		iter = g_slist_next(iter);
-	}
-
-	return NULL;
-}
-
 int sttd_recorder_set_audio_session()
 {
 	return 0;
@@ -302,10 +281,10 @@ int sttd_recorder_unset_audio_session()
 	return 0;
 }
 
-int sttd_recorder_create(int engine_id, int uid, sttp_audio_type_e type, int channel, unsigned int sample_rate)
+int sttd_recorder_create(stte_audio_type_e type, int channel, unsigned int sample_rate)
 {
 	/* Check engine id is valid */
-	if (NULL != __get_recorder(engine_id)) {
+	if (NULL != g_recorder) {
 		SLOG(LOG_WARN, TAG_STTD, "[Recorder WARNING] Engine id is already registered");
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
@@ -326,8 +305,8 @@ int sttd_recorder_create(int engine_id, int uid, sttp_audio_type_e type, int cha
 	}
 
 	switch (type) {
-	case STTP_AUDIO_TYPE_PCM_S16_LE:	audio_type = AUDIO_SAMPLE_TYPE_S16_LE;	break;
-	case STTP_AUDIO_TYPE_PCM_U8:		audio_type = AUDIO_SAMPLE_TYPE_U8;	break;
+	case STTE_AUDIO_TYPE_PCM_S16_LE:	audio_type = AUDIO_SAMPLE_TYPE_S16_LE;	break;
+	case STTE_AUDIO_TYPE_PCM_U8:		audio_type = AUDIO_SAMPLE_TYPE_U8;	break;
 	default:
 		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Invalid Audio Type");
 		return STTD_ERROR_OPERATION_FAILED;
@@ -360,28 +339,25 @@ int sttd_recorder_create(int engine_id, int uid, sttp_audio_type_e type, int cha
 		return STTD_ERROR_OUT_OF_MEMORY;
 	}
 
-	recorder->engine_id = engine_id;
-	recorder->uid = uid;
+	recorder->uid = -1;
 	recorder->audio_h = temp_in_h;
 	recorder->audio_type = type;
 
-	g_recorder_list = g_slist_append(g_recorder_list, recorder);
+	g_recorder = recorder;
 
 	g_recorder_state = STTD_RECORDER_STATE_READY;
 
 	return 0;
 }
 
-int sttd_recorder_destroy(int engine_id)
+int sttd_recorder_destroy()
 {
 	// critical section required because this function can be called from stt engine thread context
 	SLOG(LOG_WARN, TAG_STTD, "[Recorder WARNING] Enter critical section");
 	pthread_mutex_lock(&sttd_audio_in_handle_mutex);
 
 	/* Check engine id is valid */
-	stt_recorder_s* recorder;
-	recorder = __get_recorder(engine_id);
-	if (NULL == recorder) {
+	if (NULL == g_recorder) {
 		SLOG(LOG_WARN, TAG_STTD, "[Recorder WARNING] Engine id is not valid");
 		pthread_mutex_unlock(&sttd_audio_in_handle_mutex);
 		return STTD_ERROR_INVALID_PARAMETER;
@@ -390,8 +366,8 @@ int sttd_recorder_destroy(int engine_id)
 #ifndef TV_BT_MODE
 	int ret;
 	if (STTD_RECORDER_STATE_RECORDING == g_recorder_state) {
-		if (recorder->audio_h) {
-			ret = audio_in_unprepare(recorder->audio_h);
+		if (g_recorder->audio_h) {
+			ret = audio_in_unprepare(g_recorder->audio_h);
 			if (AUDIO_IO_ERROR_NONE != ret) {
 				SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to unprepare audioin : %d", ret);
 			}
@@ -400,13 +376,14 @@ int sttd_recorder_destroy(int engine_id)
 		g_recorder_state = STTD_RECORDER_STATE_READY;
 	}
 
-	if (recorder->audio_h) {
-		ret = audio_in_destroy(recorder->audio_h);
+	if (g_recorder->audio_h) {
+		ret = audio_in_destroy(g_recorder->audio_h);
 		if (AUDIO_IO_ERROR_NONE != ret) {
 			SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to destroy audioin : %d", ret);
 		}
-		recorder->audio_h = NULL;
+		g_recorder->audio_h = NULL;
 	}
+
 #else
 	if (STTD_RECORDER_STATE_RECORDING == g_recorder_state) {
 		g_recorder_state = STTD_RECORDER_STATE_READY;
@@ -415,9 +392,8 @@ int sttd_recorder_destroy(int engine_id)
 	bt_hid_unset_audio_data_receive_cb();
 #endif
 
-	g_recorder_list = g_slist_remove(g_recorder_list, recorder);
-
-	free(recorder);
+	free(g_recorder);
+	g_recorder = NULL;
 
 	pthread_mutex_unlock(&sttd_audio_in_handle_mutex);
 	SLOG(LOG_WARN, TAG_STTD, "[Recorder WARNING] Leave critical section");
@@ -425,7 +401,7 @@ int sttd_recorder_destroy(int engine_id)
 	return 0;
 }
 
-static float get_volume_decibel(char* data, int size, sttp_audio_type_e type)
+static float get_volume_decibel(char* data, int size, stte_audio_type_e type)
 {
 	#define MAX_AMPLITUDE_MEAN_16	32768
 	#define MAX_AMPLITUDE_MEAN_08	128
@@ -437,7 +413,7 @@ static float get_volume_decibel(char* data, int size, sttp_audio_type_e type)
 	float rms = 0.0;
 	unsigned long long square_sum = 0;
 
-	if (type == STTP_AUDIO_TYPE_PCM_S16_LE)
+	if (type == STTE_AUDIO_TYPE_PCM_S16_LE)
 		depthByte = 2;
 	else
 		depthByte = 1;
@@ -475,9 +451,7 @@ Eina_Bool __read_audio_func(void *data)
 	static char g_buffer[BUFFER_LENGTH];
 
 	/* Check engine id is valid */
-	stt_recorder_s* recorder;
-	recorder = __get_recorder(g_recording_engine_id);
-	if (NULL == recorder) {
+	if (NULL == g_recorder) {
 		return EINA_FALSE;
 	}
 
@@ -486,7 +460,7 @@ Eina_Bool __read_audio_func(void *data)
 		return EINA_FALSE;
 	}
 
-	read_byte = audio_in_read(recorder->audio_h, g_buffer, BUFFER_LENGTH);
+	read_byte = audio_in_read(g_recorder->audio_h, g_buffer, BUFFER_LENGTH);
 	if (0 > read_byte) {
 		SLOG(LOG_WARN, TAG_STTD, "[Recorder WARNING] Fail to read audio : %d", read_byte);
 		g_recorder_state = STTD_RECORDER_STATE_READY;
@@ -495,13 +469,13 @@ Eina_Bool __read_audio_func(void *data)
 
 	if (0 != g_audio_cb(g_buffer, read_byte)) {
 		SLOG(LOG_WARN, TAG_STTD, "[Recorder WARNING] Fail audio callback");
-		sttd_recorder_stop(g_recording_engine_id);
+		sttd_recorder_stop();
 		return EINA_FALSE;
 	}
 
 	if (0 == g_buffer_count % 30) {
-		float vol_db = get_volume_decibel(g_buffer, BUFFER_LENGTH, recorder->audio_type);
-		if (0 != sttdc_send_set_volume(recorder->uid, vol_db)) {
+		float vol_db = get_volume_decibel(g_buffer, BUFFER_LENGTH, g_recorder->audio_type);
+		if (0 != sttdc_send_set_volume(g_recorder->uid, vol_db)) {
 			SLOG(LOG_ERROR, TAG_STTD, "[Recorder] Fail to send recording volume(%f)", vol_db);
 		}
 	}
@@ -526,7 +500,7 @@ Eina_Bool __read_audio_func(void *data)
 }
 #endif
 
-int sttd_recorder_start(int engine_id)
+int sttd_recorder_start(int uid)
 {
 	if (STTD_RECORDER_STATE_RECORDING == g_recorder_state)
 		return 0;
@@ -534,9 +508,7 @@ int sttd_recorder_start(int engine_id)
 	int ret = -1;
 #ifndef TV_BT_MODE
 	/* Check engine id is valid */
-	stt_recorder_s* recorder;
-	recorder = __get_recorder(engine_id);
-	if (NULL == recorder) {
+	if (NULL == g_recorder) {
 		SLOG(LOG_WARN, TAG_STTD, "[Recorder WARNING] Engine id is not valid");
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
@@ -545,13 +517,13 @@ int sttd_recorder_start(int engine_id)
 	if (SOUND_MANAGER_ERROR_NONE != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to acquire focus : %d", ret);
 	} else {
-		ret = audio_in_set_stream_info(recorder->audio_h, g_stream_info_h);
+		ret = audio_in_set_stream_info(g_recorder->audio_h, g_stream_info_h);
 		if (AUDIO_IO_ERROR_NONE != ret) {
 			SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to set stream info");
 		}
 	}
 
-	ret = audio_in_prepare(recorder->audio_h);
+	ret = audio_in_prepare(g_recorder->audio_h);
 	if (AUDIO_IO_ERROR_NONE != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to start audio : %d", ret);
 		return STTD_ERROR_RECORDER_BUSY;
@@ -585,7 +557,7 @@ int sttd_recorder_start(int engine_id)
 	}
 #endif
 	g_recorder_state = STTD_RECORDER_STATE_RECORDING;
-	g_recording_engine_id = engine_id;
+	g_recorder->uid = uid;
 
 	g_buffer_count = 0;
 
@@ -606,22 +578,22 @@ int sttd_recorder_start(int engine_id)
 	return 0;
 }
 
-int sttd_recorder_stop(int engine_id)
+int sttd_recorder_stop()
 {
 	if (STTD_RECORDER_STATE_READY == g_recorder_state)
 		return 0;
 
 	/* Check engine id is valid */
-	stt_recorder_s* recorder;
-	recorder = __get_recorder(engine_id);
-	if (NULL == recorder) {
+	if (NULL == g_recorder) {
 		SLOG(LOG_WARN, TAG_STTD, "[Recorder WARNING] Engine id is not valid");
 		return STTD_ERROR_INVALID_PARAMETER;
 	}
 
+	g_recorder->uid = -1;
+
 	int ret;
 #ifndef TV_BT_MODE
-	ret = audio_in_unprepare(recorder->audio_h);
+	ret = audio_in_unprepare(g_recorder->audio_h);
 	if (AUDIO_IO_ERROR_NONE != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to unprepare audioin : %d", ret);
 	}
@@ -649,7 +621,6 @@ int sttd_recorder_stop(int engine_id)
 #endif
 
 	g_recorder_state = STTD_RECORDER_STATE_READY;
-	g_recording_engine_id = -1;
 
 	ret = sound_manager_release_focus(g_stream_info_h, SOUND_STREAM_FOCUS_FOR_RECORDING, NULL);
 	if (SOUND_MANAGER_ERROR_NONE != ret) {
