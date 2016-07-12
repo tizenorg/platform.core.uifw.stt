@@ -15,7 +15,7 @@
 #ifndef __STTD_RECORDER_H__
 #define __STTD_RECORDER_H__
 
-#include "sttp.h"
+#include "stte.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -34,13 +34,14 @@ int sttd_recorder_set_audio_session();
 
 int sttd_recorder_unset_audio_session();
 
-int sttd_recorder_create(int engine_id, int uid, sttp_audio_type_e type, int channel, unsigned int sample_rate);
+int sttd_recorder_create(stte_audio_type_e type, int channel, unsigned int sample_rate);
 
-int sttd_recorder_destroy(int engine_id);
+int sttd_recorder_destroy();
 
-int sttd_recorder_start(int engine_id);
+int sttd_recorder_start(int uid);
 
-int sttd_recorder_stop(int engine_id);
+int sttd_recorder_stop();
+
 
 #ifdef __cplusplus
 }

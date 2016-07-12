@@ -1,3 +1,7 @@
+stt (0.2.56) -- Fri, 1 July 2016
+
+  * Change engine lib to engine process. Daemon will be used as library (Kwangyoun Kim <ky85.kim@samsung.com>)
+
 stt (0.2.55) -- Wed, 18 May 2016
 
   * Add to get error message function and to set credential fucntion (Wonnam Jang <wn.jang@samsung.com>)

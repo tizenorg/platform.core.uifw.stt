@@ -43,7 +43,7 @@ typedef enum {
 	STTD_ERROR_OUT_OF_MEMORY		= TIZEN_ERROR_OUT_OF_MEMORY,	/**< Out of Memory */
 	STTD_ERROR_IO_ERROR			= TIZEN_ERROR_IO_ERROR,		/**< I/O error */
 	STTD_ERROR_INVALID_PARAMETER		= TIZEN_ERROR_INVALID_PARAMETER,/**< Invalid parameter */
-	STTD_ERROR_TIMED_OUT			= TIZEN_ERROR_TIMED_OUT,	/**< No answer from the daemon */
+	STTD_ERROR_TIMED_OUT			= TIZEN_ERROR_TIMED_OUT,	/**< No answer from the STT service */
 	STTD_ERROR_RECORDER_BUSY		= TIZEN_ERROR_RESOURCE_BUSY,	/**< Device or resource busy */
 	STTD_ERROR_OUT_OF_NETWORK		= TIZEN_ERROR_NETWORK_DOWN,	/**< Network is down */
 	STTD_ERROR_PERMISSION_DENIED		= TIZEN_ERROR_PERMISSION_DENIED,/**< Permission denied */
