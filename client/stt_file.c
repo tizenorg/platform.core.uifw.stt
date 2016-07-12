@@ -45,16 +45,9 @@ typedef struct _sttengine_info {
 
 static GSList*	g_engine_list;
 
-static int	g_engine_id_count = 0;
-
 
 #define STT_FILE_CONFIG_HANDLE	100000
 
-
-const char* stt_tag(void)
-{
-	return TAG_STTFC;
-}
 
 static const char* __stt_file_get_error_code(stt_file_error_e err)
 {
@@ -75,7 +68,7 @@ static const char* __stt_file_get_error_code(stt_file_error_e err)
 	}
 }
 
-void __stt_file_engine_info_cb(const char* engine_uuid, const char* engine_name, const char* setting_ug_name,
+void __stt_file_engine_info_cb(const char* engine_uuid, const char* engine_name, const char* setting_ug_name, 
 		      bool use_network, void* user_data)
 {
 	sttengine_info_s* temp = (sttengine_info_s*)user_data;
@@ -88,6 +81,7 @@ void __stt_file_engine_info_cb(const char* engine_uuid, const char* engine_name,
 
 static int __stt_file_get_engine_info(const char* filepath, sttengine_info_s** info)
 {
+#ifdef __UNUSED_CODES__
 	if (NULL == filepath || NULL == info) {
 		SLOG(LOG_ERROR, TAG_STTFC, "[Engine Agent ERROR] Invalid Parameter");
 		return STT_FILE_ERROR_INVALID_PARAMETER;
@@ -104,7 +98,7 @@ static int __stt_file_get_engine_info(const char* filepath, sttengine_info_s** i
 		return STT_FILE_ERROR_ENGINE_NOT_FOUND;
 	}
 
-	/* link engine to daemon */
+	/* link engine to stt-service */
 	dlsym(handle, "sttp_load_engine");
 	if ((error = dlerror()) != NULL) {
 		SLOG(LOG_WARN, TAG_STTFC, "[Engine Agent] Invalid engine. Fail to open sttp_load_engine : %s", error);
@@ -164,6 +158,7 @@ static int __stt_file_get_engine_info(const char* filepath, sttengine_info_s** i
 	SLOG(LOG_DEBUG, TAG_STTFC, "  ");
 
 	*info = temp;
+#endif
 
 	return STT_FILE_ERROR_NONE;
 }
@@ -213,10 +208,10 @@ void __stt_file_relseae_engine_info(void)
 				if (engine->is_loaded) {
 					SECURE_SLOG(LOG_DEBUG, TAG_STTFC, "[Engine Agent] Unload engine id(%d)", engine->engine_id);
 
-					if (0 != stt_engine_deinitialize(engine->engine_id))
+					if (0 != stt_engine_deinitialize())
 						SECURE_SLOG(LOG_WARN, TAG_STTFC, "[Engine Agent] Fail to deinitialize engine id(%d)", engine->engine_id);
 
-					if (0 != stt_engine_unload(engine->engine_id))
+					if (0 != stt_engine_unload())
 						SECURE_SLOG(LOG_WARN, TAG_STTFC, "[Engine Agent] Fail to unload engine id(%d)", engine->engine_id);
 
 					engine->is_loaded = false;
@@ -255,7 +250,7 @@ static sttengine_info_s* __stt_file_get_engine_by_id(int engine_id)
 	return NULL;
 }
 
-void __stt_file_result_cb(sttp_result_event_e event, const char* type, const char** data, int data_count,
+void __stt_file_result_cb(stte_result_event_e event, const char* type, const char** data, int data_count,
 		 const char* msg, void* time_info, void *user_data)
 {
 
@@ -293,7 +288,7 @@ void __stt_file_result_cb(sttp_result_event_e event, const char* type, const cha
 
 	client->time_info = NULL;
 
-	if (STTP_RESULT_EVENT_FINAL_RESULT == event || STTP_RESULT_EVENT_ERROR == event) {
+	if (STTE_RESULT_EVENT_FINAL_RESULT == event || STTE_RESULT_EVENT_ERROR == event) {
 		SLOG(LOG_DEBUG, TAG_STTFC, "[STT FILE] State change : 'Ready'");
 
 		client->before_state = client->current_state;
@@ -312,9 +307,17 @@ void __stt_file_result_cb(sttp_result_event_e event, const char* type, const cha
 	return;
 }
 
-void __stt_file_silence_cb(sttp_silence_type_e type, void *user_data)
+void __stt_file_speech_status_cb(stte_speech_status_e status, void *user_data)
 {
+	/* it seems to be no necessity yet */
 	SLOG(LOG_WARN, TAG_STTFC, "[WARNING] This callback should NOT be called.");
+	return;
+}
+
+void __stt_file_error_cb(stte_error_e error, const char* msg)
+{
+	/* it seems to be no necessity yet */
+	SLOG(LOG_DEBUG, TAG_STTFC, "[STT FILE] Error callback is called");
 	return;
 }
 
@@ -325,12 +328,12 @@ static int __stt_file_load_engine(sttengine_info_s* engine)
 		return STT_FILE_ERROR_INVALID_PARAMETER;
 	}
 
-	if (0 != stt_engine_load(engine->engine_id, engine->engine_path)) {
+	if (0 != stt_engine_load(engine->engine_path, NULL)) {
 		SLOG(LOG_ERROR, TAG_STTFC, "[STT FILE ERROR] Fail to load engine(%s)", engine->engine_path);
 		return STT_FILE_ERROR_OPERATION_FAILED;
 	}
 
-	int ret = stt_engine_initialize(engine->engine_id, __stt_file_result_cb, __stt_file_silence_cb);
+	int ret = stt_engine_initialize(true);
 	if (0 != ret) {
 		SECURE_SLOG(LOG_ERROR, TAG_STTFC, "[Engine Agent ERROR] Fail to initialize engine : id(%d) path(%s)", engine->engine_id, engine->engine_path);
 		return STT_FILE_ERROR_OPERATION_FAILED;
@@ -368,7 +371,7 @@ int stt_file_initialize(void)
 			}
 
 			if (NULL != dirp) {
-				sttengine_info_s* info;
+				sttengine_info_s* info = NULL;
 				char* filepath;
 				int filesize;
 
@@ -524,7 +527,7 @@ int stt_file_deinitialize(void)
 	switch (client->current_state) {
 	case STT_FILE_STATE_PROCESSING:
 		/* Cancel file recognition */
-		stt_engine_recognize_cancel_file(client->current_engine_id);
+		stt_engine_recognize_cancel_file();
 
 	case STT_FILE_STATE_READY:
 		/* Unload engine */
@@ -739,8 +742,8 @@ int stt_file_set_engine(const char* engine_id)
 	client->current_engine_id = engine->engine_id;
 
 	if (-1 != temp_old_engine) {
-		stt_engine_deinitialize(temp_old_engine);
-		stt_engine_unload(temp_old_engine);
+		stt_engine_deinitialize();
+		stt_engine_unload();
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTFC, "=====");
@@ -862,7 +865,7 @@ int stt_file_start(const char* language, const char* type, const char* filepath,
 		client->current_engine_id, language, type, filepath, audio_type, sample_rate);
 
 	int ret = -1;
-	ret = stt_engine_recognize_start_file(client->current_engine_id, language, type, filepath, audio_type, sample_rate, NULL);
+	ret = stt_engine_recognize_start_file(language, type, filepath, audio_type, sample_rate, NULL);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTFC, "[ERROR] Fail to start file recognition");
 		SLOG(LOG_DEBUG, TAG_STTFC, "=====");
@@ -911,7 +914,7 @@ int stt_file_cancel(void)
 	}
 
 	int ret = -1;
-	ret = stt_engine_recognize_cancel_file(client->current_engine_id);
+	ret = stt_engine_recognize_cancel_file();
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTFC, "[ERROR] Fail to cancel file recognition");
 		SLOG(LOG_DEBUG, TAG_STTFC, "=====");
@@ -937,7 +940,7 @@ int stt_file_cancel(void)
 	return STT_FILE_ERROR_NONE;
 }
 
-bool __stt_file_result_time_cb(int index, sttp_result_time_event_e event, const char* text, long start_time, long end_time, void* user_data)
+bool __stt_file_result_time_cb(int index, stte_result_time_event_e event, const char* text, long start_time, long end_time, void* user_data)
 {
 	SLOG(LOG_DEBUG, TAG_STTFC, "(%d) event(%d) text(%s) start(%ld) end(%ld)",
 		index, event, text, start_time, end_time);
@@ -981,7 +984,7 @@ int stt_file_foreach_detailed_result(stt_file_result_time_cb callback, void* use
 	client->result_time_cb = callback;
 	client->result_time_user_data = user_data;
 
-	stt_engine_foreach_result_time(client->current_engine_id, client->time_info, __stt_file_result_time_cb, NULL);
+	stt_engine_foreach_result_time(client->time_info, __stt_file_result_time_cb, NULL);
 
 	client->result_time_cb = NULL;
 	client->result_time_user_data = NULL;
@@ -1010,10 +1013,15 @@ int stt_file_set_recognition_result_cb(stt_file_recognition_result_cb callback, 
 		return STT_FILE_ERROR_INVALID_STATE;
 	}
 
+	int ret = stt_engine_set_recognition_result_cb(__stt_file_result_cb, NULL);
+	if (0 != ret) {
+		SLOG(LOG_ERROR, TAG_STTFC, "[ERROR] Fail to set recognition result cb");
+	}
+
 	client->recognition_result_cb = callback;
 	client->recognition_result_user_data = user_data;
 
-	return 0;
+	return ret;
 }
 
 int stt_file_unset_recognition_result_cb(void)
@@ -1031,10 +1039,15 @@ int stt_file_unset_recognition_result_cb(void)
 		return STT_FILE_ERROR_INVALID_STATE;
 	}
 
+	int ret = stt_engine_set_recognition_result_cb(NULL, NULL);
+	if (0 != ret) {
+		SLOG(LOG_ERROR, TAG_STTFC, "[ERROR] Fail to set recognition result cb");
+	}
+
 	client->recognition_result_cb = NULL;
 	client->recognition_result_user_data = NULL;
 
-	return 0;
+	return ret;
 }
 
 int stt_file_set_state_changed_cb(stt_file_state_changed_cb callback, void* user_data)

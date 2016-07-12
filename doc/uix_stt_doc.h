@@ -34,17 +34,17 @@
  * To use of STT, use the following steps:<br>
  * 1. Create a handle <br>
  * 2. Register callback functions for notifications <br>
- * 3. Prepare stt-daemon asynchronously <br>
+ * 3. Prepare stt-service asynchronously <br>
  * 4. Start recording for recognition <br>
  * 5. Stop recording <br>
  * 6. Get result after processing <br>
  * 7. Destroy a handle <br>
  *
  * The STT has a client-server for the service of multi-applications.
- * The STT daemon as a server always works in the background for the STT service.
- * If the daemon is not working, client library will invoke it and client will communicate with it.
- * The daemon has engines and the recorder so client does not have the recorder itself.
- * Only the client request commands to the daemon for the service.
+ * The STT service always works in the background as a server.
+ * If the service is not working, client library will invoke it and client will communicate with it.
+ * The service has engines and the recorder so client does not have the recorder itself.
+ * Only the client request commands to the STT service for using STT.
  *
  * @section CAPI_STT_MODULE_STATE_DIAGRAM State Diagram
  * The following diagram shows the life cycle and the states of the STT.
@@ -110,7 +110,7 @@
  * <tr>
  * <td>stt_prepare()</td>
  * <td>Created</td>
- * <td>This function works asynchronously. If daemon fork is failed, application gets the error callback.</td>
+ * <td>This function works asynchronously. If the STT service fork is failed, application gets the error callback.</td>
  * </tr>
  * <tr>
  * <td>stt_unprepare()</td>
