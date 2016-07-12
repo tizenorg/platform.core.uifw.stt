@@ -463,9 +463,11 @@ int stt_file_initialize(void)
 	if (NULL != engine_id)	free(engine_id);
 
 	if (false == is_found) {
+		engine = NULL;
 		SLOG(LOG_WARN, TAG_STTFC, "[STT FILE WARNING] Fail to find default engine");
 		iter = g_slist_nth(g_engine_list, 0);
-		engine = iter->data;
+		if (NULL != iter)
+			engine = iter->data;
 
 		if (NULL == engine) {
 			SLOG(LOG_ERROR, TAG_STTFC, "[Engine Agent ERROR] Fail to initialize engine");
