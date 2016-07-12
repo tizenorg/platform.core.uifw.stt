@@ -1,6 +1,6 @@
 Name:       stt
 Summary:    Speech To Text client library and daemon
-Version:    0.2.55
+Version:    0.2.56
 Release:    1
 Group:      Graphics & UI Framework/Voice Framework
 License:    Apache-2.0
@@ -111,7 +111,6 @@ mkdir -p %{TZ_SYS_RO_SHARE}/voice/test
 %license LICENSE.APLv2
 %defattr(-,root,root,-)
 %{_libdir}/lib*.so
-%{_bindir}/stt-daemon
 /etc/dbus-1/session.d/stt-server.conf
 %{TZ_SYS_RO_SHARE}/voice/stt/1.0/stt-config.xml
 %{TZ_SYS_RO_SHARE}/dbus-1/services/org.tizen.voice*
@@ -137,4 +136,4 @@ mkdir -p %{TZ_SYS_RO_SHARE}/voice/test
 %files engine-devel
 %defattr(-,root,root,-)
 %{_libdir}/pkgconfig/stt-engine.pc
-%{_includedir}/sttp.h
+%{_includedir}/stte.h

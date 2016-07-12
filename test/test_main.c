@@ -201,7 +201,9 @@ static void __stt_recognition_result_cb(stt_h stt, stt_result_event_e event, con
 		SLOG(LOG_DEBUG, TAG_STT_TEST, "( %s )", data[0]);
 	}
 
+	if (STT_RESULT_EVENT_FINAL_RESULT == event) {
 	ecore_timer_add(0, __stt_finalize, NULL);
+	}
 }
 
 int main(int argc, char *argv[])
@@ -289,6 +291,13 @@ int main(int argc, char *argv[])
 		if (STT_ERROR_NONE != ret) {
 			stt_destroy(g_stt);
 			SLOG(LOG_ERROR, TAG_STT_TEST, "Fail to set recognition result cb");
+			return 0;
+		}
+
+		SLOG(LOG_DEBUG, TAG_STT_TEST, "STT set credential");
+		ret = stt_set_credential(g_stt, "1Q2W3E4R5T");
+		if (STT_ERROR_NONE != ret) {
+			SLOG(LOG_ERROR, TAG_STT_TEST, "Fail to set credential");
 			return 0;
 		}
 
