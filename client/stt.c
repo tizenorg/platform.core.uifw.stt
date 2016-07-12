@@ -110,8 +110,10 @@ static int __check_privilege(const char* uid, const char * privilege)
 	char *session = cynara_session_from_pid(pid);
 	int ret = cynara_check(p_cynara, smack_label, session, uid, privilege);
 	SLOG(LOG_DEBUG, TAG_STTC, "[Client]cynara_check returned %d(%s)", ret, (CYNARA_API_ACCESS_ALLOWED == ret) ? "Allowed" : "Denied");
-	if (session)
-	    free(session);
+	if (session) {
+		free(session);
+		session = NULL;
+	}
 
 	if (ret != CYNARA_API_ACCESS_ALLOWED)
 	    return false;
@@ -244,7 +246,7 @@ void __stt_config_engine_changed_cb(const char* engine_id, const char* setting, 
 	if (NULL != client->engine_changed_cb) {
 		client->engine_changed_cb(stt, engine_id, language, support_silence, need_credential, client->engine_changed_user_data);
 	} else {
-		SLOG(LOG_WARN, TAG_STTC, "No registered callback function of supported languages");
+		SLOG(LOG_WARN, TAG_STTC, "No registered callback function for engine change");
 	}
 	return;
 }
@@ -568,6 +570,10 @@ int stt_set_credential(stt_h stt, const char* credential)
 		return STT_ERROR_INVALID_STATE;
 	}
 
+	if (NULL != client->credential) {
+		free(client->credential);
+		client->credential = NULL;
+	}
 	client->credential = strdup(credential);
 
 	SLOG(LOG_DEBUG, TAG_STTC, "=====");
@@ -707,7 +713,7 @@ static Eina_Bool __stt_connect_daemon(void *data)
 	}
 
 	g_connect_timer = NULL;
-	SLOG(LOG_DEBUG, TAG_STTC, "===== Connect daemon");
+	SLOG(LOG_DEBUG, TAG_STTC, "===== Connect stt-service");
 
 	/* request initialization */
 	bool silence_supported = false;
@@ -727,7 +733,7 @@ static Eina_Bool __stt_connect_daemon(void *data)
 		SLOG(LOG_ERROR, TAG_STTC, "[WARNING] Fail to connection. Retry to connect");
 		return EINA_TRUE;
 	} else {
-		/* success to connect stt-daemon */
+		/* success to connect stt-service */
 		client->silence_supported = silence_supported;
 		client->credential_needed = credential_needed;
 		SLOG(LOG_DEBUG, TAG_STTC, "Supported options : silence(%s), credential(%s)", silence_supported ? "support" : "no support", credential_needed ? "need" : "no need");

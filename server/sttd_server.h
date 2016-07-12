@@ -17,6 +17,7 @@
 
 #include <Ecore.h>
 #include "sttd_main.h"
+#include "stte.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -26,7 +27,7 @@ extern "C" {
 /*
 * Daemon functions
 */
-int sttd_initialize();
+int sttd_initialize(stte_request_callback_s *callback);
 
 int sttd_finalize();
 

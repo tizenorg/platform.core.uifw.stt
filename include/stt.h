@@ -42,7 +42,7 @@ typedef enum {
 	STT_ERROR_OUT_OF_MEMORY			= TIZEN_ERROR_OUT_OF_MEMORY,	/**< Out of Memory */
 	STT_ERROR_IO_ERROR			= TIZEN_ERROR_IO_ERROR,		/**< I/O error */
 	STT_ERROR_INVALID_PARAMETER		= TIZEN_ERROR_INVALID_PARAMETER,/**< Invalid parameter */
-	STT_ERROR_TIMED_OUT			= TIZEN_ERROR_TIMED_OUT,	/**< No answer from the daemon */
+	STT_ERROR_TIMED_OUT			= TIZEN_ERROR_TIMED_OUT,	/**< No answer from the STT service */
 	STT_ERROR_RECORDER_BUSY			= TIZEN_ERROR_RESOURCE_BUSY,	/**< Device or resource busy */
 	STT_ERROR_OUT_OF_NETWORK		= TIZEN_ERROR_NETWORK_DOWN,	/**< Network is down */
 	STT_ERROR_PERMISSION_DENIED		= TIZEN_ERROR_PERMISSION_DENIED,/**< Permission denied */
@@ -481,7 +481,7 @@ int stt_set_credential(stt_h stt, const char* credential);
  * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
  * @retval #STT_ERROR_INVALID_STATE Invalid state
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
- * @retval #STT_ERROR_TIMED_OUT No answer from the daemon
+ * @retval #STT_ERROR_TIMED_OUT No answer from the STT service
  *
  * @pre The state should be #STT_STATE_READY.
  *
@@ -509,7 +509,7 @@ int stt_set_private_data(stt_h stt, const char* key, const char* data);
  * @retval #STT_ERROR_INVALID_PARAMETER Invalid parameter
  * @retval #STT_ERROR_INVALID_STATE Invalid state
  * @retval #STT_ERROR_NOT_SUPPORTED STT NOT supported
- * @retval #STT_ERROR_TIMED_OUT No answer from the daemon
+ * @retval #STT_ERROR_TIMED_OUT No answer from the STT service
  *
  * @pre The state should be #STT_STATE_READY.
  *
@@ -518,7 +518,7 @@ int stt_set_private_data(stt_h stt, const char* key, const char* data);
 int stt_get_private_data(stt_h stt, const char* key, char** data);
 
 /**
- * @brief Connects the daemon asynchronously.
+ * @brief Connects the STT service asynchronously.
  * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @privlevel public
  * @privilege %http://tizen.org/privilege/recorder
@@ -541,7 +541,7 @@ int stt_get_private_data(stt_h stt, const char* key, char** data);
 int stt_prepare(stt_h stt);
 
 /**
- * @brief Disconnects the daemon.
+ * @brief Disconnects the STT service.
  * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @privlevel public
  * @privilege %http://tizen.org/privilege/recorder
@@ -788,7 +788,7 @@ int stt_unset_stop_sound(stt_h stt);
  * @privlevel public
  * @privilege %http://tizen.org/privilege/recorder
  *
- * @remarks This function starts recording in the daemon and sending recording data to engine. \n
+ * @remarks This function starts recording in the STT service and sending recording data to engine. \n
  * This work continues until stt_stop(), stt_cancel() or silence detected by engine.
  *
  * @param[in] stt The STT handle

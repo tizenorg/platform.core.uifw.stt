@@ -453,6 +453,7 @@ int __stt_config_set_auto_language()
 		g_config_info->language = strdup(tmp_language);
 
 		free(tmp_language);
+		tmp_language = NULL;
 	}
 
 	return 0;
@@ -652,6 +653,57 @@ int __stt_config_mgr_check_engine_is_valid(const char* engine_id)
 	return STT_CONFIG_ERROR_NONE;
 }
 
+static void __get_engine_list(const char* directory)
+{
+	DIR *dp = NULL;
+	int ret = -1;
+	struct dirent entry;
+	struct dirent *dirp = NULL;
+
+	dp  = opendir(directory);
+	if (NULL != dp) {
+		do {
+			ret = readdir_r(dp, &entry, &dirp);
+			if (0 != ret) {
+				SLOG(LOG_ERROR, stt_tag(), "[File ERROR] Fail to read directory");
+				break;
+			}
+
+			if (NULL != dirp) {
+				if (!strcmp(".", dirp->d_name) || !strcmp("..", dirp->d_name))
+					continue;
+
+				stt_engine_info_s* info;
+				char* filepath;
+				int filesize;
+
+				filesize = strlen(STT_DEFAULT_ENGINE_INFO) + strlen(dirp->d_name) + 5;
+				filepath = (char*)calloc(filesize, sizeof(char));
+
+				if (NULL != filepath) {
+					snprintf(filepath, filesize, "%s/%s", directory, dirp->d_name);
+				} else {
+					SLOG(LOG_ERROR, stt_tag(), "[Config ERROR] Memory not enough!!");
+					continue;
+				}
+
+				if (0 == stt_parser_get_engine_info(filepath, &info)) {
+					g_engine_list = g_slist_append(g_engine_list, info);
+				}
+
+				if (NULL != filepath)
+					free(filepath);
+			}
+		} while (NULL != dirp);
+
+		closedir(dp);
+	} else {
+		SLOG(LOG_WARN, stt_tag(), "[Config WARNING] Fail to open directory"); 
+	}
+
+	return;
+}
+
 int stt_config_mgr_initialize(int uid)
 {
 	GSList *iter = NULL;
@@ -692,54 +744,14 @@ int stt_config_mgr_initialize(int uid)
 	}
 
 	/* Get file name from default engine directory */
-	DIR *dp = NULL;
-	int ret = -1;
-	struct dirent entry;
-	struct dirent *dirp = NULL;
-
 	g_engine_list = NULL;
 
 	SLOG(LOG_WARN, stt_tag(), "[CONFIG] default engine info(%s)", STT_DEFAULT_ENGINE_INFO);
-	dp  = opendir(STT_DEFAULT_ENGINE_INFO);
-	if (NULL != dp) {
-		do {
-			ret = readdir_r(dp, &entry, &dirp);
-			if (0 != ret) {
-				SLOG(LOG_ERROR, stt_tag(), "[File ERROR] Fail to read directory");
-				break;
-			}
 
-			if (NULL != dirp) {
-				if (!strcmp(".", dirp->d_name) || !strcmp("..", dirp->d_name))
-					continue;
-
-				stt_engine_info_s* info;
-				char* filepath;
-				int filesize;
-
-				filesize = strlen(STT_DEFAULT_ENGINE_INFO) + strlen(dirp->d_name) + 5;
-				filepath = (char*)calloc(filesize, sizeof(char));
-
-				if (NULL != filepath) {
-					snprintf(filepath, filesize, "%s/%s", STT_DEFAULT_ENGINE_INFO, dirp->d_name);
-				} else {
-					SLOG(LOG_ERROR, stt_tag(), "[Config ERROR] Memory not enough!!");
-					continue;
-				}
-
-				if (0 == stt_parser_get_engine_info(filepath, &info)) {
-					g_engine_list = g_slist_append(g_engine_list, info);
-				}
-
-				if (NULL != filepath)
-					free(filepath);
-			}
-		} while (NULL != dirp);
-
-		closedir(dp);
-	} else {
-		SLOG(LOG_WARN, stt_tag(), "[Config WARNING] Fail to open default directory");
-	}
+	SLOG(LOG_DEBUG, stt_tag(), "[CONFIG] Get default engine list");
+	__get_engine_list(STT_DEFAULT_ENGINE_INFO);
+	SLOG(LOG_DEBUG, stt_tag(), "[CONFIG] Get download engine list");
+	__get_engine_list(STT_DOWNLOAD_ENGINE_INFO);
 
 	__stt_config_mgr_print_engine_info();
 
@@ -785,8 +797,8 @@ int stt_config_mgr_initialize(int uid)
 		}
 	}
 
-	/* print daemon config */
-	SLOG(LOG_DEBUG, stt_tag(), "== Daemon config ==");
+	/* print stt-service config */
+	SLOG(LOG_DEBUG, stt_tag(), "== STT service config ==");
 	SLOG(LOG_DEBUG, stt_tag(), " engine : %s", g_config_info->engine_id);
 	SLOG(LOG_DEBUG, stt_tag(), " setting : %s", g_config_info->setting);
 	SLOG(LOG_DEBUG, stt_tag(), " auto language : %s", g_config_info->auto_lang ? "on" : "off");
@@ -967,7 +979,7 @@ int stt_config_mgr_get_engine_list(stt_config_supported_engine_cb callback, void
 			return STT_CONFIG_ERROR_OPERATION_FAILED;
 		}
 
-		if (false == callback(engine_info->uuid, engine_info->name,
+		if (false == callback(engine_info->uuid, engine_info->name, 
 			engine_info->setting, engine_info->support_silence_detection, user_data)) {
 			break;
 		}
@@ -1517,7 +1529,7 @@ int __stt_config_mgr_print_engine_info()
 		} else {
 			SLOG(LOG_ERROR, stt_tag(), "  language is NONE");
 		}
-		SLOG(LOG_DEBUG, stt_tag(), " silence support : %s",
+		SLOG(LOG_DEBUG, stt_tag(), " silence support : %s", 
 			engine_info->support_silence_detection ? "true" : "false");
 		iter = g_slist_next(iter);
 		i++;
@@ -1611,7 +1623,7 @@ int stt_config_mgr_foreach_time_info(stt_config_result_time_cb callback, void* u
 	while (NULL != iter) {
 		data = iter->data;
 
-		if (false == callback(data->index, data->event, data->text,
+		if (false == callback(data->index, data->event, data->text, 
 			data->start_time, data->end_time, user_data)) {
 			break;
 		}
