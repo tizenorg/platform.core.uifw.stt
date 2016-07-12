@@ -13,6 +13,13 @@ SET(FILE_SRCS
 	../common/stt_config_parser.c
 	../common/stt_engine.c
 	../common/stt_network.c
+	../server/sttd_client_data.c
+	../server/sttd_config.c
+	../server/sttd_dbus.c
+	../server/sttd_dbus_server.c
+	../server/sttd_engine_agent.c
+	../server/sttd_recorder.c
+	../server/sttd_server.c
 )
 
 set(SETTING_SRCS

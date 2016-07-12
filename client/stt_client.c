@@ -127,14 +127,18 @@ int stt_client_destroy(stt_h stt)
 
 				if (NULL != data->err_msg) {
 					free(data->err_msg);
+					data->err_msg = NULL;
 				}
 
 				if (NULL != data->credential) {
 					free(data->credential);
+					data->credential = NULL;
 				}
 
 				free(data);
 				free(stt);
+				data = NULL;
+				stt = NULL;
 
 				return 0;
 			}
