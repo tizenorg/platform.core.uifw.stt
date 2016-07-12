@@ -38,7 +38,7 @@ typedef enum {
 	STT_SETTING_ERROR_OUT_OF_MEMORY		= TIZEN_ERROR_OUT_OF_MEMORY,	/**< Out of Memory */
 	STT_SETTING_ERROR_IO_ERROR		= TIZEN_ERROR_IO_ERROR,		/**< I/O error */
 	STT_SETTING_ERROR_INVALID_PARAMETER	= TIZEN_ERROR_INVALID_PARAMETER,/**< Invalid parameter */
-	STT_SETTING_ERROR_TIMED_OUT		= TIZEN_ERROR_TIMED_OUT,	/**< No answer from the daemon */
+	STT_SETTING_ERROR_TIMED_OUT		= TIZEN_ERROR_TIMED_OUT,	/**< No answer from the service */
 	STT_SETTING_ERROR_OUT_OF_NETWORK	= TIZEN_ERROR_NETWORK_DOWN,	/**< Out of network */
 	STT_SETTING_ERROR_PERMISSION_DENIED	= TIZEN_ERROR_PERMISSION_DENIED,/**< Permission denied */
 	STT_SETTING_ERROR_NOT_SUPPORTED		= TIZEN_ERROR_NOT_SUPPORTED,	/**< STT is NOT supported */
@@ -120,7 +120,7 @@ typedef void (*stt_setting_config_changed_cb)(void *user_data);
 *
 * @return 0 on success, otherwise a negative error value.
 * @retval #STT_SETTING_ERROR_NONE Success.
-* @retval #STT_SETTING_ERROR_TIMED_OUT stt daemon is blocked or stt daemon do not exist.
+* @retval #STT_SETTING_ERROR_TIMED_OUT stt service is blocked or stt service do not exist.
 * @retval #STT_SETTING_ERROR_INVALID_STATE STT setting has Already been initialized.
 * @retval #STT_SETTING_ERROR_ENGINE_NOT_FOUND No available stt-engine. Engine should be installed.
 * @retval #STT_SETTING_ERROR_NOT_SUPPORTED STT NOT supported
@@ -130,7 +130,7 @@ typedef void (*stt_setting_config_changed_cb)(void *user_data);
 int stt_setting_initialize(void);
 
 /**
-* @brief finalize stt setting and disconnect to stt-daemon.
+* @brief finalize stt setting and disconnect to stt-service.
 *
 * @return 0 on success, otherwise a negative error value.
 * @retval #STT_SETTING_ERROR_NONE Success.
