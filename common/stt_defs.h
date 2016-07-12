@@ -79,6 +79,10 @@ extern "C" {
 #define STT_DEFAULT_ENGINE_INFO		tzplatform_mkpath(TZ_SYS_RO_SHARE, "/voice/stt/1.0/engine-info")
 #define STT_DEFAULT_ENGINE_SETTING	tzplatform_mkpath(TZ_SYS_RO_SHARE, "/voice/stt/1.0/engine-setting")
 
+#define STT_HOME			tzplatform_mkpath(TZ_USER_HOME, "share/.voice/stt")
+#define STT_DOWNLOAD_BASE		tzplatform_mkpath(TZ_USER_HOME, "share/.voice/stt/1.0")
+#define STT_DOWNLOAD_ENGINE_INFO	tzplatform_mkpath(TZ_USER_HOME, "share/.voice/stt/1.0/engine-info")
+
 #define STT_BASE_LANGUAGE		"en_US"
 
 #define STT_RETRY_COUNT			5

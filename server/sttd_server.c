@@ -92,7 +92,7 @@ static void __cancel_recognition_internal()
 
 	if (0 != uid) {
 		/* cancel engine recognition */
-		int ret = sttd_engine_agent_recognize_cancel(uid);
+		int ret = sttd_engine_agent_recognize_cancel();
 		if (0 != ret) {
 			SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to cancel : result(%d)", ret);
 		}
@@ -135,7 +135,7 @@ int __server_audio_recorder_callback(const void* data, const unsigned int length
 
 	uid = stt_client_get_current_recognition();
 	if (0 != uid) {
-		ret = sttd_engine_agent_set_recording_data(uid, data, length);
+		ret = sttd_engine_agent_set_recording_data(data, length);
 		if (ret < 0) {
 			ecore_main_loop_thread_safe_call_async(__cancel_by_error, NULL);
 			return -1;
@@ -179,7 +179,7 @@ void __cancel_by_no_record(void *data)
 	return;
 }
 
-void __server_recognition_result_callback(sttp_result_event_e event, const char* type,
+void __server_recognition_result_callback(stte_result_event_e event, const char* type,
 					const char** data, int data_count, const char* msg, void *user_data)
 {
 	// critical section
@@ -202,7 +202,7 @@ void __server_recognition_result_callback(sttp_result_event_e event, const char*
 	SLOG(LOG_DEBUG, TAG_STTD, "[Server] uid (%d), event(%d)", uid, event);
 
 	/* send result to client */
-	if (STTP_RESULT_EVENT_FINAL_RESULT == event) {
+	if (STTE_RESULT_EVENT_FINAL_RESULT == event) {
 		if (APP_STATE_PROCESSING != state) {
 			SLOG(LOG_WARN, TAG_STTD, "[Server WARNING] Current state is NOT 'Processing'.");
 		}
@@ -241,7 +241,7 @@ void __server_recognition_result_callback(sttp_result_event_e event, const char*
 		sttd_client_set_state(uid, APP_STATE_READY);
 		stt_client_unset_current_recognition();
 
-	} else if (STTP_RESULT_EVENT_PARTIAL_RESULT == event) {
+	} else if (STTE_RESULT_EVENT_PARTIAL_RESULT == event) {
 		SLOG(LOG_DEBUG, TAG_STTD, "[Server] The partial result from engine is event[%d] data_count[%d]", event,  data_count);
 
 		sttd_config_time_save();
@@ -256,7 +256,7 @@ void __server_recognition_result_callback(sttp_result_event_e event, const char*
 			}
 		}
 
-	} else if (STTP_RESULT_EVENT_ERROR == event) {
+	} else if (STTE_RESULT_EVENT_ERROR == event) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] The event of recognition result is ERROR");
 
 		/* Delete timer for processing time out */
@@ -290,7 +290,7 @@ void __server_recognition_result_callback(sttp_result_event_e event, const char*
 	return;
 }
 
-bool __server_result_time_callback(int index, sttp_result_time_event_e event, const char* text, long start_time, long end_time, void* user_data)
+bool __server_result_time_callback(int index, stte_result_time_event_e event, const char* text, long start_time, long end_time, void* user_data)
 {
 	pthread_mutex_lock(&sttpe_result_time_mutex);
 
@@ -315,9 +315,9 @@ bool __server_result_time_callback(int index, sttp_result_time_event_e event, co
 	return true;
 }
 
-void __server_silence_dectection_callback(sttp_silence_type_e type, void *user_param)
+void __server_speech_status_callback(stte_speech_status_e status, void *user_param)
 {
-	SLOG(LOG_DEBUG, TAG_STTD, "===== Silence Detection Callback");
+	SLOG(LOG_DEBUG, TAG_STTD, "===== Speech status detected Callback");
 
 	int uid = stt_client_get_current_recognition();
 	if (0 != uid) {
@@ -332,14 +332,10 @@ void __server_silence_dectection_callback(sttp_silence_type_e type, void *user_p
 			return;
 		}
 
-		if (STTP_SILENCE_TYPE_NO_RECORD_TIMEOUT == type) {
-			SLOG(LOG_DEBUG, TAG_STTD, "Silence Detection type - No Record");
-			ecore_main_loop_thread_safe_call_async(__cancel_by_no_record, NULL);
-			if (0 != sttdc_send_error_signal(uid, STTP_ERROR_NO_SPEECH, "No speech while recording")) {
-				SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] No speech while recording");
-			}
-		} else if (STTP_SILENCE_TYPE_END_OF_SPEECH_DETECTED == type) {
-			SLOG(LOG_DEBUG, TAG_STTD, "Silence Detection type - End of Speech");
+		if (STTE_SPEECH_STATUS_BEGINNING_POINT_DETECTED == status) {
+			SLOG(LOG_DEBUG, TAG_STTD, "Begin Speech detected");
+		} else if (STTE_SPEECH_STATUS_END_POINT_DETECTED == status) {
+			SLOG(LOG_DEBUG, TAG_STTD, "End Speech detected");
 			ecore_main_loop_thread_safe_call_async(__stop_by_silence, NULL);
 		}
 	} else {
@@ -349,6 +345,12 @@ void __server_silence_dectection_callback(sttp_silence_type_e type, void *user_p
 	SLOG(LOG_DEBUG, TAG_STTD, "=====");
 	SLOG(LOG_DEBUG, TAG_STTD, "  ");
 
+	return;
+}
+
+void __server_error_callback(stte_error_e error, const char* msg)
+{
+	SLOG(LOG_DEBUG, TAG_STTD, "[Server] Error Callback is called");
 	return;
 }
 
@@ -462,7 +464,7 @@ static void __register_sig_handler()
 	signal(SIGQUIT, __sig_handler);
 }
 
-int sttd_initialize()
+int sttd_initialize(stte_request_callback_s *callback)
 {
 	int ret = 0;
 
@@ -489,21 +491,17 @@ int sttd_initialize()
 
 	/* Engine Agent initialize */
 	ret = sttd_engine_agent_init(__server_recognition_result_callback, __server_result_time_callback,
-		__server_silence_dectection_callback);
+		__server_speech_status_callback, __server_error_callback);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to engine agent initialize : result(%d)", ret);
 		return ret;
 	}
 
-	/* Update engine list */
-	ret = sttd_engine_agent_initialize_engine_list();
+	/* load engine */
+	ret = sttd_engine_agent_load_current_engine(callback);
 	if (0 != ret) {
-		if (STTD_ERROR_ENGINE_NOT_FOUND == ret) {
-			SLOG(LOG_WARN, TAG_STTD, "[Server WARNING] There is no stt engine");
-		} else {
-			SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to update engine list : %d", ret);
-			return ret;
-		}
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to load default engine");
+		return ret;
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTD, "[Server SUCCESS] initialize");
@@ -649,16 +647,6 @@ Eina_Bool sttd_cleanup_client(void *data)
 
 int sttd_server_initialize(int pid, int uid, bool* silence, bool* credential)
 {
-	if (false == sttd_engine_agent_is_default_engine()) {
-		/* Update installed engine */
-		sttd_engine_agent_initialize_engine_list();
-
-		if (false == sttd_engine_agent_is_default_engine()) {
-			SLOG(LOG_WARN, TAG_STTD, "[Server WARNING] No stt-engine");
-			return STTD_ERROR_ENGINE_NOT_FOUND;
-		}
-	}
-
 	int ret = STTD_ERROR_NONE;
 
 	/* check if uid is valid */
@@ -668,14 +656,7 @@ int sttd_server_initialize(int pid, int uid, bool* silence, bool* credential)
 		return STTD_ERROR_NONE;
 	}
 
-	/* load engine */
-	ret = sttd_engine_agent_load_current_engine(uid, NULL);
-	if (0 != ret) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to load default engine");
-		return ret;
-	}
-
-	ret = sttd_engine_agent_get_option_supported(uid, silence);
+	ret = sttd_engine_agent_get_option_supported(silence);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to get engine options supported");
 		return ret;
@@ -699,7 +680,14 @@ int sttd_server_initialize(int pid, int uid, bool* silence, bool* credential)
 
 static Eina_Bool __quit_ecore_loop(void *data)
 {
+	SLOG(LOG_DEBUG, TAG_STTD, "[Server] Quit");
+
+	stt_network_finalize();
+	sttd_finalize();
 	ecore_main_loop_quit();
+
+	SLOG(LOG_DEBUG, TAG_STTD, "");
+
 	return EINA_FALSE;
 }
 
@@ -733,10 +721,6 @@ int sttd_server_finalize(int uid)
 		}
 
 		stt_client_unset_current_recognition();
-	}
-
-	if (0 != sttd_engine_agent_unload_current_engine(uid)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to unload engine");
 	}
 
 	/* Remove client information */
@@ -794,13 +778,13 @@ int sttd_server_set_current_engine(int uid, const char* engine_id, bool* silence
 	}
 
 	int ret;
-	ret = sttd_engine_agent_load_current_engine(uid, engine_id);
+	ret = sttd_engine_agent_load_current_engine(NULL);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to set engine : %d", ret);
 		return ret;
 	}
 
-	ret = sttd_engine_agent_get_option_supported(uid, silence);
+	ret = sttd_engine_agent_get_option_supported(silence);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to engine options : %d", ret);
 		return ret;
@@ -830,7 +814,7 @@ int sttd_server_get_current_engine(int uid, char** engine_id)
 	}
 
 	int ret;
-	ret = sttd_engine_agent_get_current_engine(uid, engine_id);
+	ret = sttd_engine_agent_get_current_engine(engine_id);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to get engine : %d", ret);
 		return ret;
@@ -857,7 +841,7 @@ int sttd_server_check_app_agreed(int uid, const char* appid, bool* available)
 	/* Ask engine available */
 	int ret;
 	bool temp = false;
-	ret = sttd_engine_agent_check_app_agreed(uid, appid, &temp);
+	ret = sttd_engine_agent_check_app_agreed(appid, &temp);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to get engine available : %d", ret);
 		return ret;
@@ -884,7 +868,7 @@ int sttd_server_get_supported_languages(int uid, GSList** lang_list)
 	}
 
 	/* get language list from engine */
-	int ret = sttd_engine_agent_supported_langs(uid, lang_list);
+	int ret = sttd_engine_agent_supported_langs(lang_list);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to get supported languages");
 		return ret;
@@ -910,7 +894,7 @@ int sttd_server_get_current_langauage(int uid, char** current_lang)
 	}
 
 	/*get current language from engine */
-	int ret = sttd_engine_agent_get_default_lang(uid, current_lang);
+	int ret = sttd_engine_agent_get_default_lang(current_lang);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to get default language :result(%d)", ret);
 		return ret;
@@ -937,7 +921,7 @@ int sttd_server_set_private_data(int uid, const char* key, const char* data)
 
 	/* set private data to engine */
 	int ret = -1;
-	ret = sttd_engine_agent_set_private_data(uid, key, data);
+	ret = sttd_engine_agent_set_private_data(key, data);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to set private data :result(%d)", ret);
 		return ret;
@@ -964,13 +948,13 @@ int sttd_server_get_private_data(int uid, const char* key, char** data)
 
 	/* get private data to engine */
 	int ret = -1;
-	ret = sttd_engine_agent_get_private_data(uid, key, data);
+	ret = sttd_engine_agent_get_private_data(key, data);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to get private data :result(%d)", ret);
 		return ret;
 	}
 
-	SLOG(LOG_DEBUG, TAG_STTD, "[Server SUCCESS] Get private data");
+	SLOG(LOG_DEBUG, TAG_STTD, "[Server SUCCESS] Get private data, key(%s), data(%s)", key, *data);
 
 	return STTD_ERROR_NONE;
 }
@@ -990,7 +974,7 @@ int sttd_server_is_recognition_type_supported(int uid, const char* type, int* su
 	}
 
 	bool temp;
-	int ret = sttd_engine_agent_is_recognition_type_supported(uid, type, &temp);
+	int ret = sttd_engine_agent_is_recognition_type_supported(type, &temp);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to get recognition type supported : result(%d)", ret);
 		return ret;
@@ -1057,16 +1041,16 @@ Eina_Bool __check_recording_state(void *data)
 
 	if (APP_STATE_READY == state) {
 		/* Cancel stt */
-		SLOG(LOG_DEBUG, TAG_STTD, "[Server] The state of uid(%d) is 'Ready'. The daemon should cancel recording", uid);
+		SLOG(LOG_DEBUG, TAG_STTD, "[Server] The state of uid(%d) is 'Ready'. The STT service should cancel recording", uid);
 		sttd_server_cancel(uid);
 	} else if (APP_STATE_PROCESSING == state) {
 		/* Cancel stt and send change state */
-		SLOG(LOG_DEBUG, TAG_STTD, "[Server] The state of uid(%d) is 'Processing'. The daemon should cancel recording", uid);
+		SLOG(LOG_DEBUG, TAG_STTD, "[Server] The state of uid(%d) is 'Processing'. The STT service should cancel recording", uid);
 		sttd_server_cancel(uid);
 		sttdc_send_set_state(uid, (int)APP_STATE_READY);
 	} else {
 		/* Normal state */
-		SLOG(LOG_DEBUG, TAG_STTD, "[Server] The states of daemon and client are identical");
+		SLOG(LOG_DEBUG, TAG_STTD, "[Server] The states of STT service and client are identical");
 		return EINA_TRUE;
 	}
 
@@ -1154,7 +1138,7 @@ int sttd_server_start(int uid, const char* lang, const char* recognition_type, i
 	int ret = 0;
 	if (false == stt_client_get_app_agreed(uid)) {
 		bool temp = false;
-		ret = sttd_engine_agent_check_app_agreed(uid, appid, &temp);
+		ret = sttd_engine_agent_check_app_agreed(appid, &temp);
 		if (0 != ret) {
 			SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to get engine available : %d", ret);
 			return ret;
@@ -1169,7 +1153,7 @@ int sttd_server_start(int uid, const char* lang, const char* recognition_type, i
 	}
 
 	/* check if engine use network */
-	if (true == sttd_engine_agent_need_network(uid)) {
+	if (true == sttd_engine_agent_need_network()) {
 		if (false == stt_network_is_connected()) {
 			SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Disconnect network. Current engine needs to network connection.");
 			return STTD_ERROR_OUT_OF_NETWORK;
@@ -1222,7 +1206,7 @@ int sttd_server_start(int uid, const char* lang, const char* recognition_type, i
 	}
 
 	/* 3. Create recorder & engine initialize */
-	ret = sttd_engine_agent_recognize_start_engine(uid, lang, recognition_type, silence, credential, NULL);
+	ret = sttd_engine_agent_recognize_start_engine(uid, lang, recognition_type, silence, appid, credential, NULL);
 	if (0 != ret) {
 		stt_client_unset_current_recognition();
 		sttd_recorder_unset_audio_session();
@@ -1230,7 +1214,7 @@ int sttd_server_start(int uid, const char* lang, const char* recognition_type, i
 		return ret;
 	}
 
-	if (0 != strcmp(STTP_RECOGNITION_TYPE_FREE_PARTIAL, recognition_type)) {
+	if (0 != strcmp(STTE_RECOGNITION_TYPE_FREE_PARTIAL, recognition_type)) {
 		g_recording_timer = ecore_timer_add(g_recording_timeout, __stop_by_recording_timeout, NULL);
 	}
 
@@ -1247,7 +1231,7 @@ int sttd_server_start(int uid, const char* lang, const char* recognition_type, i
 			stt_client_unset_current_recognition();
 			sttd_recorder_unset_audio_session();
 
-			sttd_engine_agent_recognize_cancel(uid);
+			sttd_engine_agent_recognize_cancel();
 			ecore_timer_del(g_recording_timer);
 			sttd_client_set_state(uid, APP_STATE_READY);
 
@@ -1276,12 +1260,12 @@ Eina_Bool __time_out_for_processing(void *data)
 	if (0 == uid)	return EINA_FALSE;
 
 	/* Cancel engine */
-	int ret = sttd_engine_agent_recognize_cancel(uid);
+	int ret = sttd_engine_agent_recognize_cancel();
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to cancel : result(%d)", ret);
 	}
 
-	if (0 != sttdc_send_result(uid, STTP_RESULT_EVENT_FINAL_RESULT, NULL, 0, "Time out not to receive recognition result.")) {
+	if (0 != sttdc_send_result(uid, STTE_RESULT_EVENT_FINAL_RESULT, NULL, 0, "Time out not to receive recognition result.")) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to send result ");
 
 		/* send error msg */
@@ -1317,7 +1301,7 @@ void __sttd_server_engine_stop(void* data)
 	}
 
 	/* Stop engine */
-	ret = sttd_engine_agent_recognize_stop_engine(uid);
+	ret = sttd_engine_agent_recognize_stop_engine();
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to stop engine : result(%d)", ret);
 		return;
@@ -1368,10 +1352,10 @@ int sttd_server_stop(int uid)
 
 	int ret;
 	/* 1. Stop recorder */
-	ret = sttd_engine_agent_recognize_stop_recorder(uid);
+	ret = sttd_engine_agent_recognize_stop_recorder();
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to stop recorder : result(%d)", ret);
-		if (0 != sttd_engine_agent_recognize_cancel(uid)) {
+		if (0 != sttd_engine_agent_recognize_cancel()) {
 			SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to cancel recognize");
 		}
 		if (NULL != sound)	free(sound);
@@ -1405,7 +1389,7 @@ int sttd_server_stop(int uid)
 		}
 
 		/* Stop engine */
-		ret = sttd_engine_agent_recognize_stop_engine(uid);
+		ret = sttd_engine_agent_recognize_stop_engine();
 		if (0 != ret) {
 			stt_client_unset_current_recognition();
 			SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to stop engine : result(%d)", ret);
@@ -1468,7 +1452,7 @@ int sttd_server_cancel(int uid)
 	sttd_client_set_state(uid, APP_STATE_READY);
 
 	/* cancel engine recognition */
-	int ret = sttd_engine_agent_recognize_cancel(uid);
+	int ret = sttd_engine_agent_recognize_cancel();
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to cancel : result(%d)", ret);
 		return ret;

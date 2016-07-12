@@ -1,3 +1,4 @@
 [D-BUS Service]
 Name=org.tizen.voice.sttserver
-Exec=/usr/bin/stt-daemon
+Exec=/bin/sh -c "launch_app org.tizen.stt-engine-default"
+
