@@ -46,7 +46,7 @@ typedef enum {
 	STTP_ERROR_NOT_SUPPORTED_FEATURE	= TIZEN_ERROR_STT | 0x05,	/**< Not supported feature of current engine */
 	STTP_ERROR_NO_SPEECH			= TIZEN_ERROR_STT | 0x06,	/**< No speech while recording */
 	STTP_ERROR_RECORDING_TIMED_OUT		= TIZEN_ERROR_STT | 0x10	/**< Recording timed out */
-}sttp_error_e;
+} sttp_error_e;
 
 /**
 * @brief Enumerations of audio type.
@@ -277,7 +277,7 @@ typedef bool (*sttpe_support_silence_detection)(void);
 * @return @c true to be needed app credential, \n @c false not to be needed app credential.
 *
 */
-typedef bool (* sttpe_need_app_credential)(void);
+typedef bool (*sttpe_need_app_credential)(void);
 
 /**
 * @brief Gets supporting recognition type.

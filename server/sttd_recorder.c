@@ -251,7 +251,7 @@ int sttd_recorder_deinitialize()
 
 		if (NULL != recorder) {
 			g_recorder_list = g_slist_remove(g_recorder_list, recorder);
-			if(recorder->audio_h) {
+			if (recorder->audio_h) {
 				audio_in_destroy(recorder->audio_h);
 				recorder->audio_h = NULL;
 			}
@@ -262,7 +262,7 @@ int sttd_recorder_deinitialize()
 	}
 
 #ifdef TV_BT_MODE
-	bt_hid_host_deinitialize ();
+	bt_hid_host_deinitialize();
 
 	bt_deinitialize();
 #endif

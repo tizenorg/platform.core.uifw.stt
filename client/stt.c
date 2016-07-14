@@ -133,7 +133,7 @@ static int __stt_check_privilege()
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Permission is denied");
 		return STT_ERROR_PERMISSION_DENIED;
 	} else if (-1 == g_privilege_allowed) {
-		if (false == __check_privilege_initialize()){
+		if (false == __check_privilege_initialize()) {
 			SLOG(LOG_ERROR, TAG_STTC, "[ERROR] privilege initialize is failed");
 			return STT_ERROR_PERMISSION_DENIED;
 		}
