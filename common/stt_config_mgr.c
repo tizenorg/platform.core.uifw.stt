@@ -659,7 +659,7 @@ static void __get_engine_list(const char* directory)
 	int ret = -1;
 	struct dirent entry;
 	struct dirent *dirp = NULL;
-	
+
 	dp  = opendir(directory);
 	if (NULL != dp) {
 		do {
@@ -750,7 +750,7 @@ int stt_config_mgr_initialize(int uid)
 
 	SLOG(LOG_DEBUG, stt_tag(), "[CONFIG] Get default engine list");
 	__get_engine_list(STT_DEFAULT_ENGINE_INFO);
-	SLOG(LOG_DEBUG, stt_tag(), "[CONFIG] Get download engine info");
+	SLOG(LOG_DEBUG, stt_tag(), "[CONFIG] Get download engine list");
 	__get_engine_list(STT_DOWNLOAD_ENGINE_INFO);
 
 	__stt_config_mgr_print_engine_info();

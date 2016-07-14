@@ -111,7 +111,7 @@ static int __check_privilege(const char* uid, const char * privilege)
 	int ret = cynara_check(p_cynara, smack_label, session, uid, privilege);
 	SLOG(LOG_DEBUG, TAG_STTC, "[Client]cynara_check returned %d(%s)", ret, (CYNARA_API_ACCESS_ALLOWED == ret) ? "Allowed" : "Denied");
 	if (session) {
-	    free(session);
+		free(session);
 		session = NULL;
 	}
 
@@ -135,7 +135,7 @@ static int __stt_check_privilege()
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] Permission is denied");
 		return STT_ERROR_PERMISSION_DENIED;
 	} else if (-1 == g_privilege_allowed) {
-		if (false == __check_privilege_initialize()){
+		if (false == __check_privilege_initialize()) {
 			SLOG(LOG_ERROR, TAG_STTC, "[ERROR] privilege initialize is failed");
 			return STT_ERROR_PERMISSION_DENIED;
 		}

@@ -208,11 +208,9 @@ void __stt_file_relseae_engine_info(void)
 				if (engine->is_loaded) {
 					SECURE_SLOG(LOG_DEBUG, TAG_STTFC, "[Engine Agent] Unload engine id(%d)", engine->engine_id);
 
-					//if (0 != stt_engine_deinitialize(engine->engine_id))
 					if (0 != stt_engine_deinitialize())
 						SECURE_SLOG(LOG_WARN, TAG_STTFC, "[Engine Agent] Fail to deinitialize engine id(%d)", engine->engine_id);
 
-					//if (0 != stt_engine_unload(engine->engine_id))
 					if (0 != stt_engine_unload())
 						SECURE_SLOG(LOG_WARN, TAG_STTFC, "[Engine Agent] Fail to unload engine id(%d)", engine->engine_id);
 
@@ -330,7 +328,6 @@ static int __stt_file_load_engine(sttengine_info_s* engine)
 		return STT_FILE_ERROR_INVALID_PARAMETER;
 	}
 
-	//if (0 != stt_engine_load(engine->engine_id, engine->engine_path, NULL)) {
 	if (0 != stt_engine_load(engine->engine_path, NULL)) {
 		SLOG(LOG_ERROR, TAG_STTFC, "[STT FILE ERROR] Fail to load engine(%s)", engine->engine_path);
 		return STT_FILE_ERROR_OPERATION_FAILED;
@@ -469,6 +466,7 @@ int stt_file_initialize(void)
 	if (NULL != engine_id)	free(engine_id);
 
 	if (false == is_found) {
+		engine = NULL;
 		SLOG(LOG_WARN, TAG_STTFC, "[STT FILE WARNING] Fail to find default engine");
 		iter = g_slist_nth(g_engine_list, 0);
 		if (NULL != iter)
@@ -529,7 +527,6 @@ int stt_file_deinitialize(void)
 	switch (client->current_state) {
 	case STT_FILE_STATE_PROCESSING:
 		/* Cancel file recognition */
-		//stt_engine_recognize_cancel_file(client->current_engine_id);
 		stt_engine_recognize_cancel_file();
 
 	case STT_FILE_STATE_READY:
@@ -745,8 +742,6 @@ int stt_file_set_engine(const char* engine_id)
 	client->current_engine_id = engine->engine_id;
 
 	if (-1 != temp_old_engine) {
-		//stt_engine_deinitialize(temp_old_engine);
-		//stt_engine_unload(temp_old_engine);
 		stt_engine_deinitialize();
 		stt_engine_unload();
 	}
@@ -870,7 +865,6 @@ int stt_file_start(const char* language, const char* type, const char* filepath,
 		client->current_engine_id, language, type, filepath, audio_type, sample_rate);
 
 	int ret = -1;
-	//ret = stt_engine_recognize_start_file(client->current_engine_id, language, type, filepath, audio_type, sample_rate, NULL);
 	ret = stt_engine_recognize_start_file(language, type, filepath, audio_type, sample_rate, NULL);
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTFC, "[ERROR] Fail to start file recognition");
@@ -920,7 +914,6 @@ int stt_file_cancel(void)
 	}
 
 	int ret = -1;
-	//ret = stt_engine_recognize_cancel_file(client->current_engine_id);
 	ret = stt_engine_recognize_cancel_file();
 	if (0 != ret) {
 		SLOG(LOG_ERROR, TAG_STTFC, "[ERROR] Fail to cancel file recognition");
@@ -991,7 +984,6 @@ int stt_file_foreach_detailed_result(stt_file_result_time_cb callback, void* use
 	client->result_time_cb = callback;
 	client->result_time_user_data = user_data;
 
-	//stt_engine_foreach_result_time(client->current_engine_id, client->time_info, __stt_file_result_time_cb, NULL);
 	stt_engine_foreach_result_time(client->time_info, __stt_file_result_time_cb, NULL);
 
 	client->result_time_cb = NULL;
@@ -1055,7 +1047,7 @@ int stt_file_unset_recognition_result_cb(void)
 	client->recognition_result_cb = NULL;
 	client->recognition_result_user_data = NULL;
 
-	return 0;
+	return ret;
 }
 
 int stt_file_set_state_changed_cb(stt_file_state_changed_cb callback, void* user_data)

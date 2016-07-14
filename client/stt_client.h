@@ -61,7 +61,7 @@ typedef struct {
 	/* option */
 	bool		silence_supported;
 	stt_option_silence_detection_e	silence;
-	bool 		credential_needed;
+	bool		credential_needed;
 
 	/* state */
 	stt_state_e	before_state;

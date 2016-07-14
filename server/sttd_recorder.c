@@ -47,7 +47,7 @@ typedef struct {
 	stte_audio_type_e	audio_type;
 } stt_recorder_s;
 
-static stt_recorder_s* g_recorder;
+static stt_recorder_s* g_recorder = NULL;
 
 static stt_recorder_audio_cb	g_audio_cb;
 
@@ -234,15 +234,29 @@ int sttd_recorder_deinitialize()
 		SLOG(LOG_ERROR, TAG_STTD, "[Recorder ERROR] Fail to destroy stream info");
 	}
 
-	/* Remove recorder */
-	if (NULL != g_recorder) {
-		audio_in_destroy(g_recorder->audio_h);
-		free(g_recorder);
-		g_recorder = NULL;
+	/* Remove all recorder */
+	GSList *iter = NULL;
+	stt_recorder_s *recorder = NULL;
+
+	iter = g_slist_nth(g_recorder_list, 0);
+
+	while (NULL != iter) {
+		recorder = iter->data;
+
+		if (NULL != recorder) {
+			g_recorder_list = g_slist_remove(g_recorder_list, recorder);
+			if (recorder->audio_h) {
+				audio_in_destroy(recorder->audio_h);
+				recorder->audio_h = NULL;
+			}
+			free(recorder);
+		}
+
+		iter = g_slist_nth(g_recorder_list, 0);
 	}
 
 #ifdef TV_BT_MODE
-	bt_hid_host_deinitialize ();
+	bt_hid_host_deinitialize();
 
 	bt_deinitialize();
 #endif

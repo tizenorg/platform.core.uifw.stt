@@ -958,7 +958,7 @@ int sttd_dbus_server_start(DBusConnection* conn, DBusMessage* msg)
 
 	dbus_message_get_args(msg, &err, 
 		DBUS_TYPE_INT32, &uid, 
-		DBUS_TYPE_STRING, &lang,   
+		DBUS_TYPE_STRING, &lang,
 		DBUS_TYPE_STRING, &type,
 		DBUS_TYPE_INT32, &silence,
 		DBUS_TYPE_STRING, &appid,

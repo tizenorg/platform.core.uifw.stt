@@ -33,14 +33,14 @@ typedef struct {
 extern const char* stt_tag();
 
 /** stt engine */
-static sttengine_s *g_engine;
+static sttengine_s *g_engine = NULL;
 
 static bool g_is_from_lib = false;
 
 /** callback functions */
-static stt_engine_result_cb g_result_cb;
-static stte_private_data_set_cb g_set_private_data_cb;
-static stte_private_data_requested_cb g_get_private_data_cb;
+static stt_engine_result_cb g_result_cb = NULL;
+static stte_private_data_set_cb g_set_private_data_cb = NULL;
+static stte_private_data_requested_cb g_get_private_data_cb = NULL;
 
 
 static int __stt_set_engine_from(bool is_from_lib){
@@ -75,7 +75,7 @@ static const char* __stt_get_engine_error_code(stte_error_e err)
 /* Register engine id */
 int stt_engine_load(const char* filepath, stte_request_callback_s *callback)
 {
-	if (NULL == callback) {
+	if (NULL == callback || NULL == filepath) {
 		SLOG(LOG_ERROR, stt_tag(), "[Engine ERROR] Invalid Parameter");
 		return STTE_ERROR_INVALID_PARAMETER;
 	}
