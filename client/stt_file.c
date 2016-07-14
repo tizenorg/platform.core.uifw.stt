@@ -525,6 +525,7 @@ int stt_file_deinitialize(void)
 	case STT_FILE_STATE_PROCESSING:
 		/* Cancel file recognition */
 		stt_engine_recognize_cancel_file(client->current_engine_id);
+		break;
 
 	case STT_FILE_STATE_READY:
 		/* Unload engine */

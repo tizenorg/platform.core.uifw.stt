@@ -433,13 +433,14 @@ int sttd_engine_agent_initialize_engine_list()
 		if (0 < g_slist_length(g_engine_list)) {
 			/* Get a first item */
 			iter = g_slist_nth(g_engine_list, 0);
+			if (NULL != iter) {
+				/* Get handle data from list */
+				engine = iter->data;
 
-			/* Get handle data from list */
-			engine = iter->data;
-
-			if (NULL != engine) {
-				is_default_engine = true;
-				g_default_engine_id = engine->engine_id;
+				if (NULL != engine) {
+					is_default_engine = true;
+					g_default_engine_id = engine->engine_id;
+				}
 			}
 		}
 	}
