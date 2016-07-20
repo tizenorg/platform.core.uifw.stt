@@ -437,9 +437,18 @@ int stt_parser_unload_config(stt_config_s* config_info)
 {
 	if (NULL != g_config_doc)	xmlFreeDoc(g_config_doc);
 	if (NULL != config_info) {
-		if (NULL != config_info->engine_id)	free(config_info->engine_id);
-		if (NULL != config_info->setting)	free(config_info->setting);
-		if (NULL != config_info->language)	free(config_info->language);
+		if (NULL != config_info->engine_id) {
+			free(config_info->engine_id);
+			config_info->engine_id = NULL;
+		}
+		if (NULL != config_info->setting) {
+			free(config_info->setting);
+			config_info->setting = NULL;
+		}
+		if (NULL != config_info->language) {
+			free(config_info->language);
+			config_info->language = NULL;
+		}
 
 		free(config_info);
 	}

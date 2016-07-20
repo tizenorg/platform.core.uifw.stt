@@ -532,6 +532,7 @@ int stt_set_engine(stt_h stt, const char* engine_id)
 
 	if (NULL != client->current_engine_id) {
 		free(client->current_engine_id);
+		client->current_engine_id = NULL;
 	}
 
 	SLOG(LOG_DEBUG, TAG_STTC, "===== engined_id(%s)", engine_id);
@@ -739,6 +740,7 @@ static Eina_Bool __stt_connect_daemon(void *data)
 		SLOG(LOG_DEBUG, TAG_STTC, "Supported options : silence(%s), credential(%s)", silence_supported ? "support" : "no support", credential_needed ? "need" : "no need");
 	}
 
+#ifdef __UNUSED_CODES__
 	if (NULL != client->current_engine_id) {
 		ret = -1;
 		int count = 0;
@@ -770,7 +772,7 @@ static Eina_Bool __stt_connect_daemon(void *data)
 			}
 		}
 	}
-
+#endif
 	SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] uid(%d)", client->uid);
 
 	client->before_state = client->current_state;
@@ -954,6 +956,7 @@ int stt_foreach_supported_languages(stt_h stt, stt_supported_language_cb callbac
 
 	if (NULL != current_engine_id) {
 		free(current_engine_id);
+		current_engine_id = NULL;
 	}
 
 	client->supported_lang_cb = NULL;
