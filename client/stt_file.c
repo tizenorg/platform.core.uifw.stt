@@ -463,7 +463,10 @@ int stt_file_initialize(void)
 		}
 	}
 
-	if (NULL != engine_id)	free(engine_id);
+	if (NULL != engine_id) {
+		free(engine_id);
+		engine_id = NULL;
+	}
 
 	if (false == is_found) {
 		engine = NULL;

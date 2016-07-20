@@ -1062,13 +1062,16 @@ int stt_config_mgr_set_engine(const char* engine)
 			continue;
 		}
 
-		if (NULL != g_config_info->engine_id)
+		if (NULL != g_config_info->engine_id) {
 			free(g_config_info->engine_id);
+			g_config_info->engine_id = NULL;
+		}
 
 		g_config_info->engine_id = strdup(engine);
 
 		if (NULL != g_config_info->setting) {
 			free(g_config_info->setting);
+			g_config_info->setting = NULL;
 		}
 
 		if (NULL != engine_info->setting) {

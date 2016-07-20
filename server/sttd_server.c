@@ -24,8 +24,8 @@
 #include "sttd_recorder.h"
 #include "sttd_server.h"
 
-static pthread_mutex_t sttpe_result_mutex = PTHREAD_MUTEX_INITIALIZER;
-static pthread_mutex_t sttpe_result_time_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t stte_result_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t stte_result_time_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
 /*
@@ -183,7 +183,7 @@ void __server_recognition_result_callback(stte_result_event_e event, const char*
 					const char** data, int data_count, const char* msg, void *user_data)
 {
 	// critical section
-	pthread_mutex_lock(&sttpe_result_mutex);
+	pthread_mutex_lock(&stte_result_mutex);
 
 	SLOG(LOG_DEBUG, TAG_STTD, "===== RESULT event[%d] type[%s] data[%p] data_count[%d]", event, type, data, data_count);
 
@@ -195,7 +195,7 @@ void __server_recognition_result_callback(stte_result_event_e event, const char*
 		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] uid is NOT valid ");
 		SLOG(LOG_DEBUG, TAG_STTD, "=====");
 		SLOG(LOG_DEBUG, TAG_STTD, "  ");
-		pthread_mutex_unlock(&sttpe_result_mutex);
+		pthread_mutex_unlock(&stte_result_mutex);
 		return;
 	}
 
@@ -285,14 +285,14 @@ void __server_recognition_result_callback(stte_result_event_e event, const char*
 
 	SLOG(LOG_DEBUG, TAG_STTD, "=====");
 	SLOG(LOG_DEBUG, TAG_STTD, "  ");
-	pthread_mutex_unlock(&sttpe_result_mutex);
+	pthread_mutex_unlock(&stte_result_mutex);
 
 	return;
 }
 
 bool __server_result_time_callback(int index, stte_result_time_event_e event, const char* text, long start_time, long end_time, void* user_data)
 {
-	pthread_mutex_lock(&sttpe_result_time_mutex);
+	pthread_mutex_lock(&stte_result_time_mutex);
 
 	SLOG(LOG_DEBUG, TAG_STTD, "[Server] index(%d) event(%d) text(%s) start(%ld) end(%ld)",
 		index, event, text, start_time, end_time);
@@ -302,15 +302,15 @@ bool __server_result_time_callback(int index, stte_result_time_event_e event, co
 		ret = sttd_config_time_add(index, (int)event, text, start_time, end_time);
 		if (0 != ret) {
 			SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to add time info");
-			pthread_mutex_unlock(&sttpe_result_time_mutex);
+			pthread_mutex_unlock(&stte_result_time_mutex);
 			return false;
 		}
 	} else {
-		pthread_mutex_unlock(&sttpe_result_time_mutex);
+		pthread_mutex_unlock(&stte_result_time_mutex);
 		return false;
 	}
 
-	pthread_mutex_unlock(&sttpe_result_time_mutex);
+	pthread_mutex_unlock(&stte_result_time_mutex);
 
 	return true;
 }
@@ -470,12 +470,12 @@ int sttd_initialize(stte_request_callback_s *callback)
 
 	__register_sig_handler();
 
-	if (0 != pthread_mutex_init(&sttpe_result_mutex, NULL)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to initialize sttpe result mutex.");
+	if (0 != pthread_mutex_init(&stte_result_mutex, NULL)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to initialize stte result mutex.");
 	}
 
-	if (0 != pthread_mutex_init(&sttpe_result_time_mutex, NULL)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to initialize sttpe sttpe_result_time_mutex.");
+	if (0 != pthread_mutex_init(&stte_result_time_mutex, NULL)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to initialize stte stte_result_time_mutex.");
 	}
 
 	if (sttd_config_initialize(__sttd_server_engine_changed_cb, __sttd_server_language_changed_cb,
@@ -511,12 +511,12 @@ int sttd_initialize(stte_request_callback_s *callback)
 
 int sttd_finalize()
 {
-	if (0 != pthread_mutex_destroy(&sttpe_result_mutex)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to destroy sttpe result mutex.");
+	if (0 != pthread_mutex_destroy(&stte_result_mutex)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to destroy stte result mutex.");
 	}
 
-	if (0 != pthread_mutex_destroy(&sttpe_result_time_mutex)) {
-		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to destroy sttpe_result_time_mutex.");
+	if (0 != pthread_mutex_destroy(&stte_result_time_mutex)) {
+		SLOG(LOG_ERROR, TAG_STTD, "[Server ERROR] Fail to destroy stte_result_time_mutex.");
 	}
 
 	GList *iter = NULL;

@@ -215,9 +215,18 @@ int sttd_dbus_server_get_support_engines(DBusConnection* conn, DBusMessage* msg)
 							SLOG(LOG_ERROR, TAG_STTD, "[ERROR] Engine info is NULL");
 						}
 
-						if (NULL != engine->engine_id)		free(engine->engine_id);
-						if (NULL != engine->engine_name)	free(engine->engine_name);
-						if (NULL != engine->ug_name)		free(engine->ug_name);
+						if (NULL != engine->engine_id) {
+							free(engine->engine_id);
+							engine->engine_id = NULL;
+						}
+						if (NULL != engine->engine_name) {
+							free(engine->engine_name);
+							engine->engine_name = NULL;
+						}
+						if (NULL != engine->ug_name) {
+							free(engine->ug_name);
+							engine->ug_name = NULL;
+						}
 
 						free(engine);
 					} else {
