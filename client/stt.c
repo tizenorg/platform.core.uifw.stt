@@ -739,6 +739,7 @@ static Eina_Bool __stt_connect_daemon(void *data)
 		SLOG(LOG_DEBUG, TAG_STTC, "Supported options : silence(%s), credential(%s)", silence_supported ? "support" : "no support", credential_needed ? "need" : "no need");
 	}
 
+#ifdef __UNUSED_CODES__
 	if (NULL != client->current_engine_id) {
 		ret = -1;
 		int count = 0;
@@ -770,7 +771,7 @@ static Eina_Bool __stt_connect_daemon(void *data)
 			}
 		}
 	}
-
+#endif
 	SLOG(LOG_DEBUG, TAG_STTC, "[SUCCESS] uid(%d)", client->uid);
 
 	client->before_state = client->current_state;

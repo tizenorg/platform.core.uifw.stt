@@ -72,9 +72,9 @@ static int g_count = 1;
 #endif
 
 #ifdef TV_BT_MODE
-static float get_volume_decibel(char* data, int size, sttp_audio_type_e type);
+static float get_volume_decibel(char* data, int size, stte_audio_type_e type);
 
-static stt_recorder_s* __get_recorder(int engine_id);
+//static stt_recorder_s* __get_recorder(int engine_id);
 
 static int g_bt_extend_count;
 
