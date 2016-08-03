@@ -92,13 +92,14 @@ static int __check_privilege_initialize()
 static int __check_privilege(const char* uid, const char * privilege)
 {
 	FILE *fp = NULL;
-	char smack_label[1024] = "/proc/self/attr/current";
+	char label_path[1024] = "/proc/self/attr/current";
+	char smack_label[1024] = {'\0',};
 
 	if (!p_cynara) {
 	    return false;
 	}
 
-	fp = fopen(smack_label, "r");
+	fp = fopen(label_path, "r");
 	if (fp != NULL) {
 	    if (fread(smack_label, 1, sizeof(smack_label), fp) <= 0)
 		SLOG(LOG_ERROR, TAG_STTC, "[ERROR] fail to fread");
